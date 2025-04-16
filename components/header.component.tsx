@@ -6,6 +6,7 @@ import Button from "./button.component";
 
 const NAVLINKS = [
   { link: "", label: "Home" },
+  { link: "", label: "Trade" },
   { link: "", label: "Tools" },
   { link: "", label: "Leaderboard" },
   { link: "", label: "Whitepaper" },
@@ -17,7 +18,7 @@ export default function Header() {
       <header className="glass mt-[58px] rounded-[20px] flex justify-between items-center p-[20px] max-w-[1290] mx-auto">
         <Image className="w-[140px]" src={Logo} alt="fortuva logo" />
 
-        <nav className="flex gap-[27px]">
+        <nav className="hidden xl:flex gap-[70px]">
           {NAVLINKS.map((navLink, key) => (
             <Link
               className="font-semibold text-lg"
