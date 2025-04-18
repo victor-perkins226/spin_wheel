@@ -24,7 +24,7 @@ body {
 
 .container {
   /* max-width: 1355px; */
-  @apply mx-auto max-w-[1355px];
+  @apply mx-auto max-w-[1355px] px-4;
 }
 
 .glass {
@@ -32,4 +32,19 @@ body {
   -webkit-backdrop-filter: blur(40px);
   backdrop-filter: blur(40px);
   border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.flipped {
+  transform: "rotateY(180deg)";
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
 }

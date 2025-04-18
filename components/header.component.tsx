@@ -7,7 +7,6 @@ import Button from "./button.component";
 const NAVLINKS = [
   { link: "", label: "Home" },
   { link: "", label: "Trade" },
-  { link: "", label: "Tools" },
   { link: "", label: "Leaderboard" },
   { link: "", label: "Whitepaper" },
 ];
