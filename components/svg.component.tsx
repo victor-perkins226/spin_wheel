@@ -9,6 +9,10 @@ const IconList = [
   "clock",
   "avatar",
   "arrow-left",
+  "medal",
+  "home",
+  "chart",
+  "bag",
 ] as const;
 
 export type IconType = (typeof IconList)[number];
