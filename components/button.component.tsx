@@ -8,7 +8,7 @@ export default function Button({ children, style, ...restProps }: IProps) {
   return (
     <button
       style={{
-        background: "linear-gradient(90deg, #D57F07 0%, #965E27 100%)",
+        background: "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)",
         ...style,
       }}
       {...restProps}
