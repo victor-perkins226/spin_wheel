@@ -1,17 +1,18 @@
 import React from "react";
 import SVG, { IconType } from "./svg.component";
 import Link from "next/link";
+import routes from "@/helpers/routes";
 
 const MOBILE_NAV_LINKS: { icon: IconType; url: string }[] = [
-  { icon: "home", url: "/" },
+  { icon: "home", url: routes.home() },
   { icon: "chart", url: "/" },
-  { icon: "medal", url: "/" },
+  { icon: "medal", url: routes.leaderboard() },
   { icon: "bag", url: "/" },
 ];
 
 export default function MobileNav() {
   return (
-    <nav className="glass w-full fixed bottom-0 pt-[9px] pb-[20px] px-[30px] rounded-[20px] flex xl:hidden justify-around items-end">
+    <nav className="glass w-full fixed bottom-0 pt-[9px] pb-[20px] px-[30px] rounded-[20px] flex md:hidden justify-around items-end">
       {MOBILE_NAV_LINKS.map((el, key) => (
         <Link
           href={el.url}
