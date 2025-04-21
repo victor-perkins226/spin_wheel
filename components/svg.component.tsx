@@ -13,6 +13,8 @@ const IconList = [
   "home",
   "chart",
   "bag",
+  "profile",
+  "live",
 ] as const;
 
 export type IconType = (typeof IconList)[number];

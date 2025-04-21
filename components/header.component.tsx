@@ -3,21 +3,25 @@ import React from "react";
 import Logo from "@/public/assets/logo.svg";
 import Link from "next/link";
 import Button from "./button.component";
+import routes from "@/helpers/routes";
+import SVG from "./svg.component";
 
 const NAVLINKS = [
-  { link: "", label: "Home" },
+  { link: routes.home(), label: "Home" },
   { link: "", label: "Trade" },
-  { link: "", label: "Leaderboard" },
+  { link: routes.leaderboard(), label: "Leaderboard" },
   { link: "", label: "Whitepaper" },
 ];
 
 export default function Header() {
   return (
     <div className="container">
-      <header className="glass mt-[58px] rounded-[20px] flex justify-between items-center p-[20px] max-w-[1290] mx-auto">
-        <Image className="w-[140px]" src={Logo} alt="fortuva logo" />
+      <header className="hidden glass mt-[58px] rounded-[20px] md:flex justify-between items-center p-[20px] max-w-[1290] mx-auto">
+        <Link href={routes.home()}>
+          <Image className="w-[140px]" src={Logo} alt="fortuva logo" />
+        </Link>
 
-        <nav className="hidden xl:flex gap-[70px]">
+        <nav className="flex gap-[16px] xl:gap-[70px]">
           {NAVLINKS.map((navLink, key) => (
             <Link
               className="font-semibold text-lg"
@@ -30,6 +34,14 @@ export default function Header() {
         </nav>
 
         <Button>Connect Wallet</Button>
+      </header>
+
+      <header className="flex md:hidden justify-between p-[20px] mt-[58px]">
+        <SVG iconName="profile" width={52} height={52} />
+
+        <div className="glass p-[15px] rounded-[20px]">
+          <SVG iconName="live" width={21.5} height={18.49} />
+        </div>
       </header>
     </div>
   );
