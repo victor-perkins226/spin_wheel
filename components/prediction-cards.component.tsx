@@ -28,11 +28,11 @@ const LineChart = () => {
   useEffect(() => {
     setMounted(true);
     setIsMobile(window.innerWidth < 768);
-    
+
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -64,7 +64,7 @@ const LineChart = () => {
 
     // Data points that match the curve in the image
     const dataPoints = [2950, 3100, 3500, 3700, 3500, 3950, 3650, 4350, 4600, 4350, 4900, 4700, 5200, 5100, 5300, 5400];
-    
+
     // Second line data - starts lower, overlaps in the middle, then goes higher
     const secondLineData = [2500, 2700, 3000, 3300, 3400, 3600, 3800, 4200, 4600, 4800, 5000, 5300, 5500, 5700, 5800, 6000];
 
@@ -157,7 +157,7 @@ const LineChart = () => {
               font: {
                 size: isMobile ? 8 : 12, // Smaller font on mobile
               },
-              callback: function(value) {
+              callback: function (value) {
                 return isMobile ? value.toString().slice(0, -3) + 'k' : value; // Shorter labels on mobile
               }
             },
@@ -206,7 +206,7 @@ const LineChart = () => {
 // Mobile Live Bets component
 const MobileLiveBets = () => {
   return (
-    <div className="w-full glass px-3 py-4 rounded-lg mt-6">
+    <div className="w-full glass px-3 py-4 rounded-lg mt-2">
       <h3 className="font-semibold text-base mb-3">Live Bets</h3>
       <div className="max-h-[300px] overflow-y-auto">
         <table className="w-full text-left">
@@ -247,22 +247,22 @@ const MobileLiveBets = () => {
 export default function PredictionCards() {
   const [screenWidth, setScreenWidth] = useState(0);
   const [mounted, setMounted] = useState(false);
-  
+
   useEffect(() => {
     // Set mounted to true on client side
     setMounted(true);
-    
+
     // Initialize screen width and update on resize
     const updateScreenWidth = () => {
       setScreenWidth(window.innerWidth);
     };
-    
+
     // Set initial width
     updateScreenWidth();
-    
+
     // Add event listener
     window.addEventListener('resize', updateScreenWidth);
-    
+
     // Cleanup
     return () => window.removeEventListener('resize', updateScreenWidth);
   }, []);
@@ -277,7 +277,7 @@ export default function PredictionCards() {
         return "next";
     }
   };
-  
+
   // Calculate slidesPerView based on screen width, but only if component is mounted
   const getSlidesPerView = () => {
     if (!mounted) return 1;
@@ -318,6 +318,7 @@ export default function PredictionCards() {
           </div>
 
           {/* Swiper Slider - Now with proper client-side handling */}
+
           <Swiper
             effect="coverflow"
             grabCursor={true}
@@ -325,29 +326,32 @@ export default function PredictionCards() {
             slidesPerView={getSlidesPerView()}
             spaceBetween={mounted && screenWidth < 640 ? 10 : 20}
             coverflowEffect={{
-              rotate: mounted && screenWidth < 640 ? 30 : 50,
+              rotate: mounted && screenWidth < 640 ? 20 : 50, // Reduced rotation on mobile for better visibility
               stretch: 0,
               depth: mounted && screenWidth < 640 ? 50 : 100,
               modifier: 1,
               slideShadows: true,
             }}
-            pagination={{ 
+            pagination={{
               clickable: true,
-              dynamicBullets: mounted && screenWidth < 640, // Dynamic bullets on mobile
+              dynamicBullets: mounted && screenWidth < 640,
+              horizontalClass: screenWidth < 640 ? 'swiper-pagination-centered' : '',
             }}
             modules={[EffectCoverflow, Pagination]}
-            className="w-full"
+            className="w-full px-4 sm:px-0" // Added padding on smallest screens
           >
             {[1, 2, 3].map((card, key) => (
-              <SwiperSlide key={key} className="flex justify-center">
+              <SwiperSlide key={key} className="flex justify-center items-center">
                 <PredictionCard variant={formatCardVariant(card)} />
               </SwiperSlide>
             ))}
           </Swiper>
-          
+
           {/* Line Chart Component */}
-          <LineChart />
-          
+          <div className="mt-6">
+            <LineChart />
+          </div>
+
           {/* Mobile-only Live Bets (visible on smaller screens, hidden on xl) */}
           <div className="xl:hidden">
             <MobileLiveBets />
