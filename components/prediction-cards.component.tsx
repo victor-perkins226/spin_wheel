@@ -146,7 +146,10 @@ const LineChart = () => {
             },
             grid: {
               color: gridColor,
-              borderDash: [5, 5],
+              tickLength: 0,
+              lineWidth: 1,
+              drawOnChartArea: true,
+              drawTicks: false
             },
             border: {
               display: false,
