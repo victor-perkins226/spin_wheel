@@ -1,6 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
+import Chart from "chart.js/auto";
+import { useTheme } from "next-themes";
 import SVG from "./svg.component";
 import PredictionCard from "./prediction-card.component";
 import Image from "next/image";
@@ -10,6 +12,176 @@ import { EffectCoverflow, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-coverflow";
 import "swiper/css/pagination";
+
+// LineChart component from the first file
+const LineChart = () => {
+  const chartRef = useRef<HTMLCanvasElement>(null);
+  const chartInstance = useRef<Chart | null>(null);
+  const { theme, systemTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // Determine if we're in dark mode
+  const isDarkMode = mounted && (theme === "dark" || (theme === "system" && systemTheme === "dark"));
+
+  // Set mounted to true on client side
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!chartRef.current || !mounted) return;
+
+    // Destroy existing chart instance if it exists
+    if (chartInstance.current) {
+      chartInstance.current.destroy();
+    }
+
+    const ctx = chartRef.current.getContext("2d");
+    if (!ctx) return;
+
+    // Time labels from 10:59PM to 7:59AM
+    const labels = [
+      "10:59PM",
+      "11:59PM",
+      "12:59AM",
+      "1:59AM",
+      "2:59AM",
+      "3:59AM",
+      "4:59AM",
+      "5:59AM",
+      "6:59AM",
+      "7:59AM",
+    ];
+
+    // Data points that match the curve in the image
+    const dataPoints = [2950, 3100, 3500, 3700, 3500, 3950, 3650, 4350, 4600, 4350, 4900, 4700, 5200, 5100, 5300, 5400];
+    
+    // Second line data - starts lower, overlaps in the middle, then goes higher
+    const secondLineData = [2500, 2700, 3000, 3300, 3400, 3600, 3800, 4200, 4600, 4800, 5000, 5300, 5500, 5700, 5800, 6000];
+
+    // Theme-based colors
+    const lineColor = isDarkMode ? "#a1a1aa" : "#d8d8d8";
+    const secondLineColor = isDarkMode ? "#6366f1" : "#4f46e5"; // Purple color for second line
+    const textColor = isDarkMode ? "#a1a1aa" : "#6f6c99";
+    const gridColor = isDarkMode ? "#27272a" : "#e2e2e8";
+    const tooltipBgColor = isDarkMode ? "#27272a" : "#ffffff";
+    const tooltipTextColor = isDarkMode ? "#e4e4e7" : "#6f6c99";
+    const tooltipBorderColor = isDarkMode ? "#3f3f46" : "#e2e2e8";
+
+    // Create the chart
+    chartInstance.current = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: "Oracle",
+            data: dataPoints,
+            borderColor: lineColor,
+            backgroundColor: "transparent",
+            tension: 0.4,
+            borderWidth: 3,
+            pointRadius: 0,
+          },
+          {
+            label: "TradingView",
+            data: secondLineData,
+            borderColor: secondLineColor,
+            backgroundColor: "transparent",
+            tension: 0.4,
+            borderWidth: 3,
+            pointRadius: 0,
+          }
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            labels: {
+              color: textColor,
+              font: {
+                size: 12
+              }
+            }
+          },
+          tooltip: {
+            enabled: true,
+            backgroundColor: tooltipBgColor,
+            titleColor: tooltipTextColor,
+            bodyColor: tooltipTextColor,
+            borderColor: tooltipBorderColor,
+            borderWidth: 1,
+            padding: 10,
+            displayColors: true,
+            callbacks: {
+              label: (context) => `${context.dataset.label}: ${context.parsed.y}`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            grid: {
+              display: false,
+            },
+            ticks: {
+              color: textColor,
+              font: {
+                size: 12,
+              },
+            },
+          },
+          y: {
+            min: 2000,
+            max: 6500,
+            ticks: {
+              stepSize: 500,
+              color: textColor,
+              font: {
+                size: 12,
+              },
+            },
+            grid: {
+              color: gridColor,
+              borderDash: [5, 5],
+            },
+            border: {
+              display: false,
+            },
+          },
+        },
+        interaction: {
+          intersect: false,
+          mode: "index",
+        },
+        elements: {
+          line: {
+            cubicInterpolationMode: "monotone",
+          },
+        },
+      },
+    });
+
+    return () => {
+      if (chartInstance.current) {
+        chartInstance.current.destroy();
+      }
+    };
+  }, [isDarkMode, mounted]);
+
+  if (!mounted) {
+    return <div className="w-full h-[300px] bg-background"></div>;
+  }
+
+  return (
+    <div className="w-full h-[300px] glass rounded-lg p-4">
+      <canvas ref={chartRef} />
+    </div>
+  );
+};
 
 export default function PredictionCards() {
   const formatCardVariant = (index: number) => {
@@ -85,6 +257,9 @@ export default function PredictionCards() {
               </SwiperSlide>
             ))}
           </Swiper>
+          
+          {/* Added Line Chart Component */}
+          <LineChart />
         </div>
 
         {/* Live Bets Sidebar */}
