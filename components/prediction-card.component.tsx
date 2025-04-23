@@ -31,20 +31,18 @@ export default function PredictionCard({ variant }: IProps) {
   };
 
   return (
+    // In PredictionCard.jsx, update the card_container class
     <div
-      className={`card_container glass rounded-[20px] p-[25px] ${
-        variant === "live" ? "min-w-[380px]" : "min-w-[273px] w-full"
-      }`}
+      className={`card_container glass rounded-[20px] p-[15px] sm:p-[25px] ${variant === "live" ? "min-w-[280px] sm:min-w-[320px] md:min-w-[380px]" : "min-w-[240px] sm:min-w-[273px] w-full"
+        }`}
     >
       <div
-        className={`${
-          isFlipped ? "hidden" : "flex"
-        } flex-col justify-between gap-[10px]`}
+        className={`${isFlipped ? "hidden" : "flex"
+          } flex-col justify-between gap-[10px]`}
       >
         <div
-          className={`${
-            variant === "expired" ? "opacity-50" : ""
-          } flex justify-between font-semibold text-[20px]`}
+          className={`${variant === "expired" ? "opacity-50" : ""
+            } flex justify-between font-semibold text-[20px]`}
         >
           <div className="flex items-center gap-[10px]">
             <SVG width={12} height={12} iconName="play-fill" />
