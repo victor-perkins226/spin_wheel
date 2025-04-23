@@ -73,23 +73,29 @@ const LineChart = () => {
     secondaryGradient.addColorStop(0, isDarkMode ? "rgba(16, 185, 129, 0.3)" : "rgba(5, 150, 105, 0.2)");
     secondaryGradient.addColorStop(1, isDarkMode ? "rgba(16, 185, 129, 0)" : "rgba(5, 150, 105, 0)");
 
-    // Create a plugin for custom hover effects
+    // Create a plugin for custom hover effects with proper TypeScript typing
+    type ChartWithArea = Chart & {
+      chartArea: { top: number; bottom: number };
+    };
+    
     const hoverLine = {
       id: 'hoverLine',
-      beforeDraw: (chart: any) => {
+      beforeDraw: (chart: ChartWithArea) => {
         if (activeIndex !== null) {
           const {ctx, chartArea} = chart;
           const meta = chart.getDatasetMeta(0);
-          const x = meta.data[activeIndex].x;
-          
-          ctx.save();
-          ctx.beginPath();
-          ctx.moveTo(x, chartArea.top);
-          ctx.lineTo(x, chartArea.bottom);
-          ctx.lineWidth = 1;
-          ctx.strokeStyle = isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)';
-          ctx.stroke();
-          ctx.restore();
+          if (meta.data[activeIndex]) {
+            const x = meta.data[activeIndex].x;
+            
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(x, chartArea.top);
+            ctx.lineTo(x, chartArea.bottom);
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)';
+            ctx.stroke();
+            ctx.restore();
+          }
         }
       }
     };
@@ -241,13 +247,13 @@ const LineChart = () => {
         hover: {
           mode: 'index',
           intersect: false,
+        },
           onHover: (event, elements) => {
             if (elements && elements.length) {
               setActiveIndex(elements[0].index);
             } else {
               setActiveIndex(null);
             }
-          }
         },
         animation: {
           duration: 1500,
