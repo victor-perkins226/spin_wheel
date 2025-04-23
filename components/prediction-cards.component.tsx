@@ -20,6 +20,7 @@ const LineChart = () => {
   const { theme, systemTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   const isDarkMode = mounted && (theme === "dark" || (theme === "system" && systemTheme === "dark"));
 
@@ -53,13 +54,45 @@ const LineChart = () => {
     const dataPoints = [2950, 3100, 3500, 3700, 3500, 3950, 3650, 4350, 4600, 4350, 4900, 4700, 5200, 5100, 5300, 5400];
     const secondLineData = [2500, 2700, 3000, 3300, 3400, 3600, 3800, 4200, 4600, 4800, 5000, 5300, 5500, 5700, 5800, 6000];
 
-    const lineColor = isDarkMode ? "#a1a1aa" : "#d8d8d8";
-    const secondLineColor = isDarkMode ? "#6366f1" : "#4f46e5";
-    const textColor = isDarkMode ? "#a1a1aa" : "#6f6c99";
-    const gridColor = isDarkMode ? "#27272a" : "#e2e2e8";
-    const tooltipBgColor = isDarkMode ? "#27272a" : "#ffffff";
-    const tooltipTextColor = isDarkMode ? "#e4e4e7" : "#6f6c99";
-    const tooltipBorderColor = isDarkMode ? "#3f3f46" : "#e2e2e8";
+    // Improved color palette
+    const primaryLineColor = isDarkMode ? "#8b5cf6" : "#7c3aed"; // Purple
+    const secondaryLineColor = isDarkMode ? "#10b981" : "#059669"; // Green
+    const textColor = isDarkMode ? "#94a3b8" : "#475569";
+    const gridColor = isDarkMode ? "#334155" : "#e2e8f0";
+    const tooltipBgColor = isDarkMode ? "#1e293b" : "#ffffff";
+    const tooltipTextColor = isDarkMode ? "#f1f5f9" : "#334155";
+    const tooltipBorderColor = isDarkMode ? "#475569" : "#cbd5e1";
+    const tooltipTitleColor = isDarkMode ? "#f8fafc" : "#1e293b";
+
+    // Create gradients for line backgrounds
+    const primaryGradient = ctx.createLinearGradient(0, 0, 0, 300);
+    primaryGradient.addColorStop(0, isDarkMode ? "rgba(139, 92, 246, 0.3)" : "rgba(124, 58, 237, 0.2)");
+    primaryGradient.addColorStop(1, isDarkMode ? "rgba(139, 92, 246, 0)" : "rgba(124, 58, 237, 0)");
+
+    const secondaryGradient = ctx.createLinearGradient(0, 0, 0, 300);
+    secondaryGradient.addColorStop(0, isDarkMode ? "rgba(16, 185, 129, 0.3)" : "rgba(5, 150, 105, 0.2)");
+    secondaryGradient.addColorStop(1, isDarkMode ? "rgba(16, 185, 129, 0)" : "rgba(5, 150, 105, 0)");
+
+    // Create a plugin for custom hover effects
+    const hoverLine = {
+      id: 'hoverLine',
+      beforeDraw: (chart: any) => {
+        if (activeIndex !== null) {
+          const {ctx, chartArea} = chart;
+          const meta = chart.getDatasetMeta(0);
+          const x = meta.data[activeIndex].x;
+          
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(x, chartArea.top);
+          ctx.lineTo(x, chartArea.bottom);
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)';
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+    };
 
     chartInstance.current = new Chart(ctx, {
       type: "line",
@@ -69,20 +102,30 @@ const LineChart = () => {
           {
             label: "Oracle",
             data: dataPoints,
-            borderColor: lineColor,
-            backgroundColor: "transparent",
+            borderColor: primaryLineColor,
+            backgroundColor: primaryGradient,
+            fill: true,
             tension: 0.4,
             borderWidth: 3,
             pointRadius: 0,
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: primaryLineColor,
+            pointHoverBorderColor: isDarkMode ? "#1e1e1e" : "#ffffff",
+            pointHoverBorderWidth: 2,
           },
           {
             label: "TradingView",
             data: secondLineData,
-            borderColor: secondLineColor,
-            backgroundColor: "transparent",
+            borderColor: secondaryLineColor,
+            backgroundColor: secondaryGradient,
+            fill: true,
             tension: 0.4,
             borderWidth: 3,
             pointRadius: 0,
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: secondaryLineColor,
+            pointHoverBorderColor: isDarkMode ? "#1e1e1e" : "#ffffff",
+            pointHoverBorderWidth: 2,
           }
         ],
       },
@@ -93,27 +136,47 @@ const LineChart = () => {
           legend: {
             display: true,
             position: 'top',
+            align: 'end',
             labels: {
               color: textColor,
+              usePointStyle: true,
+              pointStyle: 'circle',
+              padding: isMobile ? 12 : 20,
               font: {
-                size: 12
+                size: isMobile ? 10 : 13,
+                weight: 'bold'
               },
-              boxWidth: isMobile ? 8 : 12,
-              padding: isMobile ? 8 : 10
+              boxWidth: isMobile ? 8 : 10,
             }
           },
           tooltip: {
             enabled: true,
             backgroundColor: tooltipBgColor,
-            titleColor: tooltipTextColor,
+            titleColor: tooltipTitleColor,
             bodyColor: tooltipTextColor,
             borderColor: tooltipBorderColor,
             borderWidth: 1,
-            padding: isMobile ? 6 : 10,
+            cornerRadius: 6,
+            padding: isMobile ? 8 : 12,
             displayColors: true,
-            callbacks: {
-              label: (context) => `${context.dataset.label}: ${context.parsed.y}`,
+            titleFont: {
+              size: isMobile ? 11 : 14,
+              weight: 'bold'
             },
+            bodyFont: {
+              size: isMobile ? 10 : 12
+            },
+            callbacks: {
+              label: (context) => {
+                const value = context.parsed.y;
+                return `${context.dataset.label}: $${value.toLocaleString()}`;
+              },
+              title: (tooltipItems) => {
+                return tooltipItems[0].label;
+              }
+            },
+            intersect: false,
+            mode: 'index',
           },
         },
         scales: {
@@ -121,14 +184,19 @@ const LineChart = () => {
             grid: {
               display: false,
             },
+            border: {
+              display: false,
+            },
             ticks: {
               color: textColor,
               font: {
-                size: isMobile ? 8 : 12,
+                size: isMobile ? 9 : 11,
+                weight: 'normal'
               },
               maxRotation: isMobile ? 45 : 0,
-              autoSkip: isMobile,
-              maxTicksLimit: isMobile ? 5 : 10,
+              autoSkip: true,
+              maxTicksLimit: isMobile ? 6 : 10,
+              padding: 8,
             },
           },
           y: {
@@ -138,10 +206,14 @@ const LineChart = () => {
               stepSize: isMobile ? 1000 : 500,
               color: textColor,
               font: {
-                size: isMobile ? 8 : 12,
+                size: isMobile ? 9 : 11,
+                weight: 'normal'
               },
+              padding: 10,
               callback: function (value) {
-                return isMobile ? value.toString().slice(0, -3) + 'k' : value;
+                return isMobile 
+                  ? `$${value.toString().slice(0, -3)}k` 
+                  : `$${value.toLocaleString()}`;
               }
             },
             grid: {
@@ -149,7 +221,8 @@ const LineChart = () => {
               tickLength: 0,
               lineWidth: 1,
               drawOnChartArea: true,
-              drawTicks: false
+              drawTicks: false,
+              z: -1,
             },
             border: {
               display: false,
@@ -165,7 +238,23 @@ const LineChart = () => {
             cubicInterpolationMode: "monotone",
           },
         },
+        hover: {
+          mode: 'index',
+          intersect: false,
+          onHover: (event, elements) => {
+            if (elements && elements.length) {
+              setActiveIndex(elements[0].index);
+            } else {
+              setActiveIndex(null);
+            }
+          }
+        },
+        animation: {
+          duration: 1500,
+          easing: 'easeOutQuart'
+        }
       },
+      plugins: [hoverLine],
     });
 
     return () => {
@@ -173,14 +262,18 @@ const LineChart = () => {
         chartInstance.current.destroy();
       }
     };
-  }, [isDarkMode, mounted, isMobile]);
+  }, [isDarkMode, mounted, isMobile, activeIndex]);
 
   if (!mounted) {
     return <div className="w-full h-[200px] md:h-[250px] lg:h-[300px] bg-background"></div>;
   }
 
   return (
-    <div className="w-full h-[200px] md:h-[250px] lg:h-[300px] glass rounded-lg p-2 md:p-3 lg:p-4">
+    <div className="w-full h-[200px] md:h-[250px] lg:h-[300px] glass rounded-lg p-2 md:p-4 lg:p-5 relative overflow-hidden">
+      {/* Optional decorative elements */}
+      <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-purple-500/5 to-green-500/5 rounded-full blur-3xl -z-10"></div>
+      <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-blue-500/5 to-purple-500/5 rounded-full blur-3xl -z-10"></div>
+      
       <canvas ref={chartRef} />
     </div>
   );
@@ -328,7 +421,7 @@ export default function PredictionCards() {
           </div>
 
           {/* Line Chart Component */}
-          <div className="mt-6">
+          <div className="mt-[-15px]">
             <LineChart />
           </div>
 
