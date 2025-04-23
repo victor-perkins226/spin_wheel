@@ -9,11 +9,11 @@ import Image from "next/image";
 import SolanaLogo from "@/public/assets/solana_logo.png";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { EffectCoverflow, Pagination } from "swiper/modules";
+import type SwiperCore from 'swiper';
 import "swiper/css";
 import "swiper/css/effect-coverflow";
 import "swiper/css/pagination";
 
-// LineChart component from the first file
 const LineChart = () => {
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<Chart | null>(null);
@@ -21,10 +21,8 @@ const LineChart = () => {
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Determine if we're in dark mode
   const isDarkMode = mounted && (theme === "dark" || (theme === "system" && systemTheme === "dark"));
 
-  // Set mounted to true on client side and check if mobile
   useEffect(() => {
     setMounted(true);
     setIsMobile(window.innerWidth < 768);
@@ -40,7 +38,6 @@ const LineChart = () => {
   useEffect(() => {
     if (!chartRef.current || !mounted) return;
 
-    // Destroy existing chart instance if it exists
     if (chartInstance.current) {
       chartInstance.current.destroy();
     }
@@ -48,36 +45,22 @@ const LineChart = () => {
     const ctx = chartRef.current.getContext("2d");
     if (!ctx) return;
 
-    // Time labels from 10:59PM to 7:59AM
     const labels = [
-      "10:59PM",
-      "11:59PM",
-      "12:59AM",
-      "1:59AM",
-      "2:59AM",
-      "3:59AM",
-      "4:59AM",
-      "5:59AM",
-      "6:59AM",
-      "7:59AM",
+      "10:59PM", "11:59PM", "12:59AM", "1:59AM", "2:59AM",
+      "3:59AM", "4:59AM", "5:59AM", "6:59AM", "7:59AM",
     ];
 
-    // Data points that match the curve in the image
     const dataPoints = [2950, 3100, 3500, 3700, 3500, 3950, 3650, 4350, 4600, 4350, 4900, 4700, 5200, 5100, 5300, 5400];
-
-    // Second line data - starts lower, overlaps in the middle, then goes higher
     const secondLineData = [2500, 2700, 3000, 3300, 3400, 3600, 3800, 4200, 4600, 4800, 5000, 5300, 5500, 5700, 5800, 6000];
 
-    // Theme-based colors
     const lineColor = isDarkMode ? "#a1a1aa" : "#d8d8d8";
-    const secondLineColor = isDarkMode ? "#6366f1" : "#4f46e5"; // Purple color for second line
+    const secondLineColor = isDarkMode ? "#6366f1" : "#4f46e5";
     const textColor = isDarkMode ? "#a1a1aa" : "#6f6c99";
     const gridColor = isDarkMode ? "#27272a" : "#e2e2e8";
     const tooltipBgColor = isDarkMode ? "#27272a" : "#ffffff";
     const tooltipTextColor = isDarkMode ? "#e4e4e7" : "#6f6c99";
     const tooltipBorderColor = isDarkMode ? "#3f3f46" : "#e2e2e8";
 
-    // Create the chart
     chartInstance.current = new Chart(ctx, {
       type: "line",
       data: {
@@ -115,8 +98,8 @@ const LineChart = () => {
               font: {
                 size: 12
               },
-              boxWidth: isMobile ? 8 : 12, // Smaller legend boxes on mobile
-              padding: isMobile ? 8 : 10 // Smaller padding on mobile
+              boxWidth: isMobile ? 8 : 12,
+              padding: isMobile ? 8 : 10
             }
           },
           tooltip: {
@@ -126,7 +109,7 @@ const LineChart = () => {
             bodyColor: tooltipTextColor,
             borderColor: tooltipBorderColor,
             borderWidth: 1,
-            padding: isMobile ? 6 : 10, // Smaller padding on mobile
+            padding: isMobile ? 6 : 10,
             displayColors: true,
             callbacks: {
               label: (context) => `${context.dataset.label}: ${context.parsed.y}`,
@@ -141,24 +124,24 @@ const LineChart = () => {
             ticks: {
               color: textColor,
               font: {
-                size: isMobile ? 8 : 12, // Smaller font on mobile
+                size: isMobile ? 8 : 12,
               },
-              maxRotation: isMobile ? 45 : 0, // Rotate labels on mobile
-              autoSkip: isMobile, // Skip some labels on mobile
-              maxTicksLimit: isMobile ? 5 : 10, // Fewer ticks on mobile
+              maxRotation: isMobile ? 45 : 0,
+              autoSkip: isMobile,
+              maxTicksLimit: isMobile ? 5 : 10,
             },
           },
           y: {
             min: 2000,
             max: 6500,
             ticks: {
-              stepSize: isMobile ? 1000 : 500, // Larger steps on mobile
+              stepSize: isMobile ? 1000 : 500,
               color: textColor,
               font: {
-                size: isMobile ? 8 : 12, // Smaller font on mobile
+                size: isMobile ? 8 : 12,
               },
               callback: function (value) {
-                return isMobile ? value.toString().slice(0, -3) + 'k' : value; // Shorter labels on mobile
+                return isMobile ? value.toString().slice(0, -3) + 'k' : value;
               }
             },
             grid: {
@@ -203,7 +186,6 @@ const LineChart = () => {
   );
 };
 
-// Mobile Live Bets component
 const MobileLiveBets = () => {
   return (
     <div className="w-full glass px-3 py-4 rounded-lg mt-2">
@@ -247,38 +229,31 @@ const MobileLiveBets = () => {
 export default function PredictionCards() {
   const [screenWidth, setScreenWidth] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const swiperRef = useRef<SwiperCore | null>(null);
 
   useEffect(() => {
-    // Set mounted to true on client side
     setMounted(true);
-
-    // Initialize screen width and update on resize
     const updateScreenWidth = () => {
       setScreenWidth(window.innerWidth);
     };
-
-    // Set initial width
     updateScreenWidth();
-
-    // Add event listener
     window.addEventListener('resize', updateScreenWidth);
-
-    // Cleanup
-    return () => window.removeEventListener('resize', updateScreenWidth);
+    return () => {
+      window.removeEventListener('resize', updateScreenWidth);
+      if (swiperRef.current && swiperRef.current.destroy) {
+        swiperRef.current.destroy(true, true);
+      }
+    };
   }, []);
 
   const formatCardVariant = (index: number) => {
     switch (index) {
-      case 1:
-        return "expired";
-      case 2:
-        return "live";
-      default:
-        return "next";
+      case 1: return "expired";
+      case 2: return "live";
+      default: return "next";
     }
   };
 
-  // Calculate slidesPerView based on screen width, but only if component is mounted
   const getSlidesPerView = () => {
     if (!mounted) return 1;
     if (screenWidth < 640) return 1;
@@ -317,48 +292,53 @@ export default function PredictionCards() {
             </div>
           </div>
 
-          {/* Swiper Slider - Now with proper client-side handling */}
-
-          <Swiper
-            effect="coverflow"
-            grabCursor={true}
-            centeredSlides={true}
-            slidesPerView={getSlidesPerView()}
-            spaceBetween={mounted && screenWidth < 640 ? 10 : 20}
-            coverflowEffect={{
-              rotate: mounted && screenWidth < 640 ? 20 : 50, // Reduced rotation on mobile for better visibility
-              stretch: 0,
-              depth: mounted && screenWidth < 640 ? 50 : 100,
-              modifier: 1,
-              slideShadows: true,
-            }}
-            pagination={{
-              clickable: true,
-              dynamicBullets: mounted && screenWidth < 640,
-              horizontalClass: screenWidth < 640 ? 'swiper-pagination-centered' : '',
-            }}
-            modules={[EffectCoverflow, Pagination]}
-            className="w-full px-4 sm:px-0" // Added padding on smallest screens
-          >
-            {[1, 2, 3].map((card, key) => (
-              <SwiperSlide key={key} className="flex justify-center items-center">
-                <PredictionCard variant={formatCardVariant(card)} />
-              </SwiperSlide>
-            ))}
-          </Swiper>
+          {/* Swiper Slider */}
+          <div className="relative">
+            <Swiper
+              onSwiper={(swiper) => {
+                swiperRef.current = swiper;
+              }}
+              effect="coverflow"
+              grabCursor={true}
+              centeredSlides={true}
+              slidesPerView={getSlidesPerView()}
+              spaceBetween={mounted && screenWidth < 640 ? 10 : 20}
+              coverflowEffect={{
+                rotate: mounted && screenWidth < 640 ? 20 : 50,
+                stretch: 0,
+                depth: mounted && screenWidth < 640 ? 50 : 100,
+                modifier: 1,
+                slideShadows: true,
+              }}
+              pagination={{
+                clickable: true,
+                dynamicBullets: mounted && screenWidth < 640,
+                el: '.swiper-pagination',
+              }}
+              modules={[EffectCoverflow, Pagination]}
+              className="w-full px-4 sm:px-0"
+            >
+              {[1, 2, 3].map((card, key) => (
+                <SwiperSlide key={key} className="flex justify-center items-center">
+                  <PredictionCard variant={formatCardVariant(card)} />
+                </SwiperSlide>
+              ))}
+            </Swiper>
+            <div className="swiper-pagination !relative !mt-4" />
+          </div>
 
           {/* Line Chart Component */}
           <div className="mt-6">
             <LineChart />
           </div>
 
-          {/* Mobile-only Live Bets (visible on smaller screens, hidden on xl) */}
+          {/* Mobile-only Live Bets */}
           <div className="xl:hidden">
             <MobileLiveBets />
           </div>
         </div>
 
-        {/* Live Bets Sidebar - Hidden on mobile, visible on xl */}
+        {/* Live Bets Sidebar */}
         <div className="hidden xl:flex col-span-3 flex-col gap-[53px] items-end">
           <div className="glass py-[15px] px-[24px] rounded-[20px] font-semibold text-[20px]">
             Live Bets
