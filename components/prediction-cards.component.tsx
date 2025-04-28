@@ -194,7 +194,7 @@ export default function PredictionCards() {
                 </tr>
               </thead>
               <tbody>
-                {[...Array(15)].map((_, key) => (
+                {[...Array(19)].map((_, key) => (
                   <tr key={key} className="font-semibold text-[15px]">
                     <td className="py-3">
                       <div className="flex gap-[6px] items-center">
