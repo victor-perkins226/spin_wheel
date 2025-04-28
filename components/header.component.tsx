@@ -1,22 +1,21 @@
 import Image from "next/image";
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Logo from "@/public/assets/logo.svg";
 import Link from "next/link";
-import Button from "./button.component";
 import routes from "@/helpers/routes";
 import SVG from "./svg.component";
-import { WalletDisconnectButton, WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+//import { useWallet } from "@solana/wallet-adapter-react";
 
-const NAVLINKS = [
-  { link: routes.home(), label: "Home" },
-  { link: routes.leaderboard(), label: "Leaderboard" },
-  { link: "", label: "Trade" },
-  { link: "", label: "Whitepaper" },
-];
+// const NAVLINKS = [
+//   { link: routes.home(), label: "Home" },
+//   { link: routes.leaderboard(), label: "Leaderboard" },
+//   { link: "", label: "Trade" },
+//   { link: "", label: "Whitepaper" },
+// ];
 
 export default function Header() {
-  const { publicKey, connected, disconnect } = useWallet();
+  //const { publicKey, connected, disconnect } = useWallet();
 
   return (
     <div className="container">

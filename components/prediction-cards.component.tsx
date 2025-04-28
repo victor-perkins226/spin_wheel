@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import Chart from "chart.js/auto";
-import { useTheme } from "next-themes";
+//import Chart from "chart.js/auto";
+//import { useTheme } from "next-themes";
 import SVG from "./svg.component";
 import PredictionCard from "./prediction-card.component";
 import Image from "next/image";
