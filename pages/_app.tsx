@@ -3,6 +3,7 @@ import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import { Poppins } from "next/font/google";
 import Head from "next/head";
+import { WalletContextProvider } from "@/components/wallet.provider.component";
 
 export const poppins = Poppins({
   variable: "--font-poppins-sans",
@@ -43,9 +44,11 @@ export default function App({ Component, pageProps }: AppProps) {
         }
       `}</style>
 
-      <Layout>
-        <Component {...pageProps} />
-      </Layout>
+      <WalletContextProvider>
+        <Layout>
+          <Component {...pageProps} />
+        </Layout>
+      </WalletContextProvider>
     </>
   );
 }
