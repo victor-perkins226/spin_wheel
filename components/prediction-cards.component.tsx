@@ -182,9 +182,9 @@ export default function PredictionCards() {
 
         {/* Live Bets Sidebar */}
         <div className="hidden xl:flex col-span-3 flex-col gap-[53px] items-end">
-          <div className="glass py-[15px] px-[24px] rounded-[20px] font-semibold text-[20px]">
+            <div className="glass py-[15px] px-[24px] rounded-[20px] font-semibold text-[20px] cursor-pointer" onClick={() => window.location.href = '/leaderboard'}>
             Leaderboard
-          </div>
+            </div>
           <div className="glass px-[30px] py-[16px] rounded-[20px] w-full">
             <table className="w-full text-left">
               <thead>
