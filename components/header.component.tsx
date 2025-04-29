@@ -5,7 +5,7 @@ import Link from "next/link";
 import routes from "@/helpers/routes";
 import SVG from "./svg.component";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-// import { useWallet } from "@solana/wallet-adapter-react";
+//import { useWallet } from "@solana/wallet-adapter-react";
 
 // const NAVLINKS = [
 //   { link: routes.home(), label: "Home" },
@@ -14,16 +14,8 @@ import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 //   { link: "", label: "Whitepaper" },
 // ];
 
-// Helper function to truncate wallet addresses
-const truncateAddress = (address: string) => {
-  if (!address) return "";
-  const firstPart = address.slice(0, 4);
-  const lastPart = address.slice(-4);
-  return `${firstPart}...${lastPart}`;
-};
-
 export default function Header() {
-  // const { publicKey, connected, disconnect } = useWallet();
+  //const { publicKey, connected, disconnect } = useWallet();
 
   return (
     <div className="container">
@@ -44,8 +36,10 @@ export default function Header() {
           ))}
         </nav> */}
 
-        {/* <WalletDisconnectButton/> */}
+        {/* {renderWalletButton()} */}
+
         <WalletMultiButton />
+        {/* <WalletDisconnectButton/> */}
       </header>
 
       <header className="flex md:hidden justify-between p-[20px] mt-[58px]">
