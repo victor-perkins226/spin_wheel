@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from "react";
+"use client";
+
+import { useState, useEffect } from "react";
 import Button from "./button.component";
 import SVG from "./svg.component";
 import Image from "next/image";
-import SolanaBg from "@/public/assets/solana_bg.png";
-import SolanaLogo from "@/public/assets/solana_logo.png";
 import SliderComponent from "./slider.component";
 import { useWallet } from "@solana/wallet-adapter-react";
+import SolanaBg from "@/public/assets/solana_bg.png";
+
 
 interface IProps {
   variant?: "live" | "expired" | "next" | "later";
@@ -13,11 +15,18 @@ interface IProps {
   roundData?: {
     lockPrice?: number;
     currentPrice?: number;
+    closePrice?: number;
     endTime?: number;
     prizePool?: number;
     timeRemaining?: number;
+    upBets?: number;
+    downBets?: number;
   };
-  onPlaceBet?: (direction: "up" | "down", amount: number, roundId: number) => void;
+  onPlaceBet?: (
+    direction: "up" | "down",
+    amount: number,
+    roundId: number
+  ) => void;
 }
 
 const CUSTOM_INPUTS = [
@@ -25,10 +34,15 @@ const CUSTOM_INPUTS = [
   { label: "25%", value: 0.25 },
   { label: "50%", value: 0.5 },
   { label: "75%", value: 0.75 },
-  { label: "Max", value: 1.0 }
+  { label: "Max", value: 1.0 },
 ];
 
-export default function PredictionCard({ variant = "live", roundId = 1, roundData, onPlaceBet }: IProps) {
+export default function PredictionCard({
+  variant = "live",
+  roundId = 1,
+  roundData,
+  onPlaceBet,
+}: IProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [mode, setMode] = useState<"up" | "down" | "">("");
   const [amount, setAmount] = useState<number>(0.1);
@@ -41,7 +55,7 @@ export default function PredictionCard({ variant = "live", roundId = 1, roundDat
     if (roundData?.timeRemaining) {
       const minutes = Math.floor(roundData.timeRemaining / 60);
       const seconds = Math.floor(roundData.timeRemaining % 60);
-      setTimeLeft(`${minutes}:${seconds < 10 ? '0' : ''}${seconds}`);
+      setTimeLeft(`${minutes}:${seconds < 10 ? "0" : ""}${seconds}`);
     }
   }, [roundData?.timeRemaining]);
 
@@ -59,7 +73,7 @@ export default function PredictionCard({ variant = "live", roundId = 1, roundDat
       alert("Please connect your wallet first");
       return;
     }
-    
+
     setIsFlipped(true);
     setMode(mode);
   };
@@ -69,12 +83,12 @@ export default function PredictionCard({ variant = "live", roundId = 1, roundDat
       alert("Please connect your wallet first");
       return;
     }
-    
+
     if (amount <= 0) {
       alert("Please enter a valid amount");
       return;
     }
-    
+
     if (onPlaceBet && mode) {
       onPlaceBet(mode, amount, roundId);
       setIsFlipped(false);
@@ -90,11 +104,15 @@ export default function PredictionCard({ variant = "live", roundId = 1, roundDat
   return (
     <div
       className={`card_container glass rounded-[20px] p-[15px] sm:p-[25px] ${
-        variant === "live" ? "min-w-[280px] sm:min-w-[320px] md:min-w-[380px]" : "min-w-[240px] sm:min-w-[273px] w-full"
+        variant === "live"
+          ? "min-w-[280px] sm:min-w-[320px] md:min-w-[380px]"
+          : "min-w-[240px] sm:min-w-[273px] w-full"
       }`}
     >
       <div
-        className={`${isFlipped ? "hidden" : "flex"} flex-col justify-between gap-[10px]`}
+        className={`${
+          isFlipped ? "hidden" : "flex"
+        } flex-col justify-between gap-[10px]`}
       >
         <div
           className={`${
@@ -134,14 +152,15 @@ export default function PredictionCard({ variant = "live", roundId = 1, roundDat
           </div>
         ) : variant === "next" ? (
           <div className="flex-1 glass flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
-            <div className="flex flex-col gap-[7px]">
+            <div className="flex flex-col items-center  gap-[7px]">
               <Image
-                alt=""
+                alt="Solana Background"
                 src={SolanaBg}
                 className="rounded-[10px] w-[215px] h-[142px] object-cover"
+              
               />
 
-              <div className="flex justify-between font-semibold text-[16px]">
+              <div className="flex justify-between gap-1 font-semibold text-[16px]">
                 <p>Prize Pool</p>
 
                 <p>{roundData?.prizePool ?? 0.1} SOL</p>
@@ -172,14 +191,16 @@ export default function PredictionCard({ variant = "live", roundId = 1, roundDat
           <div className="flex-1 flex flex-col glass p-[10px] rounded-[20px] items-center">
             <div className="max-w-[215px] flex flex-col gap-[33px] justify-between flex-1">
               <Image
-                alt=""
+                alt="Solana Background"
                 src={SolanaBg}
                 className="rounded-[10px] w-[215px] h-[142px] object-cover"
               />
 
               <div className="flex flex-col gap-[22px] font-semibold text-[#FEFEFE]">
                 <div className="flex justify-between">
-                  <p className="text-[20px]">${roundData?.currentPrice ?? 585.1229}</p>
+                  <p className="text-[20px]">
+                    ${roundData?.currentPrice?.toFixed(4) ?? 585.1229}
+                  </p>
 
                   <div className="bg-white flex items-center gap-[4px] text-[#1F1F43] px-[10px] py-[5px] rounded-[5px]">
                     <SVG width={8} height={8} iconName="arrow-up" />
@@ -190,7 +211,7 @@ export default function PredictionCard({ variant = "live", roundId = 1, roundDat
                 <div className="flex justify-between items-center text-[10px]">
                   <p>Locked Price</p>
 
-                  <p>${roundData?.lockPrice ?? 584.1229}</p>
+                  <p>${roundData?.lockPrice?.toFixed(4) ?? 584.1229}</p>
                 </div>
 
                 <div className="flex justify-between text-[16px]">
@@ -234,8 +255,10 @@ export default function PredictionCard({ variant = "live", roundId = 1, roundDat
           <div className="flex items-center gap-[1px]">
             <Image
               className="w-[30px] h-auto object-contain"
-              src={SolanaLogo}
-              alt=""
+              src="/assets/solana_logo.png"
+              alt="Solana"
+              width={30}
+              height={30}
             />
             <p className="font-semibold text-[15px]">SOL</p>
           </div>
