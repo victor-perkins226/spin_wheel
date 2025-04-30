@@ -157,6 +157,7 @@ const LineChart = () => {
           }
         }
       },
+      
     };
 
     // Create chart
@@ -199,6 +200,7 @@ const LineChart = () => {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
+        
           legend: {
             display: false, // Hide legend to match screenshot
           },
@@ -395,7 +397,7 @@ const LineChart = () => {
         {/* Optional decorative elements */}
         <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-green-500/5 to-red-500/5 rounded-full blur-3xl z-0"></div>
         <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-green-500/5 to-red-500/5 rounded-full blur-3xl z-0"></div>
-        
+
         {/* Chart canvas on top of the background */}
         <div className="relative z-10 w-full h-full">
           <canvas ref={chartRef} />
