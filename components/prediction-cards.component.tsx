@@ -1,12 +1,9 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
-import Chart from "chart.js/auto";
-import { useTheme } from "next-themes";
+import { useEffect, useRef, useState, useCallback } from "react";
 import SVG from "./svg.component";
 import PredictionCard from "./prediction-card.component";
 import Image from "next/image";
-import SolanaLogo from "@/public/assets/solana_logo.png";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { EffectCoverflow, Pagination } from "swiper/modules";
 import "swiper/css";
@@ -14,15 +11,10 @@ import "swiper/css/effect-coverflow";
 import "swiper/css/pagination";
 import LineChart from "./LineChart";
 import { useWallet } from "@solana/wallet-adapter-react";
-import {
-  Connection,
-  PublicKey,
-  Transaction,
-  SystemProgram,
-  LAMPORTS_PER_SOL,
-  sendAndConfirmTransaction,
-} from "@solana/web3.js";
+import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { toast } from "react-hot-toast";
+import { getPriceData } from "@/lib/price-utils";
+import { placeBet, claimRewards } from "@/lib/contract-utils";
 
 // Constants for round durations
 const ROUND_DURATION = {
@@ -30,21 +22,8 @@ const ROUND_DURATION = {
   LOCK: 30, // 30 seconds locked
 };
 
-// Mock API for price feeds - in production this would connect to an oracle
-// const getPriceData = async () => {
-//   // In production, you would use a price oracle like Pyth or Switchboard
-//   // For now, we'll simulate price data with small random changes
-//   return fetch(
-//     "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd"
-//   )
-//     .then((response) => response.json())
-//     .then((data) => data.solana.usd)
-//     .catch((error) => {
-//       console.error("Error fetching price:", error);
-//       // Return a random price if API fails
-//       return 50 + Math.random() * 10;
-//     });
-// };
+// Contract address
+const PREDICTION_CONTRACT = "HwosxPfiLetgxCVDnCdi1LB4vnbLHPfSjxkgKxsMykzw";
 
 const MobileLiveBets = ({ liveBets }) => {
   return (
@@ -72,8 +51,10 @@ const MobileLiveBets = ({ liveBets }) => {
                   <div className="flex items-center gap-1">
                     <Image
                       className="w-[20px] h-auto object-contain"
-                      src={SolanaLogo}
-                      alt=""
+                      src="/assets/solana_logo.png"
+                      alt="Solana"
+                      width={20}
+                      height={20}
                     />
                     {bet.amount} SOL
                   </div>
@@ -104,8 +85,7 @@ export default function PredictionCards() {
   const [screenWidth, setScreenWidth] = useState(0);
   const [mounted, setMounted] = useState(false);
   const swiperRef = useRef(null);
-  const { publicKey, connected, signTransaction, sendTransaction } =
-    useWallet();
+  const { publicKey, connected, signTransaction } = useWallet();
 
   // State for prediction game
   const [rounds, setRounds] = useState([
@@ -165,17 +145,28 @@ export default function PredictionCards() {
 
   // Create reference to connection object
   const connectionRef = useRef(null);
+  const contractRef = useRef(null);
 
   // Initialize app and connection
   useEffect(() => {
     setMounted(true);
 
     // Initialize Solana connection
-    connectionRef.current = new Connection(
-      process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
-        "https://api.mainnet-beta.solana.com",
-      "confirmed"
-    );
+    const rpcUrl = process.env.NEXT_PUBLIC_SOLANA_RPC_URL;
+    const validRpcUrl =
+      rpcUrl && (rpcUrl.startsWith("http:") || rpcUrl.startsWith("https:"))
+        ? rpcUrl
+        : "https://api.devnet.solana.com";
+
+    connectionRef.current = new Connection(validRpcUrl, {
+      commitment: "confirmed",
+      confirmTransactionInitialTimeout: 60000,
+    });
+
+    console.log("Connected to Solana network:", validRpcUrl);
+
+    contractRef.current = new PublicKey(PREDICTION_CONTRACT);
+    console.log("Using prediction contract:", PREDICTION_CONTRACT);
 
     const updateScreenWidth = () => {
       setScreenWidth(window.innerWidth);
@@ -184,24 +175,26 @@ export default function PredictionCards() {
     updateScreenWidth();
     window.addEventListener("resize", updateScreenWidth);
 
-    // Initialize mock data for UI demonstration
+    // Mock live bets
     const initialLiveBets = Array(19)
       .fill(null)
-      .map((_, index) => ({
+      .map(() => ({
         user: `User${Math.floor(Math.random() * 1000)}`,
         amount: (Math.random() * 2).toFixed(2),
         direction: Math.random() > 0.5 ? "UP" : "DOWN",
       }));
     setLiveBets(initialLiveBets);
 
-    // Start fetching price data
-    fetchInitialPriceData();  
+    // Fetch price once and then start polling
+    fetchInitialPriceData();
+    const pollingId = startPricePolling();
 
     return () => {
       window.removeEventListener("resize", updateScreenWidth);
-      if (swiperRef.current && swiperRef.current.destroy) {
+      if (swiperRef.current?.destroy) {
         swiperRef.current.destroy(true, true);
       }
+      clearInterval(pollingId);
     };
   }, []);
 
@@ -228,63 +221,101 @@ export default function PredictionCards() {
     loadUserBets();
   }, [connected, publicKey]);
 
+  const startPricePolling = () => {
+    return setInterval(async () => {
+      try {
+        const price = await getPriceData();
+        setCurrentPrice(price);
+
+        setHistoricalPrices((prev) => {
+          const newData = [...prev, { time: Date.now(), price }];
+          return newData.length > 60 ? newData.slice(-60) : newData;
+        });
+      } catch (err) {
+        console.error("Error polling price:", err);
+      }
+    }, 300000); // every 5 minutes
+  };
+
   // Fetch initial price data and historical prices
   const fetchInitialPriceData = async () => {
     try {
-      const currentPrice = await getPriceData();
-      setCurrentPrice(currentPrice);
-
-      // Generate some mock historical data for the chart
+      const price = await getPriceData();
+      setCurrentPrice(price);
+  
+      // Generate mock historical chart data
       const now = Date.now();
-      const historicalData = [];
-
-      for (let i = 0; i < 60; i++) {
-        const time = now - (59 - i) * 5000; // 5 seconds apart
-        const basePrice = currentPrice - Math.random() * 5;
-        const price = basePrice + Math.random() * 10;
-
-        historicalData.push({
+      const historicalData = Array.from({ length: 60 }, (_, i) => {
+        const time = now - (59 - i) * 5000;
+        const fluctuation = Math.random() * 10 - 5; // ±5
+        return {
           time,
-          price,
-        });
-      }
-
+          price: price + fluctuation,
+        };
+      });
+  
       setHistoricalPrices(historicalData);
     } catch (error) {
       console.error("Error fetching initial price data:", error);
     }
   };
 
-  // Check for claimable rewards
-  const checkForClaimableRewards = useCallback(() => {
-    if (!connected || !publicKey) return;
+  // Check for claimable rewards from the contract
+  const checkForClaimableRewards = useCallback(async () => {
+    if (
+      !connected ||
+      !publicKey ||
+      !connectionRef.current ||
+      !contractRef.current
+    )
+      return;
 
-    // In a real implementation, this would query the smart contract
-    // For now, we'll calculate from our local state
-    const claimableBets = userBets.filter(
-      (bet) => bet.status === "WON" && !bet.claimed
-    );
+    try {
+      // In a real implementation, this would query the smart contract
+      // For now, we'll calculate from our local state
+      const claimableBets = userBets.filter(
+        (bet) => bet.status === "WON" && !bet.claimed
+      );
 
-    const totalClaimable = claimableBets.reduce(
-      (total, bet) => total + bet.payout,
-      0
-    );
-    setClaimableRewards(totalClaimable);
+      const totalClaimable = claimableBets.reduce(
+        (total, bet) => total + bet.payout,
+        0
+      );
+      setClaimableRewards(totalClaimable);
+
+      // TODO: Replace with actual contract call to get claimable rewards
+      // const claimableAmount = await getClaimableRewards(connectionRef.current, contractRef.current, publicKey);
+      // setClaimableRewards(claimableAmount);
+    } catch (error) {
+      console.error("Error checking for claimable rewards:", error);
+      toast.error("Failed to check for rewards");
+    }
   }, [connected, publicKey, userBets]);
 
   // Load user's past bets
-  const loadUserBets = useCallback(() => {
-    if (!connected || !publicKey) return;
+  const loadUserBets = useCallback(async () => {
+    if (
+      !connected ||
+      !publicKey ||
+      !connectionRef.current ||
+      !contractRef.current
+    )
+      return;
 
-    // In a real implementation, this would query the smart contract
-    // For demo, we'll just use local storage to persist bets between sessions
     try {
+      // In a real implementation, this would query the smart contract
+      // For demo, we'll just use local storage to persist bets between sessions
       const savedBets = localStorage.getItem(`bets_${publicKey.toString()}`);
       if (savedBets) {
         setUserBets(JSON.parse(savedBets));
       }
+
+      // TODO: Replace with actual contract call to get user bets
+      // const userBetsFromContract = await getUserBets(connectionRef.current, contractRef.current, publicKey);
+      // setUserBets(userBetsFromContract);
     } catch (error) {
       console.error("Error loading user bets:", error);
+      toast.error("Failed to load your bets");
     }
   }, [connected, publicKey]);
 
@@ -305,17 +336,18 @@ export default function PredictionCards() {
     [connected, publicKey]
   );
 
-  // Simulate price changes
   useEffect(() => {
-    const priceInterval = setInterval(async () => {
+    let isMounted = true;
+
+    // Fetch price once on mount
+    const fetchAndUpdatePrice = async () => {
       try {
-        // In production, fetch from oracle
         const newPrice = await getPriceData();
 
-        // Update current price
+        if (!isMounted) return;
+
         setCurrentPrice(newPrice);
 
-        // Update current round price
         setRounds((prevRounds) =>
           prevRounds.map((round) =>
             round.variant === "live"
@@ -324,21 +356,25 @@ export default function PredictionCards() {
           )
         );
 
-        // Add to historical prices
         setHistoricalPrices((prev) => {
           const newData = [...prev, { time: Date.now(), price: newPrice }];
-          // Keep last 60 data points
-          if (newData.length > 60) {
-            return newData.slice(-60);
-          }
-          return newData;
+          return newData.length > 60 ? newData.slice(-60) : newData;
         });
       } catch (error) {
         console.error("Error updating price:", error);
       }
-    }, 5000);
+    };
 
-    return () => clearInterval(priceInterval);
+    // Initial fetch
+    fetchAndUpdatePrice();
+
+    // Set interval to fetch every 5 minutes (300,000 ms)
+    const intervalId = setInterval(fetchAndUpdatePrice, 300000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
   }, []);
 
   // Round timer management
@@ -421,8 +457,11 @@ export default function PredictionCards() {
     return () => clearInterval(timer);
   }, [currentPrice]);
 
-  // Handle bet placement
+  // Handle bet placement with contract integration
   const handlePlaceBet = async (direction, amount, roundId) => {
+    console.log('====================================');
+    console.log(direction,amount,roundId,"roundId");
+    console.log('====================================');
     if (!connected || !publicKey) {
       toast.error("Please connect your wallet first");
       return;
@@ -434,25 +473,39 @@ export default function PredictionCards() {
     }
 
     const targetRound = rounds.find((r) => r.id === roundId);
+    console.log('====================================');
+    console.log(targetRound,"targheet round");
+    console.log('====================================');
     if (!targetRound || targetRound.status !== "LIVE") {
       toast.error("This round is not accepting bets anymore");
+      alert("ksdksdk")
       return;
     }
 
     if (amount <= 0 || amount > userBalance) {
-      toast.error("Invalid bet amount");
+      // toast.error("Invalid bet amount");
+      alert("amount not available")
       return;
     }
 
+    console.log('====================================');
+    console.log("sdlkskdksjkdj");
+    console.log('====================================');
+
     setIsProcessingAction(true);
-    toast.loading("Processing your bet...");
+    const toastId = toast.loading("Processing your bet...");
 
     try {
-      // In a real implementation, this would create a transaction to the prediction contract
-      // For now, we'll simulate it with a delay
-
-      // Simulate blockchain confirmation delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Call the contract to place the bet
+      const txHash = await placeBet(
+        connectionRef.current,
+        contractRef.current,
+        publicKey,
+        signTransaction,
+        roundId,
+        direction,
+        amount
+      );
 
       // Add to user bets
       const newBet = {
@@ -464,7 +517,7 @@ export default function PredictionCards() {
         wallet: publicKey.toString(),
         walletDisplay: truncateAddress(publicKey.toString()),
         status: "PENDING",
-        txHash: `simulated_${Date.now().toString(16)}`,
+        txHash,
       };
 
       const updatedUserBets = [...userBets, newBet];
@@ -502,18 +555,18 @@ export default function PredictionCards() {
       // Update user balance (subtract bet amount)
       setUserBalance((prev) => prev - amount);
 
-      toast.dismiss();
+      toast.dismiss(toastId);
       toast.success(`${amount} SOL placed on ${direction.toUpperCase()}`);
     } catch (error) {
       console.error("Error placing bet:", error);
-      toast.dismiss();
-      toast.error("Failed to place bet. Please try again.");
+      toast.dismiss(toastId);
+      toast.error("Failed to place bet: " + error.message);
     } finally {
       setIsProcessingAction(false);
     }
   };
 
-  // Handle claiming rewards
+  // Handle claiming rewards with contract integration
   const handleClaimRewards = async () => {
     if (!connected || !publicKey) {
       toast.error("Please connect your wallet first");
@@ -531,14 +584,16 @@ export default function PredictionCards() {
     }
 
     setIsProcessingAction(true);
-    toast.loading("Claiming your rewards...");
+    const toastId = toast.loading("Claiming your rewards...");
 
     try {
-      // In a real implementation, this would create a transaction to claim from the prediction contract
-      // For now, we'll simulate it with a delay
-
-      // Simulate blockchain confirmation delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Call the contract to claim rewards
+      const txHash = await claimRewards(
+        connectionRef.current,
+        contractRef.current,
+        publicKey,
+        signTransaction
+      );
 
       // Update user bets to mark them as claimed
       const updatedUserBets = userBets.map((bet) =>
@@ -553,12 +608,12 @@ export default function PredictionCards() {
       // Reset claimable rewards
       setClaimableRewards(0);
 
-      toast.dismiss();
+      toast.dismiss(toastId);
       toast.success(`Successfully claimed ${claimableRewards.toFixed(4)} SOL`);
     } catch (error) {
       console.error("Error claiming rewards:", error);
-      toast.dismiss();
-      toast.error("Failed to claim rewards. Please try again.");
+      toast.dismiss(toastId);
+      toast.error("Failed to claim rewards: " + error.message);
     } finally {
       setIsProcessingAction(false);
     }
@@ -633,8 +688,10 @@ export default function PredictionCards() {
             <div className="relative">
               <Image
                 className="w-[24px] sm:w-[32px] lg:w-[64px] h-auto object-contain absolute left-0 top-0 z-10"
-                src={SolanaLogo}
-                alt=""
+                src="/assets/solana_logo.png"
+                alt="Solana"
+                width={64}
+                height={64}
               />
               <div className="glass flex gap-2 sm:gap-[9px] lg:gap-[26px] relative top-0 left-[8px] sm:left-[10px] lg:left-[20px] items-center font-semibold px-3 sm:px-[20px] lg:px-[44px] py-1 sm:py-[6px] lg:py-[15px] rounded-full">
                 <p className="text-[10px] sm:text-[12px] lg:text-[20px]">
@@ -673,14 +730,16 @@ export default function PredictionCards() {
 
           {/* User Balance and Rewards Bar */}
           {connected && (
-            <div className="glass rounded-xl p-4 flex justify-between items-center">
+            <div className="glass rounded-xl p-4 flex justify-between items-center flex-wrap gap-4">
               <div>
                 <p className="text-sm opacity-70">Your Balance</p>
                 <div className="flex items-center gap-1 font-semibold">
                   <Image
                     className="w-[20px] h-auto object-contain"
-                    src={SolanaLogo}
-                    alt=""
+                    src="/assets/solana_logo.png"
+                    alt="Solana"
+                    width={20}
+                    height={20}
                   />
                   <span>{userBalance.toFixed(4)} SOL</span>
                 </div>
@@ -693,8 +752,10 @@ export default function PredictionCards() {
                     <div className="flex items-center gap-1 font-semibold text-green-500">
                       <Image
                         className="w-[20px] h-auto object-contain"
-                        src={SolanaLogo}
-                        alt=""
+                        src="/assets/solana_logo.png"
+                        alt="Solana"
+                        width={20}
+                        height={20}
                       />
                       <span>{claimableRewards.toFixed(4)} SOL</span>
                     </div>
@@ -834,7 +895,10 @@ export default function PredictionCards() {
 
         {/* Live Bets Sidebar */}
         <div className="hidden xl:flex col-span-3 flex-col gap-[53px] items-end">
-        <div className="glass py-[15px] px-[24px] rounded-[20px] font-semibold text-[20px] cursor-pointer" onClick={() => window.location.href = '/leaderboard'}>
+          <div
+            className="glass py-[15px] px-[24px] rounded-[20px] font-semibold text-[20px] cursor-pointer"
+            onClick={() => (window.location.href = "/leaderboard")}
+          >
             Leaderboard
           </div>
           <div className="glass px-[30px] py-[16px] rounded-[20px] w-full">
@@ -858,8 +922,10 @@ export default function PredictionCards() {
                       <div className="flex items-center gap-1">
                         <Image
                           className="w-[30px] h-auto object-contain"
-                          src={SolanaLogo}
-                          alt=""
+                          src="/assets/solana_logo.png"
+                          alt="Solana"
+                          width={30}
+                          height={30}
                         />
                         {bet.amount} SOL
                       </div>
