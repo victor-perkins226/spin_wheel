@@ -1,12 +1,11 @@
-"use client";
-
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Button from "./button.component";
 import SVG from "./svg.component";
 import Image from "next/image";
+import SolanaBg from "@/public/assets/solana_bg.png";
+import SolanaLogo from "@/public/assets/solana_logo.png";
 import SliderComponent from "./slider.component";
 import { useWallet } from "@solana/wallet-adapter-react";
-import SolanaBg from "@/public/assets/solana_bg.png";
 
 interface IProps {
   variant?: "live" | "expired" | "next" | "later";
@@ -14,20 +13,11 @@ interface IProps {
   roundData?: {
     lockPrice?: number;
     currentPrice?: number;
-    closePrice?: number;
     endTime?: number;
     prizePool?: number;
     timeRemaining?: number;
-    upBets?: number;
-    downBets?: number;
   };
-  onPlaceBet?: (
-    direction: "up" | "down",
-    amount: number,
-    roundId: number
-  ) => void;
-  currentRoundId?: number; // Add this to track current round
-  bufferTimeInSeconds?: number; // Add this to set buffer time
+  onPlaceBet?: (direction: "up" | "down", amount: number, roundId: number) => void;
 }
 
 const CUSTOM_INPUTS = [
@@ -35,45 +25,23 @@ const CUSTOM_INPUTS = [
   { label: "25%", value: 0.25 },
   { label: "50%", value: 0.5 },
   { label: "75%", value: 0.75 },
-  { label: "Max", value: 1.0 },
+  { label: "Max", value: 1.0 }
 ];
 
-export default function PredictionCard({
-  variant = "live",
-  roundId = 1,
-  roundData,
-  onPlaceBet,
-  currentRoundId, // Add this prop to track the current active round
-  bufferTimeInSeconds = 30,
-}: IProps) {
+export default function PredictionCard({ variant = "live", roundId = 1, roundData, onPlaceBet }: IProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [mode, setMode] = useState<"up" | "down" | "">("");
   const [amount, setAmount] = useState<number>(0.1);
   const [maxAmount, setMaxAmount] = useState<number>(10);
   const [timeLeft, setTimeLeft] = useState<string>("5:00");
-  const [canBet, setCanBet] = useState<boolean>(false);
   const { connected, publicKey } = useWallet();
-  
-
-  // Determine if this round can be bet on
-  useEffect(() => {
-    // Can only bet on the next round (currentRound + 1)
-    const isNextRound = roundId === currentRoundId + 1;
-
-    // Check if there's enough time left in the current round (more than buffer time)
-    const hasEnoughTimeLeft =
-      roundData?.timeRemaining && roundData.timeRemaining > bufferTimeInSeconds;
-
-    // Can only bet if this is the next round and there's enough time left in the current round
-    setCanBet(isNextRound && hasEnoughTimeLeft);
-  }, [roundId, currentRoundId, roundData?.timeRemaining, bufferTimeInSeconds]);
 
   // Format time remaining
   useEffect(() => {
     if (roundData?.timeRemaining) {
       const minutes = Math.floor(roundData.timeRemaining / 60);
       const seconds = Math.floor(roundData.timeRemaining % 60);
-      setTimeLeft(`${minutes}:${seconds < 10 ? "0" : ""}${seconds}`);
+      setTimeLeft(`${minutes}:${seconds < 10 ? '0' : ''}${seconds}`);
     }
   }, [roundData?.timeRemaining]);
 
@@ -86,18 +54,12 @@ export default function PredictionCard({
     }
   }, [connected, publicKey]);
 
-
   const handleEnterPrediction = (mode: "up" | "down") => {
     if (!connected) {
       alert("Please connect your wallet first");
       return;
     }
-
-    if (!canBet) {
-      alert("Betting is not available for this round");
-      return;
-    }
-
+    
     setIsFlipped(true);
     setMode(mode);
   };
@@ -107,17 +69,12 @@ export default function PredictionCard({
       alert("Please connect your wallet first");
       return;
     }
-
+    
     if (amount <= 0) {
       alert("Please enter a valid amount");
       return;
     }
-
-    if (!canBet) {
-      alert("Betting is not available for this round");
-      return;
-    }
-
+    
     if (onPlaceBet && mode) {
       onPlaceBet(mode, amount, roundId);
       setIsFlipped(false);
@@ -130,68 +87,14 @@ export default function PredictionCard({
     setAmount(Number((maxAmount * percentage).toFixed(2)));
   };
 
-  // Modified next round UI section to only show buttons when canBet is true
-  const renderNextRoundContent = () => {
-    if (variant !== "next") return null;
-
-    return (
-      <div className="flex-1 glass flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
-        <div className="flex flex-col items-center gap-[7px]">
-          <Image
-            alt="Solana Background"
-            src={SolanaBg}
-            className="rounded-[10px] w-[215px] h-[142px] object-cover"
-          />
-
-          <div className="flex justify-between gap-1 font-semibold text-[16px]">
-            <p>Prize Pool</p>
-            <p>{roundData?.prizePool ?? 0.1} SOL</p>
-          </div>
-        </div>
-
-        {canBet ? (
-          <>
-            <Button
-              style={{
-                background: "linear-gradient(90deg, #06C729 0%, #04801B 100%)",
-              }}
-              onClick={() => handleEnterPrediction("up")}
-              className="cursor-pointer"
-            >
-              Enter UP
-            </Button>
-
-            <Button
-              style={{
-                background: "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)",
-              }}
-              onClick={() => handleEnterPrediction("down")}
-              className="cursor-pointer"
-            >
-              Enter DOWN
-            </Button>
-          </>
-        ) : (
-          <div className="text-center py-3 font-semibold">
-            Betting closed for this round
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <div
       className={`card_container glass rounded-[20px] p-[15px] sm:p-[25px] ${
-        variant === "live"
-          ? "min-w-[280px] sm:min-w-[320px] md:min-w-[380px]"
-          : "min-w-[240px] sm:min-w-[273px] w-full"
+        variant === "live" ? "min-w-[280px] sm:min-w-[320px] md:min-w-[380px]" : "min-w-[240px] sm:min-w-[273px] w-full"
       }`}
     >
       <div
-        className={`${
-          isFlipped ? "hidden" : "flex"
-        } flex-col justify-between gap-[10px]`}
+        className={`${isFlipped ? "hidden" : "flex"} flex-col justify-between gap-[10px]`}
       >
         <div
           className={`${
@@ -214,9 +117,7 @@ export default function PredictionCard({
                 : "linear-gradient(228.15deg, rgba(255, 255, 255, 0.2) -64.71%, rgba(255, 255, 255, 0.05) 102.6%)",
           }}
           className="glass flex flex-col gap-4 py-[16px]"
-          onClick={() =>
-            variant === "next" && canBet && handleEnterPrediction("up")
-          }
+          onClick={() => variant === "next" && handleEnterPrediction("up")}
         >
           <p className="text-[20px] font-[600] leading-0">UP</p>
           <p className="text-[10px] font-[600] leading-0">2.51x payout</p>
@@ -232,21 +133,53 @@ export default function PredictionCard({
             <p className="font-semibold text-[35px]">{timeLeft}</p>
           </div>
         ) : variant === "next" ? (
-          renderNextRoundContent()
+          <div className="flex-1 glass flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
+            <div className="flex flex-col gap-[7px]">
+              <Image
+                alt=""
+                src={SolanaBg}
+                className="rounded-[10px] w-[215px] h-[142px] object-cover"
+              />
+
+              <div className="flex justify-between font-semibold text-[16px]">
+                <p>Prize Pool</p>
+
+                <p>{roundData?.prizePool ?? 0.1} SOL</p>
+              </div>
+            </div>
+
+            <Button
+              style={{
+                background: "linear-gradient(90deg, #06C729 0%, #04801B 100%)",
+              }}
+              onClick={() => handleEnterPrediction("up")}
+              className="cursor-pointer"
+            >
+              Enter UP
+            </Button>
+
+            <Button
+              style={{
+                background: "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)",
+              }}
+              onClick={() => handleEnterPrediction("down")}
+              className="cursor-pointer"
+            >
+              Enter DOWN
+            </Button>
+          </div>
         ) : (
           <div className="flex-1 flex flex-col glass p-[10px] rounded-[20px] items-center">
             <div className="max-w-[215px] flex flex-col gap-[33px] justify-between flex-1">
               <Image
-                alt="Solana Background"
+                alt=""
                 src={SolanaBg}
                 className="rounded-[10px] w-[215px] h-[142px] object-cover"
               />
 
               <div className="flex flex-col gap-[22px] font-semibold text-[#FEFEFE]">
                 <div className="flex justify-between">
-                  <p className="text-[20px]">
-                    ${roundData?.currentPrice?.toFixed(4) ?? 585.1229}
-                  </p>
+                  <p className="text-[20px]">${roundData?.currentPrice ?? 585.1229}</p>
 
                   <div className="bg-white flex items-center gap-[4px] text-[#1F1F43] px-[10px] py-[5px] rounded-[5px]">
                     <SVG width={8} height={8} iconName="arrow-up" />
@@ -257,7 +190,7 @@ export default function PredictionCard({
                 <div className="flex justify-between items-center text-[10px]">
                   <p>Locked Price</p>
 
-                  <p>${roundData?.lockPrice?.toFixed(4) ?? 584.1229}</p>
+                  <p>${roundData?.lockPrice ?? 584.1229}</p>
                 </div>
 
                 <div className="flex justify-between text-[16px]">
@@ -278,9 +211,7 @@ export default function PredictionCard({
                 : "linear-gradient(228.15deg, rgba(255, 255, 255, 0.2) -64.71%, rgba(255, 255, 255, 0.05) 102.6%)",
           }}
           className="glass flex flex-col gap-4 py-[16px]"
-          onClick={() =>
-            variant === "next" && canBet && handleEnterPrediction("down")
-          }
+          onClick={() => variant === "next" && handleEnterPrediction("down")}
         >
           <p className="text-[20px] font-[600] leading-0">DOWN</p>
           <p className="text-[10px] font-[600] leading-0">2.51x payout</p>
@@ -303,10 +234,8 @@ export default function PredictionCard({
           <div className="flex items-center gap-[1px]">
             <Image
               className="w-[30px] h-auto object-contain"
-              src="/assets/solana_logo.png"
-              alt="Solana"
-              width={30}
-              height={30}
+              src={SolanaLogo}
+              alt=""
             />
             <p className="font-semibold text-[15px]">SOL</p>
           </div>

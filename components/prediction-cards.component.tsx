@@ -11,15 +11,20 @@ import "swiper/css/effect-coverflow";
 import "swiper/css/pagination";
 import LineChart from "./LineChart";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import {
+  Connection,
+  clusterApiUrl,
+  PublicKey,
+  LAMPORTS_PER_SOL,
+} from "@solana/web3.js";
 import { toast } from "react-hot-toast";
 import { getPriceData } from "@/lib/price-utils";
 import { placeBet, claimRewards } from "@/lib/contract-utils";
 
 // Constants for round durations
 const ROUND_DURATION = {
-  LIVE: 120, // 2 minutes in seconds
-  LOCK: 30, // 30 seconds locked
+  LIVE: 180,
+   LOCK: 90, 
 };
 
 // Contract address
@@ -152,16 +157,16 @@ export default function PredictionCards() {
     setMounted(true);
 
     // Initialize Solana connection
-    const rpcUrl = process.env.NEXT_PUBLIC_SOLANA_RPC_URL;
+    const rpcUrl =
+      process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.devnet.solana.com";
     const validRpcUrl =
       rpcUrl && (rpcUrl.startsWith("http:") || rpcUrl.startsWith("https:"))
         ? rpcUrl
         : "https://api.devnet.solana.com";
 
-    connectionRef.current = new Connection(validRpcUrl, {
-      commitment: "confirmed",
-      confirmTransactionInitialTimeout: 60000,
-    });
+    const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+
+    connectionRef.current = connection;
 
     console.log("Connected to Solana network:", validRpcUrl);
 
@@ -204,14 +209,23 @@ export default function PredictionCards() {
 
     const fetchBalance = async () => {
       try {
+        console.log("PublicKey:", publicKey?.toString());
+
+        // const wallet = new PublicKey(
+        //   "nicktrLHhYzLmoVbuZQzHUTicd2sfP571orwo9jfc8c"
+        // );
+
         const balance = await connectionRef.current.getBalance(publicKey);
+
+        console.log("Balance in lamports:", balance);
+        console.log(`Balance: ${balance / LAMPORTS_PER_SOL} SOL`);
+
         setUserBalance(balance / LAMPORTS_PER_SOL);
       } catch (error) {
         console.error("Error fetching balance:", error);
         toast.error("Failed to fetch wallet balance");
       }
     };
-
     fetchBalance();
 
     // Also check for any unclaimed rewards
@@ -242,7 +256,7 @@ export default function PredictionCards() {
     try {
       const price = await getPriceData();
       setCurrentPrice(price);
-  
+
       // Generate mock historical chart data
       const now = Date.now();
       const historicalData = Array.from({ length: 60 }, (_, i) => {
@@ -253,7 +267,7 @@ export default function PredictionCards() {
           price: price + fluctuation,
         };
       });
-  
+
       setHistoricalPrices(historicalData);
     } catch (error) {
       console.error("Error fetching initial price data:", error);
@@ -459,9 +473,9 @@ export default function PredictionCards() {
 
   // Handle bet placement with contract integration
   const handlePlaceBet = async (direction, amount, roundId) => {
-    console.log('====================================');
-    console.log(direction,amount,roundId,"roundId");
-    console.log('====================================');
+    console.log("====================================");
+    console.log(direction, amount, roundId, "roundId");
+    console.log("====================================");
     if (!connected || !publicKey) {
       toast.error("Please connect your wallet first");
       return;
@@ -473,36 +487,36 @@ export default function PredictionCards() {
     }
 
     const targetRound = rounds.find((r) => r.id === roundId);
-    console.log('====================================');
-    console.log(targetRound,"targheet round");
-    console.log('====================================');
-    if (!targetRound || targetRound.status !== "LIVE") {
+    console.log("====================================");
+    console.log(targetRound, "targheet round");
+    console.log("====================================");
+    if (!targetRound) {
       toast.error("This round is not accepting bets anymore");
-      alert("ksdksdk")
       return;
     }
 
     if (amount <= 0 || amount > userBalance) {
-      // toast.error("Invalid bet amount");
-      alert("amount not available")
+      toast.error("Invalid bet amount");
+      // alert("amount not available");
       return;
     }
 
-    console.log('====================================');
-    console.log("sdlkskdksjkdj");
-    console.log('====================================');
-
     setIsProcessingAction(true);
     const toastId = toast.loading("Processing your bet...");
+
+    const programId = new PublicKey(
+      "6PNkQGtvavCwxpbh4MTKz6dhkDrqqJXYbjRn653DUXLh"
+    );
 
     try {
       // Call the contract to place the bet
       const txHash = await placeBet(
         connectionRef.current,
+        programId,
         contractRef.current,
         publicKey,
         signTransaction,
-        roundId,
+        roundId,  
         direction,
         amount
       );
@@ -805,7 +819,9 @@ export default function PredictionCards() {
                 >
                   <PredictionCard
                     variant={formatCardVariant(round)}
-                    roundId={round.id}
+                    roundId={2}
+                    currentRoundId={1}
+                    bufferTimeInSeconds={30}
                     roundData={{
                       lockPrice: round.lockPrice,
                       currentPrice: round.currentPrice || currentPrice,

@@ -4,6 +4,7 @@ import type { AppProps } from "next/app";
 import { Poppins } from "next/font/google";
 import Head from "next/head";
 import { WalletContextProvider } from "@/components/wallet.provider.component";
+import { Toaster } from "react-hot-toast";
 
 export const poppins = Poppins({
   variable: "--font-poppins-sans",
@@ -14,6 +15,7 @@ export const poppins = Poppins({
 export default function App({ Component, pageProps }: AppProps) {
   return (
     <>
+       <Toaster />
       <Head>
         <link
           rel="apple-touch-icon"
