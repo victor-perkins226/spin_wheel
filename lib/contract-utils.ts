@@ -7,134 +7,7 @@ import {
 import * as anchor from "@project-serum/anchor";
 import idl from "../lib/idl.json"; // Adjust the path accordingly
 
-/**
- * Initialize the prediction contract
- * @param {Connection} connection - Solana connection
- * @param {PublicKey} programId - Program ID
- * @param {PublicKey} adminPubkey - Admin wallet public key
- * @param {Function} signTransaction - Transaction signing function
- * @param {number} roundDuration - Duration of each round in seconds
- * @param {number} minBetAmount - Minimum bet amount in SOL
- * @param {number} treasuryFee - Treasury fee in basis points (e.g., 500 = 5%)
- * @param {number} lockDuration - Duration of lock period in seconds
- * @param {number} bufferSeconds - Buffer time in seconds
- * @param {PublicKey} executorPubkey - Executor wallet public key
- * @param {PublicKey[]} adminSigners - Array of admin multisig signers
- * @param {PublicKey[]} operatorSigners - Array of operator multisig signers
- * @param {number} threshold - Number of required signatures
- */
-export async function initialize(
-  connection,
-  programId,
-  adminPubkey,
-  signTransaction,
-  roundDuration,
-  minBetAmount,
-  treasuryFee,
-  lockDuration,
-  bufferSeconds,
-  executorPubkey,
-  adminSigners,
-  operatorSigners,
-  threshold
-) {
-  try {
-    console.log("🔁 initialize called with:", {
-      programId: programId.toBase58(),
-      adminPubkey: adminPubkey.toBase58(),
-      roundDuration,
-      minBetAmount,
-      treasuryFee,
-      lockDuration,
-      bufferSeconds,
-      executorPubkey: executorPubkey.toBase58(),
-      adminSigners: adminSigners.map(pk => pk.toBase58()),
-      operatorSigners: operatorSigners.map(pk => pk.toBase58()),
-      threshold,
-    });
-
-    // Derive PDAs
-    const [configPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("config")],
-      programId
-    );
-    const [treasuryPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("treasury")],
-      programId
-    );
-    const [adminMultisigPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("adminmultisig")],
-      programId
-    );
-    const [operatorMultisigPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("operatormultisig")],
-      programId
-    );
-
-    console.log("📦 Derived PDAs:", {
-      configPda: configPda.toBase58(),
-      treasuryPda: treasuryPda.toBase58(),
-      adminMultisigPda: adminMultisigPda.toBase58(),
-      operatorMultisigPda: operatorMultisigPda.toBase58(),
-    });
-
-    // Wallet adapter object compatible with Anchor
-    const wallet = {
-      publicKey: adminPubkey,
-      signTransaction,
-      signAllTransactions: async (txs) => Promise.all(txs.map(signTransaction)),
-    };
-
-    const provider = new anchor.AnchorProvider(connection, wallet, {
-      commitment: "confirmed",
-    });
-
-    anchor.setProvider(provider);
-    const program = new anchor.Program(idl, programId, provider);
-
-    // Run the instruction
-    const txSig = await program.methods
-      .initialize(
-        new anchor.BN(roundDuration),
-        new anchor.BN(minBetAmount),
-        new anchor.BN(treasuryFee),
-        new anchor.BN(lockDuration),
-        new anchor.BN(bufferSeconds),
-        executorPubkey,
-        adminSigners,
-        operatorSigners,
-        threshold
-      )
-      .accounts({
-        config: configPda,
-        treasury: treasuryPda,
-        adminMultisig: adminMultisigPda,
-        operatorMultisig: operatorMultisigPda,
-        admin: adminPubkey,
-        systemProgram: SystemProgram.programId,
-      })
-      .rpc();
-
-    console.log("✅ Contract initialized successfully. Tx Signature:", txSig);
-    return txSig;
-  } catch (error) {
-    console.error("❌ Error in initialize:", error);
-    if (error.logs) console.error("🔍 Anchor logs:\n", error.logs.join("\n"));
-    throw error;
-  }
-}
-
-/**
- * Place a bet on a prediction round
- * @param {Connection} connection - Solana connection
- * @param {PublicKey} programId - Program ID
- * @param {PublicKey} contractAddress - Contract address
- * @param {PublicKey} userPubkey - User wallet public key
- * @param {Function} signTransaction - Transaction signing function
- * @param {number} roundId - Round ID
- * @param {string} direction - Prediction direction ("up" or "down")
- * @param {number} amount - Bet amount in SOL
- */
+// place bet
 export async function placeBet(
   connection,
   programId,
@@ -145,10 +18,6 @@ export async function placeBet(
   direction,
   amount
 ) {
-
-  console.log('====================================');
-  console.log(roundId,'round id');
-  console.log('====================================');
   try {
     console.log("🔁 placeBet called with:", {
       programId: programId.toBase58(),
@@ -164,37 +33,28 @@ export async function placeBet(
       [Buffer.from("config")],
       programId
     );
-    
-    console.log('====================================');
-    console.log(configPda.toBase58(), "config pda");
-    console.log('====================================');
-
-    // Derive Round PDA
-    const [roundPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("round"), new anchor.BN(1).toArrayLike(Buffer, "le", 8)],
-      programId
-    );
-    
-    console.log("📦 Derived round PDA:", roundPda.toBase58());
 
     // Derive UserBet PDA
     const [userBetPda] = PublicKey.findProgramAddressSync(
       [
         Buffer.from("user_bet"),
         userPubkey.toBuffer(),
-        new anchor.BN(1).toArrayLike(Buffer, "le", 8)
+        new anchor.BN(roundId).toArrayLike(Buffer, "le", 8),
       ],
       programId
     );
-    
+
     console.log("📦 Derived userBet PDA:", userBetPda.toBase58());
 
     // Derive Escrow PDA
     const [escrowPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("escrow"), new anchor.BN(1).toArrayLike(Buffer, "le", 8)],
+      [
+        Buffer.from("escrow"),
+        new anchor.BN(roundId).toArrayLike(Buffer, "le", 8),
+      ],
       programId
     );
-    
+
     console.log("📦 Derived escrow PDA:", escrowPda.toBase58());
 
     // Wallet adapter object compatible with Anchor
@@ -211,19 +71,71 @@ export async function placeBet(
     anchor.setProvider(provider);
     const program = new anchor.Program(idl, programId, provider);
 
-    console.log("====================================");
-    console.log("program ready");
-    console.log("====================================");
+    const config = await program.account.config.fetch(configPda);
+    const currentRound = config.currentRound;
+
+    // Derive Round PDA
+    const [roundPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("round"), currentRound.toArrayLike(Buffer, "le", 8)],
+      programId
+    );
 
     const betAmount = new anchor.BN(amount * LAMPORTS_PER_SOL);
     console.log("💰 Lamports to transfer:", betAmount.toString());
+
+    const configData = await program.account.config.fetch(configPda);
+
+    console.log("====================================");
+    console.log(configData, "config data");
+    console.log("====================================");
+
+    const roundData = await program.account.round.fetch(roundPda);
+    const now = Math.floor(Date.now() / 1000);
+
+    const isLocked = now >= roundData.lockTime.toNumber();
+
+    console.log("====================================");
+    console.log(isLocked, "isLocked");
+    console.log("====================================");
+
+    console.log("====================================");
+    console.log(roundData, "round data");
+    console.log("====================================");
+
+
+    const startTimestamp = roundData.startTime.toNumber();
+const startDate = new Date(startTimestamp * 1000); // Convert to milliseconds
+
+// Format the date (e.g., "2025-05-04 13:45:00")
+const formattedStartTime = startDate.toLocaleString("en-IN", {
+  timeZone: "Asia/Kolkata", // Optional: set your timezone
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+});
+
+console.log("📅 Round starts at:", formattedStartTime);
+
+
+    if (!roundData.isActive) {
+      throw new Error("No active round for betting.");
+    }
+
+    if (!roundData?.isLocked) {
+      throw new Error("Round is locked for betting.");
+    }
+
 
     // Run the instruction
     const txSig = await program.methods
       .placeBet(
         betAmount,
         direction === "up", // predictBull - true if predicting price will go up
-        new anchor.BN(1)
+        new anchor.BN(roundId)
       )
       .accounts({
         config: configPda,
@@ -244,10 +156,8 @@ export async function placeBet(
   }
 }
 
-/**
- * Anchor-based Claim Rewards function
- */
-export async function claimRewards(
+// claim payout
+export async function claimPayout(
   connection,
   programId,
   contractAddress,
@@ -290,6 +200,181 @@ export async function claimRewards(
   } catch (error) {
     console.error("❌ Error in claimRewards:", error);
     if (error.logs) console.error("🔍 Anchor logs:\n", error.logs.join("\n"));
+    throw error;
+  }
+}
+
+export async function checkRoundStatus(connection, programId, roundId) {
+  try {
+    // Get config to find configuration parameters
+    const [configPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("config")],
+      programId
+    );
+
+    // Create provider (read-only)
+    const provider = new anchor.AnchorProvider(
+      connection,
+      {},
+      { commitment: "confirmed" }
+    );
+
+    anchor.setProvider(provider);
+    const program = new anchor.Program(idl, programId, provider);
+
+    // Get config account
+    const configAccount = await program.account.config.fetch(configPda);
+    const currentRoundNumber = configAccount.currentRound.toNumber();
+
+    console.log("=== Contract Configuration ===");
+    console.log(
+      `Round Duration: ${configAccount.roundDuration.toNumber()} seconds`
+    );
+    console.log(
+      `Lock Duration: ${configAccount.lockDuration.toNumber()} seconds`
+    );
+    console.log(`Current Round Number: ${roundId}`);
+    console.log(
+      `Min Bet Amount: ${
+        configAccount.minBetAmount.toNumber() / LAMPORTS_PER_SOL
+      } SOL`
+    );
+    console.log(`Treasury Fee: ${configAccount.treasuryFee.toNumber()}%`);
+    console.log("=============================");
+
+    // Get current round details
+    const [roundPda] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("round"),
+        new anchor.BN(roundId).toArrayLike(Buffer, "le", 8),
+      ],
+      programId
+    );
+
+    const roundAccount = await program.account.round.fetch(roundPda);
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+
+    // Calculate timing parameters
+    const startTime = roundAccount.startTime.toNumber();
+    const lockTime = roundAccount.lockTime
+      ? roundAccount.lockTime.toNumber()
+      : null;
+    const endTime = roundAccount.endTime
+      ? roundAccount.endTime.toNumber()
+      : null;
+
+    const expectedLockTime = startTime + configAccount.lockDuration.toNumber();
+    const expectedEndTime = startTime + configAccount.roundDuration.toNumber();
+
+    // Determine round state for betting
+    let roundState = "Unknown";
+    let canPlaceBet = false;
+
+    if (!roundAccount.isActive) {
+      roundState = "Inactive";
+    } else if (lockTime && endTime) {
+      roundState = "Ended";
+    } else if (lockTime) {
+      roundState = "Locked";
+    } else if (currentTimestamp < expectedLockTime) {
+      roundState = "Active - Betting Open";
+      canPlaceBet = true;
+    } else {
+      roundState = "Active - Should Be Locked";
+    }
+
+    console.log("=== Round Status Check ===");
+    console.log(`Round #: ${roundId}`);
+    console.log(`Round State: ${roundState}`);
+    console.log(`Can Place Bet: ${canPlaceBet ? "YES" : "NO"}`);
+    console.log(`Is Active Flag: ${roundAccount.isActive}`);
+    console.log(
+      `Start Time: ${new Date(
+        startTime * 1000
+      ).toLocaleString()} (${startTime})`
+    );
+    console.log(
+      `Current Time: ${new Date(
+        currentTimestamp * 1000
+      ).toLocaleString()} (${currentTimestamp})`
+    );
+    console.log(
+      `Expected Lock Time: ${new Date(
+        expectedLockTime * 1000
+      ).toLocaleString()} (${expectedLockTime})`
+    );
+    console.log(
+      `Actual Lock Time: ${
+        lockTime
+          ? new Date(lockTime * 1000).toLocaleString() + ` (${lockTime})`
+          : "Not locked"
+      }`
+    );
+    console.log(
+      `Expected End Time: ${new Date(
+        expectedEndTime * 1000
+      ).toLocaleString()} (${expectedEndTime})`
+    );
+    console.log(
+      `Actual End Time: ${
+        endTime
+          ? new Date(endTime * 1000).toLocaleString() + ` (${endTime})`
+          : "Not ended"
+      }`
+    );
+
+    // Time remaining calculations
+    if (canPlaceBet) {
+      const secondsUntilLock = expectedLockTime - currentTimestamp;
+      console.log(
+        `Time Remaining for Betting: ${secondsUntilLock} seconds (${Math.floor(
+          secondsUntilLock / 60
+        )} minutes)`
+      );
+    }
+
+    console.log(
+      `Total Amount: ${
+        roundAccount.totalAmount.toNumber() / LAMPORTS_PER_SOL
+      } SOL`
+    );
+    console.log(
+      `Bull Amount: ${
+        roundAccount.totalBullAmount.toNumber() / LAMPORTS_PER_SOL
+      } SOL`
+    );
+    console.log(
+      `Bear Amount: ${
+        roundAccount.totalBearAmount.toNumber() / LAMPORTS_PER_SOL
+      } SOL`
+    );
+    console.log("=========================");
+
+    return {
+      config: {
+        roundDuration: configAccount.roundDuration.toNumber(),
+        lockDuration: configAccount.lockDuration.toNumber(),
+        minBetAmount: configAccount.minBetAmount.toNumber(),
+        treasuryFee: configAccount.treasuryFee.toNumber(),
+      },
+      round: {
+        roundNumber: 1,
+        state: roundState,
+        canPlaceBet,
+        isActive: roundAccount.isActive,
+        startTime,
+        lockTime,
+        endTime,
+        expectedLockTime,
+        expectedEndTime,
+        currentTimestamp,
+        totalAmount: roundAccount.totalAmount.toNumber(),
+        totalBullAmount: roundAccount.totalBullAmount.toNumber(),
+        totalBearAmount: roundAccount.totalBearAmount.toNumber(),
+      },
+    };
+  } catch (error) {
+    console.error("Failed to check detailed round status:", error);
     throw error;
   }
 }

@@ -20,14 +20,16 @@ interface IProps {
     timeRemaining?: number;
     upBets?: number;
     downBets?: number;
+    upPayout?: number; // Added for dynamic payout calculation
+    downPayout?: number; // Added for dynamic payout calculation
   };
   onPlaceBet?: (
     direction: "up" | "down",
     amount: number,
     roundId: number
   ) => void;
-  currentRoundId?: number; // Add this to track current round
-  bufferTimeInSeconds?: number; // Add this to set buffer time
+  currentRoundId?: number;
+  bufferTimeInSeconds?: number;
 }
 
 const CUSTOM_INPUTS = [
@@ -43,7 +45,7 @@ export default function PredictionCard({
   roundId = 1,
   roundData,
   onPlaceBet,
-  currentRoundId, // Add this prop to track the current active round
+  currentRoundId,
   bufferTimeInSeconds = 30,
 }: IProps) {
   const [isFlipped, setIsFlipped] = useState(false);
@@ -53,7 +55,10 @@ export default function PredictionCard({
   const [timeLeft, setTimeLeft] = useState<string>("5:00");
   const [canBet, setCanBet] = useState<boolean>(false);
   const { connected, publicKey } = useWallet();
-  
+
+  // Get payout values with fallbacks
+  const upPayout = roundData?.upPayout ?? 2.51;
+  const downPayout = roundData?.downPayout ?? 2.51;
 
   // Determine if this round can be bet on
   useEffect(() => {
@@ -85,7 +90,6 @@ export default function PredictionCard({
       setMaxAmount(10);
     }
   }, [connected, publicKey]);
-
 
   const handleEnterPrediction = (mode: "up" | "down") => {
     if (!connected) {
@@ -219,11 +223,18 @@ export default function PredictionCard({
           }
         >
           <p className="text-[20px] font-[600] leading-0">UP</p>
-          <p className="text-[10px] font-[600] leading-0">2.51x payout</p>
+          <p className="text-[10px] font-[600] leading-0">
+            {upPayout.toFixed(2)}x payout
+          </p>
         </Button>
 
         {variant === "later" ? (
           <div className="glass flex-1 rounded-[20px] flex flex-col gap-[12px] items-center justify-center">
+            <Image
+              alt="Solana Background"
+              src={SolanaBg}
+              className="rounded-[10px] w-[215px] h-[142px] object-cover mt-2"
+            />
             <div className="flex items-center gap-[12px]">
               <SVG iconName="play-fill" />
               <p className="font-semibold text-[20px]">Next Play</p>
@@ -283,7 +294,9 @@ export default function PredictionCard({
           }
         >
           <p className="text-[20px] font-[600] leading-0">DOWN</p>
-          <p className="text-[10px] font-[600] leading-0">2.51x payout</p>
+          <p className="text-[10px] font-[600] leading-0">
+            {downPayout.toFixed(2)}x payout
+          </p>
         </Button>
       </div>
 
