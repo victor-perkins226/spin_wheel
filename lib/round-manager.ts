@@ -6,14 +6,6 @@ import { getPriceData } from "@/lib/price-utils";
 import { checkRoundStatus, placeBet, claimPayout } from "@/lib/contract-utils";
 import { PublicKey } from "@solana/web3.js";
 
-// Round duration constants in seconds
-const ROUND_DURATION = {
-  LIVE: 300, // 5 minutes (300 seconds)
-  LOCK: 150, // 2.5 minutes (150 seconds)
-  TOTAL: 450, // 5 minutes (450 seconds)
-  ENTRY_WAIT: 600, // 10 minutes (600 seconds) before entry starts
-};
-
 // Helper to truncate wallet addresses
 const truncateAddress = (address) => {
   if (!address) return "";
@@ -24,91 +16,114 @@ const truncateAddress = (address) => {
 const formatTime = (seconds) => {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  return `${mins.toString().padStart(2, "0")}:${secs
+    .toString()
+    .padStart(2, "0")}`;
 };
 
-// Generate initial rounds state with 5 rounds
-const generateInitialRounds = (currentPrice) => {
-  const now = Date.now();
+// Fetch configuration from API
+export const fetchConfig = async () => {
+  try {
+    const response = await fetch(
+      "https://sol-prediction-backend.onrender.com/round/config"
+    );
+    if (!response.ok) {
+      throw new Error("Failed to fetch configuration");
+    }
+    const configData = await response.json();
+    return configData;
+  } catch (error) {
+    console.error("Error fetching configuration:", error);
+    toast.error("Failed to fetch game configuration");
+    return null;
+  }
+};
 
-  return [
-    // Two expired rounds
-    {
-      id: 1,
+// Generate rounds based on config and current price
+const generateRoundsFromConfig = (currentPrice, config) => {
+  const now = Date.now();
+  const roundDuration = parseInt(config.roundDuration); // Total round duration in seconds
+  const lockDuration = parseInt(config.lockDuration); // Lock duration in seconds
+  const liveDuration = roundDuration; // Live duration in seconds
+  const currentRound = parseInt(config.currentRound);
+
+  const rounds = [];
+
+  // Expired round (previous round)
+  if (currentRound > 2) {
+    rounds.push({
+      id: currentRound - 2,
       variant: "expired",
       status: "ENDED",
       prizePool: 8.6015,
       timeRemaining: 0,
       lockPrice: currentPrice - 2.0,
       closePrice: currentPrice - 1.5,
-      startTime: now - ROUND_DURATION.TOTAL * 4000,
-      endTime: now - ROUND_DURATION.TOTAL * 3000,
+      startTime: now - roundDuration * 2000,
+      endTime: now - roundDuration * 1000,
       upBets: 4.3,
       downBets: 4.3015,
       totalBets: 12,
       liveBets: [],
-    },
+    });
+  }
 
-    // Current live round
-    {
-      id: 2,
+  // Current live round
+  if (currentRound > 1) {
+    rounds.push({
+      id: currentRound - 1,
       variant: "live",
       status: "LIVE",
       prizePool: 0.5,
-      timeRemaining: ROUND_DURATION.LIVE,
+      timeRemaining: liveDuration,
       currentPrice: currentPrice,
       startTime: now,
-      endTime: now + ROUND_DURATION.TOTAL * 1000,
+      endTime: now + roundDuration * 1000,
       upBets: 0.3,
       downBets: 0.2,
       totalBets: 5,
       liveBets: [],
-    },
-    // Next upcoming round
-    {
-      id: 3,
-      variant: "next",
-      status: "UPCOMING",
-      prizePool: 0.1,
-      timeRemaining: ROUND_DURATION.TOTAL,
-      startTime: now + ROUND_DURATION.TOTAL * 1000,
-      endTime: now + ROUND_DURATION.TOTAL * 2000,
-      upBets: 0,
-      downBets: 0,
-      totalBets: 0,
-      liveBets: [],
-    },
-    // Later round with entry timer
-    {
-      id: 4,
-      variant: "later",
-      status: "LATER",
-      prizePool: 0,
-      entryStartsIn: ROUND_DURATION.ENTRY_WAIT, // 10 minutes countdown
-      timeRemaining: ROUND_DURATION.TOTAL + ROUND_DURATION.ENTRY_WAIT,
-      startTime: now + ROUND_DURATION.TOTAL * 2000 + ROUND_DURATION.ENTRY_WAIT * 1000,
-      endTime: now + ROUND_DURATION.TOTAL * 3000 + ROUND_DURATION.ENTRY_WAIT * 1000,
-      upBets: 0,
-      downBets: 0,
-      totalBets: 0,
-      liveBets: [],
-    }
-  ];
+    });
+  }
+
+  // Next round (where users can place bets)
+  rounds.push({
+    id: currentRound,
+    variant: "next",
+    status: "UPCOMING",
+    prizePool: 0.1,
+    timeRemaining: roundDuration,
+    startTime: now + liveDuration * 1000, // Starts when current round enters lock phase
+    endTime: now + roundDuration * 2 * 1000,
+    upBets: 0,
+    downBets: 0,
+    totalBets: 0,
+    liveBets: [],
+  });
+
+  // Later round
+  rounds.push({
+    id: currentRound + 1,
+    variant: "later",
+    status: "LATER",
+    prizePool: 0,
+    timeRemaining: liveDuration,
+    entryStartsIn: liveDuration, // Entry starts when current round enters lock phase
+    startTime: now + roundDuration * 1000, // Starts when next round enters lock phase
+    endTime: now + roundDuration * 3 * 1000,
+    upBets: 0,
+    downBets: 0,
+    totalBets: 0,
+    liveBets: [],
+  });
+
+  return rounds;
 };
 
-/**
- * Custom hook for managing prediction game rounds
- *
- * @param {Object} options - Configuration options
- * @param {Object} options.wallet - Wallet connection info
- * @param {Function} options.signTransaction - Transaction signing function
- * @param {Object} options.connection - Solana connection
- * @param {Object} options.contractAddress - Prediction contract address
- * @returns {Object} Round management state and functions
- */
 export function useRoundManager({
   wallet = {},
   signTransaction,
+  sendTransaction,
   connection,
   contractAddress,
 }) {
@@ -124,11 +139,18 @@ export function useRoundManager({
   const [claimableRewards, setClaimableRewards] = useState(0);
   const [isProcessingAction, setIsProcessingAction] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [config, setConfig] = useState(null);
 
-  // Initialize with price data
+  // Initialize with price data and configuration
   useEffect(() => {
     const initialize = async () => {
       try {
+        // Get config first
+        const configData = await fetchConfig();
+
+        setConfig(configData);
+        if (!configData) return;
+
         // Get current price
         const price = await getPriceData();
         setCurrentPrice(price);
@@ -146,8 +168,8 @@ export function useRoundManager({
 
         setHistoricalPrices(historicalData);
 
-        // Create initial rounds
-        setRounds(generateInitialRounds(price));
+        // Create initial rounds based on config
+        setRounds(generateRoundsFromConfig(price, configData));
 
         // Generate some mock live bets
         const initialLiveBets = Array(19)
@@ -181,9 +203,15 @@ export function useRoundManager({
       } catch (err) {
         console.error("Error polling price:", err);
       }
-    }, 30000); // every 30 seconds for demo (would be 5 min in production)
+    }, 10000); // every 10 seconds for demo
 
-    return () => clearInterval(pollingId);
+    // Poll for config updates every minute
+    const configPollingId = setInterval(fetchConfig, 60000);
+
+    return () => {
+      clearInterval(pollingId);
+      clearInterval(configPollingId);
+    };
   }, []);
 
   // Load user data when wallet connects
@@ -212,158 +240,146 @@ export function useRoundManager({
     loadUserData();
   }, [connected, publicKey, connection]);
 
-  // Round timer management
+  // Round timer management - this is where the main flow happens
   useEffect(() => {
-    if (!isInitialized) return;
+    if (!isInitialized || !config) return;
 
     const timer = setInterval(() => {
       setRounds((prevRounds) => {
+        // Create a deep copy to work with
+        const updatedRounds = JSON.parse(JSON.stringify(prevRounds));
+
+        // Get durations from config
+        const roundDuration = parseInt(config.roundDuration);
+        const lockDuration = parseInt(config.lockDuration);
+        const liveDuration = roundDuration - lockDuration;
+
+        // Sort rounds by ID to make sure they're in chronological order
+        updatedRounds.sort((a, b) => a.id - b.id);
+
         // Process each round
-        const updatedRounds = prevRounds.map((round) => {
-          // Skip ended rounds
-          if (round.status === "ENDED") return round;
+        for (let i = 0; i < updatedRounds.length; i++) {
+          const round = updatedRounds[i];
 
-          // For active rounds, decrease time
-          let timeRemaining = round.timeRemaining - 1;
-          let status = round.status;
-          let variant = round.variant;
-          
-          // Handle the "LATER" round with entry timer
-          if (round.status === "LATER") {
-            // Decrease entry timer
-            const entryStartsIn = (round.entryStartsIn || 0) - 1;
-            
-            // Check if entry timer is completed
-            if (entryStartsIn <= 0) {
-              // Entry period starts, convert to UPCOMING
-              status = "UPCOMING";
-              variant = "next";
-              return { ...round, status, variant, entryStartsIn: 0, timeRemaining };
+          // Only process rounds with timers
+          if (round.status !== "ENDED") {
+            round.timeRemaining = Math.max(0, round.timeRemaining - 1);
+          }
+
+          // Process transitions for rounds based on their current status
+          if (round.status === "LIVE" && round.timeRemaining === 0) {
+            // LIVE -> LOCKED transition
+            round.status = "LOCKED";
+            round.variant = "locked"; // Add variant for styling
+            round.timeRemaining = lockDuration;
+            round.lockPrice = currentPrice;
+            console.log(`Round ${round.id} LIVE -> LOCKED`);
+
+            // Find the upcoming round and make it LIVE
+            const nextRound = updatedRounds.find(
+              (r) => r.status === "UPCOMING"
+            );
+            if (nextRound) {
+              nextRound.status = "LIVE";
+              nextRound.variant = "live";
+              nextRound.timeRemaining = liveDuration;
+              nextRound.currentPrice = currentPrice;
+              console.log(`Round ${nextRound.id} UPCOMING -> LIVE`);
             }
-            
-            return { ...round, entryStartsIn, timeRemaining };
-          }
-          // Calculate if status needs to change
-          else if (round.status === "LIVE" && timeRemaining <= 0) {
-            // Round becomes locked
-            status = "LOCKED";
-            timeRemaining = ROUND_DURATION.LOCK;
-            // Record lock price
-            return { ...round, status, timeRemaining, lockPrice: currentPrice };
-          } else if (round.status === "LOCKED" && timeRemaining <= 0) {
-            // Round ends
-            status = "ENDED";
-            variant = "expired";
-            // Record close price
-            return {
-              ...round,
-              status,
-              variant,
-              timeRemaining: 0,
-              closePrice: currentPrice,
-            };
-          } else if (
-            round.status === "UPCOMING" &&
-            prevRounds.some((r) => r.status === "LIVE" && r.timeRemaining <= 30)
-          ) {
-            // Next round becomes live when current round is about to lock (30s buffer)
-            // status = "LIVE";
-            // variant = "live";
-            // timeRemaining = ROUND_DURATION.LIVE;
-            // return { ...round, status, variant, timeRemaining };
-          }
 
-          return { ...round, timeRemaining };
-        });
+            // Convert LATER to UPCOMING (next)
+            const laterRound = updatedRounds.find((r) => r.status === "LATER");
+            if (laterRound) {
+              laterRound.status = "UPCOMING";
+              laterRound.variant = "next";
+              laterRound.entryStartsIn = 0;
+              console.log(`Round ${laterRound.id} LATER -> UPCOMING`);
+            }
 
-        // Check if we need to add a new "LATER" round
-        const laterRoundExists = updatedRounds.some(round => round.status === "LATER");
-        if (!laterRoundExists) {
-          // Find the highest ID
-          const maxId = Math.max(...updatedRounds.map(round => round.id));
-          const now = Date.now();
-          
-          // Create a new "LATER" round
-          const newLaterRound = {
-            id: maxId + 1,
-            variant: "later",
-            status: "LATER",
-            prizePool: 0,
-            entryStartsIn: ROUND_DURATION.ENTRY_WAIT, // 10 minute countdown
-            timeRemaining: ROUND_DURATION.TOTAL + ROUND_DURATION.ENTRY_WAIT,
-            startTime: now + ROUND_DURATION.TOTAL * 2000 + ROUND_DURATION.ENTRY_WAIT * 1000,
-            endTime: now + ROUND_DURATION.TOTAL * 3000 + ROUND_DURATION.ENTRY_WAIT * 1000,
-            upBets: 0,
-            downBets: 0,
-            totalBets: 0,
-            liveBets: [],
-          };
-          
-          updatedRounds.push(newLaterRound);
-        }
-        
-        // Check if we need to add a new upcoming round
-        if (!updatedRounds.some((round) => round.status === "UPCOMING")) {
-          // Find latest round
-          const latestActiveRound = [...updatedRounds]
-            .filter(r => r.status !== "ENDED" && r.status !== "LATER")
-            .sort((a, b) => b.id - a.id)[0];
-            
-          if (latestActiveRound) {
-            const newRound = {
-              id: latestActiveRound.id + 1,
-              variant: "next",
-              status: "UPCOMING",
-              prizePool: 0.1,
-              timeRemaining: ROUND_DURATION.TOTAL,
-              startTime: Date.now() + ROUND_DURATION.LIVE * 1000,
-              endTime: Date.now() + ROUND_DURATION.TOTAL * 1000,
+            // Create a new LATER round
+            const maxId = Math.max(...updatedRounds.map((r) => r.id));
+            const now = Date.now();
+
+            const newLaterRound = {
+              id: maxId + 1,
+              variant: "later",
+              status: "LATER",
+              prizePool: 0,
+              timeRemaining: liveDuration,
+              entryStartsIn: liveDuration,
+              startTime: now + roundDuration * 1000,
+              endTime: now + roundDuration * 2000,
               upBets: 0,
               downBets: 0,
               totalBets: 0,
               liveBets: [],
             };
-            updatedRounds.push(newRound);
+
+            updatedRounds.push(newLaterRound);
+            console.log(`Created new LATER round with ID ${newLaterRound.id}`);
+          } else if (round.status === "LOCKED" && round.timeRemaining === 0) {
+            // LOCKED -> ENDED transition
+            round.status = "ENDED";
+            round.variant = "expired";
+            round.closePrice = currentPrice;
+            console.log(`Round ${round.id} LOCKED -> ENDED`);
+          } else if (round.status === "LATER") {
+            // Update entry timer for LATER rounds
+            if (round.entryStartsIn > 0) {
+              round.entryStartsIn = Math.max(0, round.entryStartsIn - 1);
+            }
           }
         }
 
-        // Maintain only 5 rounds: 2 expired, 1 live, 1 upcoming, 1 later
-        if (updatedRounds.length > 5) {
-          // Sort by ID to get chronological order
-          updatedRounds.sort((a, b) => a.id - b.id);
-          
-          // Count ended rounds
-          const endedRounds = updatedRounds.filter(r => r.status === "ENDED");
-          
-          // If we have more than 2 ended rounds, remove the oldest ones
-          while (endedRounds.length > 2 && updatedRounds.length > 5) {
-            const oldestEndedIndex = updatedRounds.findIndex(r => r.status === "ENDED");
-            if (oldestEndedIndex !== -1) {
-              updatedRounds.splice(oldestEndedIndex, 1);
-              endedRounds.shift();
-            }
-          }
-          
-          // If we still have more than 5 rounds, remove excess rounds
-          while (updatedRounds.length > 5) {
-            // Try to maintain the balance of different round types
-            if (updatedRounds.filter(r => r.status === "LATER").length > 1) {
-              // Remove excess LATER rounds first
-              const latestLaterIndex = updatedRounds.findIndex(r => r.status === "LATER");
-              updatedRounds.splice(latestLaterIndex, 1);
-            } else {
-              // Remove oldest round as a fallback
-              updatedRounds.shift();
+        // Clean up rounds - keep only one ENDED, one LIVE, one UPCOMING, one LATER
+        const endedRounds = updatedRounds.filter((r) => r.status === "ENDED");
+
+        // Keep only the most recent ended round
+        if (endedRounds.length > 1) {
+          // Sort ended rounds by ID (descending) to get the newest first
+          endedRounds.sort((a, b) => b.id - a.id);
+
+          // Keep only the most recent ended round
+          for (let i = 1; i < endedRounds.length; i++) {
+            const roundToRemove = endedRounds[i];
+            const indexToRemove = updatedRounds.findIndex(
+              (r) => r.id === roundToRemove.id
+            );
+            if (indexToRemove !== -1) {
+              updatedRounds.splice(indexToRemove, 1);
             }
           }
         }
+
+        // Ensure we have exactly one of each status type
+        const statuses = ["ENDED", "LOCKED", "LIVE", "UPCOMING", "LATER"];
+        for (const status of statuses) {
+          const roundsWithStatus = updatedRounds.filter(
+            (r) => r.status === status
+          );
+          if (roundsWithStatus.length > 1) {
+            // Keep the newest (highest ID) for each status
+            roundsWithStatus.sort((a, b) => b.id - a.id);
+            for (let i = 1; i < roundsWithStatus.length; i++) {
+              const indexToRemove = updatedRounds.findIndex(
+                (r) => r.id === roundsWithStatus[i].id
+              );
+              if (indexToRemove !== -1) {
+                updatedRounds.splice(indexToRemove, 1);
+              }
+            }
+          }
+        }
+
+        // Sort rounds by ID again to maintain correct order
+        updatedRounds.sort((a, b) => a.id - b.id);
 
         return updatedRounds;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isInitialized, currentPrice]);
+  }, [isInitialized, currentPrice, config]);
 
   // Update user bets when rounds complete
   useEffect(() => {
@@ -477,6 +493,14 @@ export function useRoundManager({
       return;
     }
 
+    // Check minimum bet amount from config
+    if (config && amount * 1e9 < parseInt(config.minBetAmount)) {
+      toast.error(
+        `Minimum bet amount is ${parseInt(config.minBetAmount) / 1e9} SOL`
+      );
+      return;
+    }
+
     setIsProcessingAction(true);
     const toastId = toast.loading("Processing your bet...");
 
@@ -486,13 +510,9 @@ export function useRoundManager({
       if (connection && contractAddress && signTransaction) {
         // In production, uncomment this to use real contract interaction
         const programId = new PublicKey(
-          "6PNkQGtvavCwxpbh4MTKz6dhkDrqqJXYbjRn653DUXLh"
+          "CXpSQ4p9H5HvLnfBptGzqmSYu2rbyrDpwJkP9gGMutoT"
         );
         const contractPubKey = new PublicKey(contractAddress);
-
-        // Check round status first
-        const roundStatus = await checkRoundStatus(connection, programId,roundId);
-        console.log("Round status:", roundStatus);
 
         // Place the bet on-chain
         txHash = await placeBet(
@@ -501,11 +521,16 @@ export function useRoundManager({
           contractPubKey,
           publicKey,
           signTransaction,
+          sendTransaction,
           roundId,
           direction,
           amount
         );
       }
+
+      console.log("====================================");
+      console.log(txHash, "txhash");
+      console.log("====================================");
 
       // Add to user bets
       const newBet = {
@@ -634,44 +659,47 @@ export function useRoundManager({
 
   // Get formatted entry start time for later round
   const getEntryStartTime = useCallback(() => {
+    // Find the live round to sync the timer
+    const liveRound = rounds.find((r) => r.status === "LIVE");
+    if (liveRound) {
+      return formatTime(liveRound.timeRemaining);
+    }
+
+    // Fallback
     const laterRound = rounds.find((r) => r.status === "LATER");
-    if (!laterRound || !laterRound.entryStartsIn) return "00:00";
-    return formatTime(laterRound.entryStartsIn);
+    if (laterRound && laterRound.entryStartsIn) {
+      return formatTime(laterRound.entryStartsIn);
+    }
+
+    return "00:00";
   }, [rounds]);
 
   // Check if a round is active for betting
   const isRoundBettable = useCallback(
     (roundId) => {
-      const round = rounds.find(r => r.id === roundId);
+      const round = rounds.find((r) => r.id === roundId);
       if (!round) return false;
-      
+
       // Can only bet on UPCOMING rounds
       return round.status === "UPCOMING";
     },
     [rounds]
   );
 
-  // Start a new round manually (for testing/admin purposes)
-  const startNewRound = useCallback(() => {
-    setRounds((prevRounds) => {
-      const lastRound = prevRounds[prevRounds.length - 1];
-      const newRound = {
-        id: lastRound.id + 1,
-        variant: "later",
-        status: "LATER",
-        prizePool: 0,
-        entryStartsIn: ROUND_DURATION.ENTRY_WAIT,
-        timeRemaining: ROUND_DURATION.TOTAL + ROUND_DURATION.ENTRY_WAIT,
-        startTime: Date.now() + ROUND_DURATION.TOTAL * 2000 + ROUND_DURATION.ENTRY_WAIT * 1000,
-        endTime: Date.now() + ROUND_DURATION.TOTAL * 3000 + ROUND_DURATION.ENTRY_WAIT * 1000,
-        upBets: 0,
-        downBets: 0,
-        totalBets: 0,
-        liveBets: [],
-      };
-      return [...prevRounds, newRound];
-    });
-  }, []);
+  // Get round durations from config
+  const getRoundDurations = useCallback(() => {
+    if (!config) return { LIVE: 300, LOCK: 30, TOTAL: 330 };
+
+    const roundDuration = parseInt(config.roundDuration);
+    const lockDuration = parseInt(config.lockDuration);
+    const liveDuration = roundDuration - lockDuration;
+
+    return {
+      LIVE: liveDuration,
+      LOCK: lockDuration,
+      TOTAL: roundDuration,
+    };
+  }, [config]);
 
   return {
     rounds,
@@ -682,16 +710,16 @@ export function useRoundManager({
     userBalance,
     claimableRewards,
     isProcessingAction,
+    config,
     // Actions
     placeBet: handlePlaceBet,
     claimRewards: handleClaimRewards,
     checkClaimableRewards: checkForClaimableRewards,
-    startNewRound,
     isRoundBettable,
     getActiveRoundId,
     getEntryStartTime,
     // Constants
-    ROUND_DURATION,
+    ROUND_DURATION: getRoundDurations(),
     // Helpers
     formatTime,
   };

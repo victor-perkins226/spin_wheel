@@ -14,6 +14,7 @@ export async function placeBet(
   contractAddress,
   userPubkey,
   signTransaction,
+  sendTransaction,
   roundId,
   direction,
   amount
@@ -34,107 +35,54 @@ export async function placeBet(
       programId
     );
 
-    // Derive UserBet PDA
-    const [userBetPda] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("user_bet"),
-        userPubkey.toBuffer(),
-        new anchor.BN(roundId).toArrayLike(Buffer, "le", 8),
-      ],
-      programId
+    const getRoundPda = (roundNumber: number) =>
+      PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("round"),
+          new anchor.BN(roundNumber).toArrayLike(Buffer, "le", 8),
+        ],
+        programId
+      )[0];
+
+    const getEscrowPda = (roundNumber: number) =>
+      PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("escrow"),
+          new anchor.BN(roundNumber).toArrayLike(Buffer, "le", 8),
+        ],
+        programId
+      )[0];
+    const getUserBetPda = (user: PublicKey, roundNumber: number) =>
+      PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("user_bet"),
+          user.toBuffer(),
+          new anchor.BN(roundNumber).toArrayLike(Buffer, "le", 8),
+        ],
+        programId
+      )[0];
+
+    const provider = new anchor.AnchorProvider(
+      connection,
+      { userPubkey, signTransaction } as any,
+      { commitment: "confirmed" }
     );
 
-    console.log("📦 Derived userBet PDA:", userBetPda.toBase58());
-
-    // Derive Escrow PDA
-    const [escrowPda] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("escrow"),
-        new anchor.BN(roundId).toArrayLike(Buffer, "le", 8),
-      ],
-      programId
-    );
-
-    console.log("📦 Derived escrow PDA:", escrowPda.toBase58());
-
-    // Wallet adapter object compatible with Anchor
-    const wallet = {
-      publicKey: userPubkey,
-      signTransaction,
-      signAllTransactions: async (txs) => Promise.all(txs.map(signTransaction)),
-    };
-
-    const provider = new anchor.AnchorProvider(connection, wallet, {
-      commitment: "confirmed",
-    });
-
-    anchor.setProvider(provider);
-    const program = new anchor.Program(idl, programId, provider);
-
-    const config = await program.account.config.fetch(configPda);
-    const currentRound = config.currentRound;
-
-    // Derive Round PDA
-    const [roundPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("round"), currentRound.toArrayLike(Buffer, "le", 8)],
-      programId
-    );
+    const program = new anchor.Program(idl as any, programId, provider);
 
     const betAmount = new anchor.BN(amount * LAMPORTS_PER_SOL);
     console.log("💰 Lamports to transfer:", betAmount.toString());
 
-    const configData = await program.account.config.fetch(configPda);
+    const roundPda = getRoundPda(roundId);
+    const escrowPda = getEscrowPda(roundId);
+    const userBetPda = getUserBetPda(userPubkey, roundId);
 
-    console.log("====================================");
-    console.log(configData, "config data");
-    console.log("====================================");
+    let isBull = false;
 
-    const roundData = await program.account.round.fetch(roundPda);
-    const now = Math.floor(Date.now() / 1000);
-
-    const isLocked = now >= roundData.lockTime.toNumber();
-
-    console.log("====================================");
-    console.log(isLocked, "isLocked");
-    console.log("====================================");
-
-    console.log("====================================");
-    console.log(roundData, "round data");
-    console.log("====================================");
-
-
-    const startTimestamp = roundData.startTime.toNumber();
-const startDate = new Date(startTimestamp * 1000); // Convert to milliseconds
-
-// Format the date (e.g., "2025-05-04 13:45:00")
-const formattedStartTime = startDate.toLocaleString("en-IN", {
-  timeZone: "Asia/Kolkata", // Optional: set your timezone
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  second: "2-digit",
-  hour12: false,
-});
-
-console.log("📅 Round starts at:", formattedStartTime);
-
-
-    if (!roundData.isActive) {
-      throw new Error("No active round for betting.");
-    }
-
-    if (!roundData?.isLocked) {
-      throw new Error("Round is locked for betting.");
-    }
-
-
-    // Run the instruction
-    const txSig = await program.methods
+    const tx = await program.methods
       .placeBet(
-        betAmount,
-        direction === "up", // predictBull - true if predicting price will go up
+        new anchor.BN(amount * anchor.web3.LAMPORTS_PER_SOL),
+        isBull,
         new anchor.BN(roundId)
       )
       .accounts({
@@ -143,12 +91,27 @@ console.log("📅 Round starts at:", formattedStartTime);
         userBet: userBetPda,
         user: userPubkey,
         escrow: escrowPda,
-        systemProgram: SystemProgram.programId,
+        systemProgram: anchor.web3.SystemProgram.programId,
       })
-      .rpc();
+      .transaction();
 
-    console.log("✅ Bet placed successfully. Tx Signature:", txSig);
-    return txSig;
+      console.log('====================================');
+      console.log(tx,"tx");
+      console.log('====================================');
+
+    const { blockhash } = await connection.getLatestBlockhash();
+    tx.recentBlockhash = blockhash;
+    tx.feePayer = userPubkey;
+
+    const signedTx = await signTransaction(tx);
+    const signature = await connection.sendRawTransaction(signedTx.serialize(), {
+      preflightCommitment: "processed",
+    });
+
+    
+    await connection.confirmTransaction(signature, "confirmed");
+
+    console.log("✅ Bet placed successfully. Tx Signature:", signature);
   } catch (error) {
     console.error("❌ Error in placeBet:", error);
     if (error.logs) console.error("🔍 Anchor logs:\n", error.logs.join("\n"));

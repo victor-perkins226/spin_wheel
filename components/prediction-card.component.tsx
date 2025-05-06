@@ -22,6 +22,7 @@ interface IProps {
     downBets?: number;
     upPayout?: number; // Added for dynamic payout calculation
     downPayout?: number; // Added for dynamic payout calculation
+    status?: "LIVE" | "LOCKED" | "ENDED" | "UPCOMING" | "LATER";
   };
   onPlaceBet?: (
     direction: "up" | "down",
@@ -30,6 +31,7 @@ interface IProps {
   ) => void;
   currentRoundId?: number;
   bufferTimeInSeconds?: number;
+  isRoundBettable?: (roundId: number) => boolean;
 }
 
 const CUSTOM_INPUTS = [
@@ -47,6 +49,7 @@ export default function PredictionCard({
   onPlaceBet,
   currentRoundId,
   bufferTimeInSeconds = 30,
+  isRoundBettable,
 }: IProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [mode, setMode] = useState<"up" | "down" | "">("");
@@ -60,18 +63,6 @@ export default function PredictionCard({
   const upPayout = roundData?.upPayout ?? 2.51;
   const downPayout = roundData?.downPayout ?? 2.51;
 
-  // Determine if this round can be bet on
-  useEffect(() => {
-    // Can only bet on the next round (currentRound + 1)
-    const isNextRound = roundId === currentRoundId + 1;
-
-    // Check if there's enough time left in the current round (more than buffer time)
-    const hasEnoughTimeLeft =
-      roundData?.timeRemaining && roundData.timeRemaining > bufferTimeInSeconds;
-
-    // Can only bet if this is the next round and there's enough time left in the current round
-    setCanBet(isNextRound && hasEnoughTimeLeft);
-  }, [roundId, currentRoundId, roundData?.timeRemaining, bufferTimeInSeconds]);
 
   // Format time remaining
   useEffect(() => {
@@ -81,6 +72,30 @@ export default function PredictionCard({
       setTimeLeft(`${minutes}:${seconds < 10 ? "0" : ""}${seconds}`);
     }
   }, [roundData?.timeRemaining]);
+
+  // Determine if this round can be bet on
+  useEffect(() => {
+    // Check if round is bettable using the provided function
+    if (isRoundBettable && roundId) {
+      setCanBet(isRoundBettable(roundId));
+    } else {
+      // Fallback to PancakeSwap style logic: can only bet on the next round
+      const isNextRound = roundId === (currentRoundId || 0) + 1;
+
+      // Check if there's enough time left in the current round (more than buffer time)
+      const hasEnoughTimeLeft =
+        roundData?.timeRemaining &&
+        roundData.timeRemaining > bufferTimeInSeconds;
+
+      setCanBet(isNextRound && hasEnoughTimeLeft);
+    }
+  }, [
+    roundId,
+    currentRoundId,
+    roundData?.timeRemaining,
+    bufferTimeInSeconds,
+    isRoundBettable,
+  ]);
 
   // Handle wallet balance
   useEffect(() => {
@@ -134,7 +149,7 @@ export default function PredictionCard({
     setAmount(Number((maxAmount * percentage).toFixed(2)));
   };
 
-  // Modified next round UI section to only show buttons when canBet is true
+  // Render the next round content (bettable)
   const renderNextRoundContent = () => {
     if (variant !== "next") return null;
 
@@ -149,7 +164,7 @@ export default function PredictionCard({
 
           <div className="flex justify-between gap-1 font-semibold text-[16px]">
             <p>Prize Pool</p>
-            <p>{roundData?.prizePool ?? 0.1} SOL</p>
+            <p>{roundData?.prizePool?.toFixed(4) ?? 0.1} SOL</p>
           </div>
         </div>
 
@@ -180,6 +195,125 @@ export default function PredictionCard({
             Betting closed for this round
           </div>
         )}
+      </div>
+    );
+  };
+
+  // Render later round content (waiting for entry phase)
+  const renderLaterRoundContent = () => {
+    if (variant !== "later") return null;
+
+    return (
+      <div className="glass flex-1 rounded-[20px] flex flex-col gap-[12px] items-center justify-center">
+        <Image
+          alt="Solana Background"
+          src={SolanaBg}
+          className="rounded-[10px] w-[215px] h-[142px] object-cover mt-2"
+        />
+        <div className="flex items-center gap-[12px]">
+          <SVG iconName="play-fill" />
+          <p className="font-semibold text-[20px]">Next Play</p>
+        </div>
+
+        <p className="font-semibold text-[35px]">{timeLeft}</p>
+      </div>
+    );
+  };
+
+  // Render live round content
+  const renderLiveRoundContent = () => {
+    if (variant !== "live") return null;
+
+    return (
+      <div className="flex-1 flex flex-col glass p-[10px] rounded-[20px] items-center">
+        <div className="max-w-[215px] flex flex-col gap-[33px] justify-between flex-1">
+          <Image
+            alt="Solana Background"
+            src={SolanaBg}
+            className="rounded-[10px] w-[215px] h-[142px] object-cover"
+          />
+
+          <div className="flex flex-col gap-[22px] font-semibold text-[#FEFEFE]">
+            <div className="flex justify-between">
+              <p className="text-[20px]">
+                ${roundData?.currentPrice?.toFixed(4) ?? 585.1229}
+              </p>
+
+              <div className="bg-white flex items-center gap-[4px] text-[#1F1F43] px-[10px] py-[5px] rounded-[5px]">
+                <SVG width={8} height={8} iconName="arrow-up" />
+                <p className="text-[10px]">$0.0001</p>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center text-[10px]">
+              <p>Locked Price</p>
+              <p>${roundData?.lockPrice?.toFixed(4) ?? 584.1229}</p>
+            </div>
+
+            <div className="flex justify-between text-[16px]">
+              <p>Prize Pool</p>
+              <p>{roundData?.prizePool?.toFixed(4) ?? 8.6015} SOL</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Render expired round content
+  const renderExpiredRoundContent = () => {
+    if (variant !== "expired" && variant !== "locked") return null;
+
+    const isUp =
+      roundData?.closePrice &&
+      roundData?.lockPrice &&
+      roundData.closePrice > roundData.lockPrice;
+
+    return (
+      <div className="flex-1 flex flex-col glass p-[10px] rounded-[20px] items-center opacity-80">
+        <div className="max-w-[215px] flex flex-col gap-[33px] justify-between flex-1">
+          <Image
+            alt="Solana Background"
+            src={SolanaBg}
+            className="rounded-[10px] w-[215px] h-[142px] object-cover"
+          />
+
+          <div className="flex flex-col gap-[22px] font-semibold text-[#FEFEFE]">
+            <div className="flex justify-between">
+              <p className="text-[20px]">
+                ${roundData?.closePrice?.toFixed(4) ?? 585.1229}
+              </p>
+
+              <div
+                className={`bg-white flex items-center gap-[4px] ${
+                  isUp ? "text-green-500" : "text-red-500"
+                } px-[10px] py-[5px] rounded-[5px]`}
+              >
+                <SVG
+                  width={8}
+                  height={8}
+                  iconName={isUp ? "arrow-up" : "arrow-down"}
+                />
+                <p className="text-[10px]">
+                  $
+                  {Math.abs(
+                    (roundData?.closePrice || 0) - (roundData?.lockPrice || 0)
+                  ).toFixed(4)}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center text-[10px]">
+              <p>Locked Price</p>
+              <p>${roundData?.lockPrice?.toFixed(4) ?? 584.1229}</p>
+            </div>
+
+            <div className="flex justify-between text-[16px]">
+              <p>Prize Pool</p>
+              <p>{roundData?.prizePool?.toFixed(4) ?? 8.6015} SOL</p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
@@ -228,59 +362,16 @@ export default function PredictionCard({
           </p>
         </Button>
 
-        {variant === "later" ? (
-          <div className="glass flex-1 rounded-[20px] flex flex-col gap-[12px] items-center justify-center">
-            <Image
-              alt="Solana Background"
-              src={SolanaBg}
-              className="rounded-[10px] w-[215px] h-[142px] object-cover mt-2"
-            />
-            <div className="flex items-center gap-[12px]">
-              <SVG iconName="play-fill" />
-              <p className="font-semibold text-[20px]">Next Play</p>
-            </div>
-
-            <p className="font-semibold text-[35px]">{timeLeft}</p>
-          </div>
-        ) : variant === "next" ? (
-          renderNextRoundContent()
-        ) : (
-          <div className="flex-1 flex flex-col glass p-[10px] rounded-[20px] items-center">
-            <div className="max-w-[215px] flex flex-col gap-[33px] justify-between flex-1">
-              <Image
-                alt="Solana Background"
-                src={SolanaBg}
-                className="rounded-[10px] w-[215px] h-[142px] object-cover"
-              />
-
-              <div className="flex flex-col gap-[22px] font-semibold text-[#FEFEFE]">
-                <div className="flex justify-between">
-                  <p className="text-[20px]">
-                    ${roundData?.currentPrice?.toFixed(4) ?? 585.1229}
-                  </p>
-
-                  <div className="bg-white flex items-center gap-[4px] text-[#1F1F43] px-[10px] py-[5px] rounded-[5px]">
-                    <SVG width={8} height={8} iconName="arrow-up" />
-                    <p className="text-[10px]">$0.0001</p>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center text-[10px]">
-                  <p>Locked Price</p>
-
-                  <p>${roundData?.lockPrice?.toFixed(4) ?? 584.1229}</p>
-                </div>
-
-                <div className="flex justify-between text-[16px]">
-                  <p>Prize Pool</p>
-
-                  <p>{roundData?.prizePool ?? 8.6015} SOL</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
+        {/* Conditional rendering based on variant */}
+        {variant === "later"
+          ? renderLaterRoundContent()
+          : variant === "next"
+          ? renderNextRoundContent()
+          : variant === "expired"
+          ? renderExpiredRoundContent()
+          : variant === "locked"
+          ? renderExpiredRoundContent()
+          : renderLiveRoundContent()}
         <Button
           style={{
             background:
