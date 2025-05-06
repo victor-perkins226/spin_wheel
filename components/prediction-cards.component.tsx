@@ -18,7 +18,7 @@ import LiveBets from "./LiveBets";
 import { fetchConfig, useRoundManager } from "@/lib/round-manager";
 
 // Contract address
-const PREDICTION_CONTRACT = "HwosxPfiLetgxCVDnCdi1LB4vnbLHPfSjxkgKxsMykzw";
+const PREDICTION_CONTRACT = "CXpSQ4p9H5HvLnfBptGzqmSYu2rbyrDpwJkP9gGMutoT";
 
 export default function PredictionCards() {
   const [screenWidth, setScreenWidth] = useState(0);

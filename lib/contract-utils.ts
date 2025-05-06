@@ -103,7 +103,12 @@ export async function placeBet(
     tx.recentBlockhash = blockhash;
     tx.feePayer = userPubkey;
 
-    const signature = await sendTransaction(tx, connection);
+    const signedTx = await signTransaction(tx);
+    const signature = await connection.sendRawTransaction(signedTx.serialize(), {
+      preflightCommitment: "processed",
+    });
+
+    
     await connection.confirmTransaction(signature, "confirmed");
 
     console.log("✅ Bet placed successfully. Tx Signature:", signature);
