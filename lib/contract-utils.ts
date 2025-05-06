@@ -73,47 +73,26 @@ export async function placeBet(
     console.log("💰 Lamports to transfer:", betAmount.toString());
 
 
-    let isBull =false
+    let predictBull =false
 
     // Run the instruction
-    const txSig = await program.methods
-      .placeBet(
-        new anchor.BN(amount * anchor.web3.LAMPORTS_PER_SOL),
-        isBull,
-        new anchor.BN(roundId)
-      )
-      .accounts({
-        config: configPda,
-        round: roundPda,
-        userBet: userBetPda,
-        user: userPubkey,
-        escrow: escrowPda,
-        systemProgram: SystemProgram.programId,
-      })
-      .transaction();
-
-      console.log('====================================');
-      console.log(txSig,"txsig");
-      console.log('====================================');
-
-    const { blockhash } = await connection.getLatestBlockhash();
-    console.log('====================================');
-    console.log(blockhash,"blockhash");
-    console.log('====================================');
-    txSig.recentBlockhash = blockhash;
-    txSig.feePayer = userPubkey;
-
-    const signature = await sendTransaction(txSig, connection);
-    console.log('====================================');
-    console.log(signature,"signature");
-    console.log('====================================');
+    await program.methods
+    .placeBet(betAmount, predictBull, new anchor.BN(1))
+    .accounts({
+      config: configPda,
+      round: roundPda,
+      userBet: userBetPda,
+      user: userPubkey,
+      escrow: escrowPda,
+      systemProgram: SystemProgram.programId,
+    })
+    .signers([userPubkey])
+    .rpc();
 
     
 
-    await connection.confirmTransaction(signature, "confirmed");
 
-    console.log("✅ Bet placed successfully. Tx Signature:", txSig);
-    return txSig;
+    console.log("✅ Bet placed successfully. Tx Signature:");
   } catch (error) {
     console.error("❌ Error in placeBet:", error);
     if (error.logs) console.error("🔍 Anchor logs:\n", error.logs.join("\n"));

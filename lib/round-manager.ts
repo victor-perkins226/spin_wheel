@@ -510,7 +510,7 @@ export function useRoundManager({
       if (connection && contractAddress && signTransaction) {
         // In production, uncomment this to use real contract interaction
         const programId = new PublicKey(
-          "7uYDitac59MxCgP7Narmfb8HfPWLjk7sQGTGosiV7RPL"
+          "CXpSQ4p9H5HvLnfBptGzqmSYu2rbyrDpwJkP9gGMutoT"
         );
         const contractPubKey = new PublicKey(contractAddress);
 
