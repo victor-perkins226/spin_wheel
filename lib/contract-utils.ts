@@ -76,8 +76,8 @@ export async function placeBet(
     let predictBull =false
 
     // Run the instruction
-    await program.methods
-    .placeBet(betAmount, predictBull, new anchor.BN(1))
+   let tx = await program.methods
+    .placeBet(betAmount, predictBull, new anchor.BN(roundId))
     .accounts({
       config: configPda,
       round: roundPda,
@@ -86,13 +86,18 @@ export async function placeBet(
       escrow: escrowPda,
       systemProgram: SystemProgram.programId,
     })
-    .signers([userPubkey])
-    .rpc();
+    .signers([])
+    .transaction();
 
+    const { blockhash } = await connection.getLatestBlockhash();
+    tx.recentBlockhash = blockhash;
+    tx.feePayer = userPubkey;
+
+    const signature = await sendTransaction(tx, connection);
     
 
 
-    console.log("✅ Bet placed successfully. Tx Signature:");
+    console.log("✅ Bet placed successfully. Tx Signature:",signature);
   } catch (error) {
     console.error("❌ Error in placeBet:", error);
     if (error.logs) console.error("🔍 Anchor logs:\n", error.logs.join("\n"));
