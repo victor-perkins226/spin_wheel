@@ -15,7 +15,7 @@ import { Connection, clusterApiUrl, PublicKey } from "@solana/web3.js";
 import { MobileLiveBets } from "./MobileBets";
 import { BetsHistory } from "./BetsHistory";
 import LiveBets from "./LiveBets";
-import { useRoundManager } from "@/lib/round-manager";
+import { fetchConfig, useRoundManager } from "@/lib/round-manager";
 
 // Contract address
 const PREDICTION_CONTRACT = "HwosxPfiLetgxCVDnCdi1LB4vnbLHPfSjxkgKxsMykzw";
@@ -24,13 +24,54 @@ export default function PredictionCards() {
   const [screenWidth, setScreenWidth] = useState(0);
   const [mounted, setMounted] = useState(false);
   const swiperRef = useRef(null);
-  const { publicKey, connected, signTransaction } = useWallet();
+  const { publicKey, connected, signTransaction,sendTransaction } = useWallet();
   const connectionRef = useRef(null);
+
+  const [config, setConfig] = useState(null);
+  const [remainingTime, setRemainingTime] = useState(null);
+
+  useEffect(() => {
+    // Properly handle the async fetchConfig function
+    const getConfig = async () => {
+      try {
+        const configData = await fetchConfig();
+        setConfig(configData);
+        
+        if (configData?.roundDuration) {
+          setRemainingTime(configData.roundDuration);
+          
+          const interval = setInterval(() => {
+            setRemainingTime((prev) => {
+              if (prev <= 1) {
+                clearInterval(interval);
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+          
+          return () => clearInterval(interval);
+        }
+      } catch (error) {
+        console.error("Error fetching config:", error);
+      }
+    };
+    
+    getConfig();
+  }, []);
+  
+
+  const formatTime = (seconds) => {
+    if (seconds === null) return "0:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
 
   // Initialize connection
   useEffect(() => {
     // Initialize Solana connection
-    const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+    const connection = new Connection('https://api.devnet.solana.com', "confirmed");
     connectionRef.current = connection;
 
     const updateScreenWidth = () => {
@@ -50,7 +91,6 @@ export default function PredictionCards() {
   }, []);
 
   // Use our custom round manager hook
-  // Use our custom round manager hook
   const {
     rounds,
     currentPrice,
@@ -63,9 +103,11 @@ export default function PredictionCards() {
     placeBet: handlePlaceBet,
     claimRewards: handleClaimRewards,
     getActiveRoundId,
+    isRoundBettable,
   } = useRoundManager({
     wallet: { publicKey, connected },
     signTransaction,
+    sendTransaction,
     connection: connectionRef.current,
     contractAddress: PREDICTION_CONTRACT,
   });
@@ -110,20 +152,9 @@ export default function PredictionCards() {
 
             <div className="glass py-1 sm:py-[6px] lg:py-[15px] px-3 sm:px-[24px] rounded-full w-[90px] sm:w-[104px] lg:w-[210px] relative">
               {/* Display countdown for live round */}
-              {rounds.length > 0 && rounds.some((r) => r.status === "LIVE") && (
+              {rounds.length > 0 && (
                 <p className="flex items-center font-semibold text-[10px] sm:text-[12px] lg:text-[20px] gap-1 sm:gap-[7px]">
-                  {Math.floor(
-                    rounds.find((r) => r.status === "LIVE").timeRemaining / 60
-                  )}
-                  :
-                  {(Math.floor(
-                    rounds.find((r) => r.status === "LIVE").timeRemaining % 60
-                  ) < 10
-                    ? "0"
-                    : "") +
-                    Math.floor(
-                      rounds.find((r) => r.status === "LIVE").timeRemaining % 60
-                    )}
+                  <span>{formatTime(remainingTime)}</span>
                   <span className="text-[6px] sm:text-[8px] lg:text-[12px]">
                     Live
                   </span>
@@ -131,9 +162,6 @@ export default function PredictionCards() {
               )}
               <div className="hidden w-[64px] h-[64px] glass absolute rounded-full right-[24px] top-[-2px] lg:flex items-center justify-center backdrop-blur-2xl">
                 <SVG width={40} height={40} iconName="clock" />
-              </div>
-              <div className="w-[24px] h-[24px] sm:w-[33px] sm:h-[33px] glass absolute rounded-full right-0 top-[-2px] sm:right-[0px] sm:top-[-2px] flex items-center justify-center backdrop-blur-2xl">
-                <SVG width={14} height={14} iconName="clock" />
               </div>
             </div>
           </div>
@@ -216,8 +244,6 @@ export default function PredictionCards() {
                   <PredictionCard
                     variant={formatCardVariant(round)}
                     roundId={round.id}
-                    currentRoundId={activeRoundId}
-                    bufferTimeInSeconds={30}
                     roundData={{
                       lockPrice: round.lockPrice,
                       currentPrice: round.currentPrice || currentPrice,
@@ -228,6 +254,9 @@ export default function PredictionCards() {
                       downBets: round.downBets,
                     }}
                     onPlaceBet={handlePlaceBet}
+                    currentRoundId={activeRoundId}
+                    bufferTimeInSeconds={30}
+                    isRoundBettable={isRoundBettable}
                   />
                 </SwiperSlide>
               ))}
