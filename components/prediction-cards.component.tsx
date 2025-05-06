@@ -71,7 +71,7 @@ export default function PredictionCards() {
   // Initialize connection
   useEffect(() => {
     // Initialize Solana connection
-    const connection = new Connection('https://api.devnet.solana.com', "confirmed");
+    const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
     connectionRef.current = connection;
 
     const updateScreenWidth = () => {

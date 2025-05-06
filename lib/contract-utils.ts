@@ -35,29 +35,32 @@ export async function placeBet(
       programId
     );
 
-    const [roundPda] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("round"),
-        new anchor.BN(roundId).toArrayLike(Buffer, "le", 8),
-      ],
-      programId
-    );
+    const getRoundPda = (roundNumber: number) =>
+      PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("round"),
+          new anchor.BN(roundNumber).toArrayLike(Buffer, "le", 8),
+        ],
+        programId
+      )[0];
 
-    const [escrowPda] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("escrow"),
-        new anchor.BN(roundId).toArrayLike(Buffer, "le", 8),
-      ],
-      programId
-    );
-    const [userBetPda] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("user_bet"),
-        userPubkey.toBuffer(),
-        new anchor.BN(roundId).toArrayLike(Buffer, "le", 8),
-      ],
-      programId
-    );
+    const getEscrowPda = (roundNumber: number) =>
+      PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("escrow"),
+          new anchor.BN(roundNumber).toArrayLike(Buffer, "le", 8),
+        ],
+        programId
+      )[0];
+    const getUserBetPda = (user: PublicKey, roundNumber: number) =>
+      PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("user_bet"),
+          user.toBuffer(),
+          new anchor.BN(roundNumber).toArrayLike(Buffer, "le", 8),
+        ],
+        programId
+      )[0];
 
     const provider = new anchor.AnchorProvider(
       connection,
@@ -65,39 +68,45 @@ export async function placeBet(
       { commitment: "confirmed" }
     );
 
-    
-
     const program = new anchor.Program(idl as any, programId, provider);
 
     const betAmount = new anchor.BN(amount * LAMPORTS_PER_SOL);
     console.log("💰 Lamports to transfer:", betAmount.toString());
 
+    const roundPda = getRoundPda(roundId);
+    const escrowPda = getEscrowPda(roundId);
+    const userBetPda = getUserBetPda(userPubkey, roundId);
 
-    let predictBull =false
+    let isBull = false;
 
-    // Run the instruction
-   let tx = await program.methods
-    .placeBet(betAmount, predictBull, new anchor.BN(roundId))
-    .accounts({
-      config: configPda,
-      round: roundPda,
-      userBet: userBetPda,
-      user: userPubkey,
-      escrow: escrowPda,
-      systemProgram: SystemProgram.programId,
-    })
-    .signers([])
-    .transaction();
+    const tx = await program.methods
+      .placeBet(
+        new anchor.BN(amount * anchor.web3.LAMPORTS_PER_SOL),
+        isBull,
+        new anchor.BN(roundId)
+      )
+      .accounts({
+        config: configPda,
+        round: roundPda,
+        userBet: userBetPda,
+        user: userPubkey,
+        escrow: escrowPda,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .transaction();
+
+      console.log('====================================');
+      console.log(tx,"tx");
+      console.log('====================================');
 
     const { blockhash } = await connection.getLatestBlockhash();
     tx.recentBlockhash = blockhash;
     tx.feePayer = userPubkey;
 
     const signature = await sendTransaction(tx, connection);
-    
+    await connection.confirmTransaction(signature, "confirmed");
 
-
-    console.log("✅ Bet placed successfully. Tx Signature:",signature);
+    console.log("✅ Bet placed successfully. Tx Signature:", signature);
   } catch (error) {
     console.error("❌ Error in placeBet:", error);
     if (error.logs) console.error("🔍 Anchor logs:\n", error.logs.join("\n"));
