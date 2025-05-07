@@ -185,8 +185,37 @@ export async function claimPayout(
     const escrowPda = getEscrowPda(roundId);
     const userBetPda = getUserBetPda(userPubkey, roundId);
 
-    console.log("✅ Rewards claimed. Tx Signature:", txSig);
-    return txSig;
+    const tx = await program.methods
+      .claimPayout(new anchor.BN(roundId))
+      .accounts({
+        config: configPda,
+        round: roundPda,
+        userBet: userBetPda,
+        user: userPubkey,
+        escrow: escrowPda,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .transaction();
+
+    console.log("====================================");
+    console.log(tx, "tx claim payout");
+    console.log("====================================");
+
+    const { blockhash } = await connection.getLatestBlockhash();
+    tx.recentBlockhash = blockhash;
+    tx.feePayer = userPubkey;
+
+    const signedTx = await signTransaction(tx);
+    const signature = await connection.sendRawTransaction(
+      signedTx.serialize(),
+      {
+        preflightCommitment: "processed",
+      }
+    );
+
+    await connection.confirmTransaction(signature, "confirmed");
+
+    console.log("✅ Bet placed successfully. Tx Signature:", signature);
   } catch (error) {
     console.error("❌ Error in claimRewards:", error);
     if (error.logs) console.error("🔍 Anchor logs:\n", error.logs.join("\n"));
@@ -194,177 +223,4 @@ export async function claimPayout(
   }
 }
 
-export async function checkRoundStatus(connection, programId, roundId) {
-  try {
-    // Get config to find configuration parameters
-    const [configPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("config")],
-      programId
-    );
 
-    // Create provider (read-only)
-    const provider = new anchor.AnchorProvider(
-      connection,
-      {},
-      { commitment: "confirmed" }
-    );
-
-    anchor.setProvider(provider);
-    const program = new anchor.Program(idl, programId, provider);
-
-    // Get config account
-    const configAccount = await program.account.config.fetch(configPda);
-    const currentRoundNumber = configAccount.currentRound.toNumber();
-
-    console.log("=== Contract Configuration ===");
-    console.log(
-      `Round Duration: ${configAccount.roundDuration.toNumber()} seconds`
-    );
-    console.log(
-      `Lock Duration: ${configAccount.lockDuration.toNumber()} seconds`
-    );
-    console.log(`Current Round Number: ${roundId}`);
-    console.log(
-      `Min Bet Amount: ${
-        configAccount.minBetAmount.toNumber() / LAMPORTS_PER_SOL
-      } SOL`
-    );
-    console.log(`Treasury Fee: ${configAccount.treasuryFee.toNumber()}%`);
-    console.log("=============================");
-
-    // Get current round details
-    const [roundPda] = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("round"),
-        new anchor.BN(roundId).toArrayLike(Buffer, "le", 8),
-      ],
-      programId
-    );
-
-    const roundAccount = await program.account.round.fetch(roundPda);
-    const currentTimestamp = Math.floor(Date.now() / 1000);
-
-    // Calculate timing parameters
-    const startTime = roundAccount.startTime.toNumber();
-    const lockTime = roundAccount.lockTime
-      ? roundAccount.lockTime.toNumber()
-      : null;
-    const endTime = roundAccount.endTime
-      ? roundAccount.endTime.toNumber()
-      : null;
-
-    const expectedLockTime = startTime + configAccount.lockDuration.toNumber();
-    const expectedEndTime = startTime + configAccount.roundDuration.toNumber();
-
-    // Determine round state for betting
-    let roundState = "Unknown";
-    let canPlaceBet = false;
-
-    if (!roundAccount.isActive) {
-      roundState = "Inactive";
-    } else if (lockTime && endTime) {
-      roundState = "Ended";
-    } else if (lockTime) {
-      roundState = "Locked";
-    } else if (currentTimestamp < expectedLockTime) {
-      roundState = "Active - Betting Open";
-      canPlaceBet = true;
-    } else {
-      roundState = "Active - Should Be Locked";
-    }
-
-    console.log("=== Round Status Check ===");
-    console.log(`Round #: ${roundId}`);
-    console.log(`Round State: ${roundState}`);
-    console.log(`Can Place Bet: ${canPlaceBet ? "YES" : "NO"}`);
-    console.log(`Is Active Flag: ${roundAccount.isActive}`);
-    console.log(
-      `Start Time: ${new Date(
-        startTime * 1000
-      ).toLocaleString()} (${startTime})`
-    );
-    console.log(
-      `Current Time: ${new Date(
-        currentTimestamp * 1000
-      ).toLocaleString()} (${currentTimestamp})`
-    );
-    console.log(
-      `Expected Lock Time: ${new Date(
-        expectedLockTime * 1000
-      ).toLocaleString()} (${expectedLockTime})`
-    );
-    console.log(
-      `Actual Lock Time: ${
-        lockTime
-          ? new Date(lockTime * 1000).toLocaleString() + ` (${lockTime})`
-          : "Not locked"
-      }`
-    );
-    console.log(
-      `Expected End Time: ${new Date(
-        expectedEndTime * 1000
-      ).toLocaleString()} (${expectedEndTime})`
-    );
-    console.log(
-      `Actual End Time: ${
-        endTime
-          ? new Date(endTime * 1000).toLocaleString() + ` (${endTime})`
-          : "Not ended"
-      }`
-    );
-
-    // Time remaining calculations
-    if (canPlaceBet) {
-      const secondsUntilLock = expectedLockTime - currentTimestamp;
-      console.log(
-        `Time Remaining for Betting: ${secondsUntilLock} seconds (${Math.floor(
-          secondsUntilLock / 60
-        )} minutes)`
-      );
-    }
-
-    console.log(
-      `Total Amount: ${
-        roundAccount.totalAmount.toNumber() / LAMPORTS_PER_SOL
-      } SOL`
-    );
-    console.log(
-      `Bull Amount: ${
-        roundAccount.totalBullAmount.toNumber() / LAMPORTS_PER_SOL
-      } SOL`
-    );
-    console.log(
-      `Bear Amount: ${
-        roundAccount.totalBearAmount.toNumber() / LAMPORTS_PER_SOL
-      } SOL`
-    );
-    console.log("=========================");
-
-    return {
-      config: {
-        roundDuration: configAccount.roundDuration.toNumber(),
-        lockDuration: configAccount.lockDuration.toNumber(),
-        minBetAmount: configAccount.minBetAmount.toNumber(),
-        treasuryFee: configAccount.treasuryFee.toNumber(),
-      },
-      round: {
-        roundNumber: 1,
-        state: roundState,
-        canPlaceBet,
-        isActive: roundAccount.isActive,
-        startTime,
-        lockTime,
-        endTime,
-        expectedLockTime,
-        expectedEndTime,
-        currentTimestamp,
-        totalAmount: roundAccount.totalAmount.toNumber(),
-        totalBullAmount: roundAccount.totalBullAmount.toNumber(),
-        totalBearAmount: roundAccount.totalBearAmount.toNumber(),
-      },
-    };
-  } catch (error) {
-    console.error("Failed to check detailed round status:", error);
-    throw error;
-  }
-}

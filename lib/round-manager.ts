@@ -64,7 +64,7 @@ const generateRoundsFromConfig = (currentPrice, config, timerInfo) => {
   const now = Date.now();
   const roundDuration = parseInt(config.roundDuration); // Total round duration in seconds
   const lockDuration = parseInt(config.lockDuration || "30"); // Lock duration in seconds
-  const liveDuration = roundDuration; // Live duration in seconds
+  const liveDuration = roundDuration - lockDuration; // Live duration in seconds
   const currentRound = parseInt(config.currentRound);
 
   // Calculate progress within round
@@ -135,7 +135,7 @@ const generateRoundsFromConfig = (currentPrice, config, timerInfo) => {
     status: "LATER",
     prizePool: 0,
     timeRemaining: liveDuration,
-    entryStartsIn: timeRemaining,
+    entryStartsIn: timeRemaining + roundDuration,
     startTime: now + (timeRemaining + roundDuration) * 1000,
     endTime: now + (timeRemaining + roundDuration * 2) * 1000,
     upBets: 0,
@@ -167,6 +167,7 @@ export function useRoundManager({
   const [isProcessingAction, setIsProcessingAction] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [config, setConfig] = useState(null);
+  const [roundTransitionInProgress, setRoundTransitionInProgress] = useState(false);
 
   // Use the enhanced countdown timer
   const {
@@ -258,22 +259,45 @@ export function useRoundManager({
   // Effect for handling round transitions when timer reaches zero
   useEffect(() => {
     const handleRoundTransition = async () => {
-      if (isRoundEnding && remainingSeconds === 0) {
-        console.log("Round ended, fetching new configuration...");
-        const configData = await fetchConfig();
-
-        console.log(configData,"new config data");
+      // Check if round is ending and timer is at or near zero
+      if (isRoundEnding && remainingSeconds <= 1 && !roundTransitionInProgress) {
+        console.log("Round ending, preparing transition...");
+        setRoundTransitionInProgress(true);
         
-
-        if (configData) {
-          setConfig(configData);
-          // Rounds will be updated by the other useEffect
+        try {
+          console.log("Round ended, fetching new configuration...");
+          // Fetch the latest configuration from the API
+          const configData = await fetchConfig();
+          
+          console.log("New config data:", configData);
+          
+          if (configData) {
+            // Update the config in state which will trigger round regeneration
+            setConfig(configData);
+            
+            // Let the timer mechanism reset if needed
+            if (configData.currentRound) {
+              // Force an update of the time manager with new round info
+              await setRoundStart(
+                parseInt(configData.roundDuration),
+                parseInt(configData.currentRound)
+              );
+            }
+          }
+        } catch (error) {
+          console.error("Error during round transition:", error);
+          toast.error("Failed to update round information");
+        } finally {
+          // Reset transition flag after a short delay to prevent multiple triggers
+          setTimeout(() => {
+            setRoundTransitionInProgress(false);
+          }, 2000);
         }
       }
     };
 
     handleRoundTransition();
-  }, [remainingSeconds, isRoundEnding]);
+  }, [remainingSeconds, isRoundEnding, roundTransitionInProgress]);
 
   // Load user data when wallet connects
   useEffect(() => {
@@ -312,7 +336,7 @@ export function useRoundManager({
 
         // Get durations from config
         const roundDuration = parseInt(config.roundDuration);
-        const lockDuration = parseInt(config.lockDuration);
+        const lockDuration = parseInt(config.lockDuration || "30");
         const liveDuration = roundDuration - lockDuration;
 
         // Sort rounds by ID to make sure they're in chronological order
@@ -328,7 +352,7 @@ export function useRoundManager({
           }
 
           // Process transitions for rounds based on their current status
-          if (round.status === "LIVE" && round.timeRemaining === 0) {
+          if (round.status === "LIVE" && round.timeRemaining <= 0) {
             // LIVE -> LOCKED transition
             round.status = "LOCKED";
             round.variant = "locked"; // Add variant for styling
@@ -367,7 +391,7 @@ export function useRoundManager({
               status: "LATER",
               prizePool: 0,
               timeRemaining: liveDuration,
-              entryStartsIn: liveDuration,
+              entryStartsIn: liveDuration + lockDuration,
               startTime: now + roundDuration * 1000,
               endTime: now + roundDuration * 2000,
               upBets: 0,
@@ -378,7 +402,7 @@ export function useRoundManager({
 
             updatedRounds.push(newLaterRound);
             console.log(`Created new LATER round with ID ${newLaterRound.id}`);
-          } else if (round.status === "LOCKED" && round.timeRemaining === 0) {
+          } else if (round.status === "LOCKED" && round.timeRemaining <= 0) {
             // LOCKED -> ENDED transition
             round.status = "ENDED";
             round.variant = "expired";
@@ -677,17 +701,6 @@ export function useRoundManager({
 
       if (connection && contractAddress && signTransaction) {
         // In production, uncomment this to use real contract interaction
-        /*
-        const contractPubKey = new PublicKey(contractAddress);
-        txHash = await claimPayout(
-          connection,
-          contractPubKey,
-          publicKey,
-          signTransaction
-        );
-        */
-
-        // In production, uncomment this to use real contract interaction
         const programId = new PublicKey(
           "CXpSQ4p9H5HvLnfBptGzqmSYu2rbyrDpwJkP9gGMutoT"
         );
@@ -775,7 +788,7 @@ export function useRoundManager({
     if (!config) return { LIVE: 300, LOCK: 30, TOTAL: 330 };
 
     const roundDuration = parseInt(config.roundDuration);
-    const lockDuration = parseInt(config.lockDuration);
+    const lockDuration = parseInt(config.lockDuration || "30");
     const liveDuration = roundDuration - lockDuration;
 
     return {
