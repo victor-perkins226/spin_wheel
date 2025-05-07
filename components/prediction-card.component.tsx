@@ -7,6 +7,8 @@ import Image from "next/image";
 import SliderComponent from "./slider.component";
 import { useWallet } from "@solana/wallet-adapter-react";
 import SolanaBg from "@/public/assets/solana_bg.png";
+import { fetchConfig } from "@/lib/round-manager";
+import { useCountdownTimer } from "@/hooks/useCountdownTimer";
 
 interface IProps {
   variant?: "live" | "expired" | "next" | "later";
@@ -55,23 +57,13 @@ export default function PredictionCard({
   const [mode, setMode] = useState<"up" | "down" | "">("");
   const [amount, setAmount] = useState<number>(0.1);
   const [maxAmount, setMaxAmount] = useState<number>(10);
-  const [timeLeft, setTimeLeft] = useState<string>("5:00");
   const [canBet, setCanBet] = useState<boolean>(false);
   const { connected, publicKey } = useWallet();
+  const { formattedTime } = useCountdownTimer();
 
   // Get payout values with fallbacks
   const upPayout = roundData?.upPayout ?? 2.51;
   const downPayout = roundData?.downPayout ?? 2.51;
-
-
-  // Format time remaining
-  useEffect(() => {
-    if (roundData?.timeRemaining) {
-      const minutes = Math.floor(roundData.timeRemaining / 60);
-      const seconds = Math.floor(roundData.timeRemaining % 60);
-      setTimeLeft(`${minutes}:${seconds < 10 ? "0" : ""}${seconds}`);
-    }
-  }, [roundData?.timeRemaining]);
 
   // Determine if this round can be bet on
   useEffect(() => {
@@ -215,7 +207,7 @@ export default function PredictionCard({
           <p className="font-semibold text-[20px]">Next Play</p>
         </div>
 
-        <p className="font-semibold text-[35px]">{timeLeft}</p>
+        <p className="font-semibold text-[35px]">{formattedTime}</p>
       </div>
     );
   };
@@ -425,11 +417,27 @@ export default function PredictionCard({
           placeholder="Enter Value:"
         />
 
-        <SliderComponent
-          value={amount ? [amount] : [0]}
-          onValueChange={(e) => setAmount(e[0])}
+        {/* <div
+          onPointerDown={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+        >
+          <SliderComponent
+            value={amount ? [amount] : [0]}
+            onValueChange={(e) => setAmount(e[0])}
+            max={maxAmount}
+            step={0.1}
+          />
+        </div> */}
+
+        {/* Range Slider */}
+        <input
+          type="range"
+          min="0"
           max={maxAmount}
-          step={0.1}
+          step="0.01"
+          value={amount ? [amount] : [0]}
+          onChange={(e) => setAmount(parseFloat(e.target.value))}
+          className="w-full h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer my-5 accent-gray-500 custom-slider"
         />
 
         <div className="flex gap-y-[12px] gap-x-[4px] justify-between flex-wrap">

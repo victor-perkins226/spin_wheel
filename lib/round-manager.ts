@@ -5,6 +5,8 @@ import { toast } from "react-hot-toast";
 import { getPriceData } from "@/lib/price-utils";
 import { checkRoundStatus, placeBet, claimPayout } from "@/lib/contract-utils";
 import { PublicKey } from "@solana/web3.js";
+import { setRoundStart, hasRoundConfigChanged } from "./time-manager";
+import { useCountdownTimer } from "@/hooks/useCountdownTimer";
 
 // Helper to truncate wallet addresses
 const truncateAddress = (address) => {
@@ -31,6 +33,24 @@ export const fetchConfig = async () => {
       throw new Error("Failed to fetch configuration");
     }
     const configData = await response.json();
+
+    // Store the config in state and initialize timer if necessary
+    if (configData?.roundDuration && configData?.currentRound) {
+      // Check if we need to update the timer (first load or config changed)
+      const shouldUpdateTimer = await hasRoundConfigChanged(
+        parseInt(configData.roundDuration),
+        parseInt(configData.currentRound)
+      );
+
+      if (shouldUpdateTimer) {
+        // Update timer with new round details
+        await setRoundStart(
+          parseInt(configData.roundDuration),
+          parseInt(configData.currentRound)
+        );
+      }
+    }
+
     return configData;
   } catch (error) {
     console.error("Error fetching configuration:", error);
@@ -40,12 +60,18 @@ export const fetchConfig = async () => {
 };
 
 // Generate rounds based on config and current price
-const generateRoundsFromConfig = (currentPrice, config) => {
+const generateRoundsFromConfig = (currentPrice, config, timerInfo) => {
   const now = Date.now();
   const roundDuration = parseInt(config.roundDuration); // Total round duration in seconds
-  const lockDuration = parseInt(config.lockDuration); // Lock duration in seconds
+  const lockDuration = parseInt(config.lockDuration || "30"); // Lock duration in seconds
   const liveDuration = roundDuration; // Live duration in seconds
   const currentRound = parseInt(config.currentRound);
+
+  // Calculate progress within round
+  const elapsedPercentage = timerInfo.elapsedPercentage;
+  const isLockPhase =
+    elapsedPercentage > ((roundDuration - lockDuration) / roundDuration) * 100;
+  const timeRemaining = timerInfo.remainingSeconds;
 
   const rounds = [];
 
@@ -73,12 +99,13 @@ const generateRoundsFromConfig = (currentPrice, config) => {
     rounds.push({
       id: currentRound - 1,
       variant: "live",
-      status: "LIVE",
+      status: isLockPhase ? "LOCKED" : "LIVE",
       prizePool: 0.5,
-      timeRemaining: liveDuration,
+      timeRemaining: timeRemaining,
       currentPrice: currentPrice,
-      startTime: now,
-      endTime: now + roundDuration * 1000,
+      lockPrice: isLockPhase ? currentPrice : null, // Set lock price when entering lock phase
+      startTime: now - (elapsedPercentage / 100) * roundDuration * 1000, // Adjust based on elapsed time
+      endTime: now + timeRemaining * 1000,
       upBets: 0.3,
       downBets: 0.2,
       totalBets: 5,
@@ -93,8 +120,8 @@ const generateRoundsFromConfig = (currentPrice, config) => {
     status: "UPCOMING",
     prizePool: 0.1,
     timeRemaining: roundDuration,
-    startTime: now + liveDuration * 1000, // Starts when current round enters lock phase
-    endTime: now + roundDuration * 2 * 1000,
+    startTime: now + timeRemaining * 1000,
+    endTime: now + (timeRemaining + roundDuration) * 1000,
     upBets: 0,
     downBets: 0,
     totalBets: 0,
@@ -108,9 +135,9 @@ const generateRoundsFromConfig = (currentPrice, config) => {
     status: "LATER",
     prizePool: 0,
     timeRemaining: liveDuration,
-    entryStartsIn: liveDuration, // Entry starts when current round enters lock phase
-    startTime: now + roundDuration * 1000, // Starts when next round enters lock phase
-    endTime: now + roundDuration * 3 * 1000,
+    entryStartsIn: timeRemaining,
+    startTime: now + (timeRemaining + roundDuration) * 1000,
+    endTime: now + (timeRemaining + roundDuration * 2) * 1000,
     upBets: 0,
     downBets: 0,
     totalBets: 0,
@@ -141,6 +168,15 @@ export function useRoundManager({
   const [isInitialized, setIsInitialized] = useState(false);
   const [config, setConfig] = useState(null);
 
+  // Use the enhanced countdown timer
+  const {
+    formattedTime,
+    remainingSeconds,
+    elapsedPercentage,
+    currentRound,
+    isRoundEnding,
+  } = useCountdownTimer();
+
   // Initialize with price data and configuration
   useEffect(() => {
     const initialize = async () => {
@@ -168,9 +204,6 @@ export function useRoundManager({
 
         setHistoricalPrices(historicalData);
 
-        // Create initial rounds based on config
-        setRounds(generateRoundsFromConfig(price, configData));
-
         // Generate some mock live bets
         const initialLiveBets = Array(19)
           .fill(null)
@@ -180,7 +213,6 @@ export function useRoundManager({
             direction: Math.random() > 0.5 ? "UP" : "DOWN",
           }));
         setLiveBets(initialLiveBets);
-
         setIsInitialized(true);
       } catch (error) {
         console.error("Error initializing round manager:", error);
@@ -205,14 +237,43 @@ export function useRoundManager({
       }
     }, 10000); // every 10 seconds for demo
 
-    // Poll for config updates every minute
-    const configPollingId = setInterval(fetchConfig, 60000);
-
     return () => {
       clearInterval(pollingId);
-      clearInterval(configPollingId);
     };
   }, []);
+
+  // Effect to update rounds data based on timer
+  useEffect(() => {
+    if (config && currentPrice > 0) {
+      setRounds(
+        generateRoundsFromConfig(currentPrice, config, {
+          remainingSeconds,
+          elapsedPercentage,
+          currentRound: currentRound || parseInt(config.currentRound),
+        })
+      );
+    }
+  }, [remainingSeconds, currentPrice, config, currentRound, elapsedPercentage]);
+
+  // Effect for handling round transitions when timer reaches zero
+  useEffect(() => {
+    const handleRoundTransition = async () => {
+      if (isRoundEnding && remainingSeconds === 0) {
+        console.log("Round ended, fetching new configuration...");
+        const configData = await fetchConfig();
+
+        console.log(configData,"new config data");
+        
+
+        if (configData) {
+          setConfig(configData);
+          // Rounds will be updated by the other useEffect
+        }
+      }
+    };
+
+    handleRoundTransition();
+  }, [remainingSeconds, isRoundEnding]);
 
   // Load user data when wallet connects
   useEffect(() => {
@@ -592,7 +653,7 @@ export function useRoundManager({
   };
 
   // Handle claiming rewards
-  const handleClaimRewards = async () => {
+  const handleClaimRewards = async (roundId) => {
     if (!connected || !publicKey) {
       toast.error("Please connect your wallet first");
       return;
@@ -625,6 +686,27 @@ export function useRoundManager({
           signTransaction
         );
         */
+
+        // In production, uncomment this to use real contract interaction
+        const programId = new PublicKey(
+          "CXpSQ4p9H5HvLnfBptGzqmSYu2rbyrDpwJkP9gGMutoT"
+        );
+        const contractPubKey = new PublicKey(contractAddress);
+
+        // Place the bet on-chain
+        txHash = await claimPayout(
+          connection,
+          programId,
+          contractPubKey,
+          publicKey,
+          signTransaction,
+          sendTransaction,
+          roundId
+        );
+
+        console.log("====================================");
+        console.log(txHash, "txhash");
+        console.log("====================================");
       }
 
       // Update user bets to mark them as claimed
@@ -652,10 +734,11 @@ export function useRoundManager({
   };
 
   // Find active round
+  // Get the active round ID
   const getActiveRoundId = useCallback(() => {
-    const liveRound = rounds.find((r) => r.status === "LIVE");
-    return liveRound ? liveRound.id : null;
-  }, [rounds]);
+    if (!config) return 0;
+    return parseInt(config.currentRound) - 1;
+  }, [config]);
 
   // Get formatted entry start time for later round
   const getEntryStartTime = useCallback(() => {
@@ -674,16 +757,17 @@ export function useRoundManager({
     return "00:00";
   }, [rounds]);
 
-  // Check if a round is active for betting
+  // Check if a round is bettable
   const isRoundBettable = useCallback(
     (roundId) => {
-      const round = rounds.find((r) => r.id === roundId);
-      if (!round) return false;
+      if (!config) return false;
 
-      // Can only bet on UPCOMING rounds
-      return round.status === "UPCOMING";
+      const currentRoundNumber = parseInt(config.currentRound);
+
+      // Can only bet on the next upcoming round
+      return roundId === currentRoundNumber && remainingSeconds > 10;
     },
-    [rounds]
+    [config, remainingSeconds]
   );
 
   // Get round durations from config

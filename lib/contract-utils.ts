@@ -95,23 +95,27 @@ export async function placeBet(
       })
       .transaction();
 
-      console.log('====================================');
-      console.log(tx,"tx");
-      console.log('====================================');
+    console.log("====================================");
+    console.log(tx, "tx");
+    console.log("====================================");
 
     const { blockhash } = await connection.getLatestBlockhash();
     tx.recentBlockhash = blockhash;
     tx.feePayer = userPubkey;
 
     const signedTx = await signTransaction(tx);
-    const signature = await connection.sendRawTransaction(signedTx.serialize(), {
-      preflightCommitment: "processed",
-    });
+    const signature = await connection.sendRawTransaction(
+      signedTx.serialize(),
+      {
+        preflightCommitment: "processed",
+      }
+    );
 
-    
     await connection.confirmTransaction(signature, "confirmed");
 
     console.log("✅ Bet placed successfully. Tx Signature:", signature);
+
+    return signature;
   } catch (error) {
     console.error("❌ Error in placeBet:", error);
     if (error.logs) console.error("🔍 Anchor logs:\n", error.logs.join("\n"));
@@ -126,37 +130,60 @@ export async function claimPayout(
   contractAddress,
   userPubkey,
   signTransaction,
-  idl
+  sendTransaction,
+  roundId
 ) {
   try {
     console.log("🔁 claimRewards called with:", {
       programId: programId.toBase58(),
       contractAddress: contractAddress.toBase58(),
       userPubkey: userPubkey.toBase58(),
+      roundId: roundId,
     });
+    // Derive PDAs
+    const [configPda] = PublicKey.findProgramAddressSync(
+      [Buffer.from("config")],
+      programId
+    );
 
-    const wallet = {
-      publicKey: userPubkey,
-      signTransaction,
-      signAllTransactions: async (txs) => Promise.all(txs.map(signTransaction)),
-    };
+    const getRoundPda = (roundNumber: number) =>
+      PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("round"),
+          new anchor.BN(roundNumber).toArrayLike(Buffer, "le", 8),
+        ],
+        programId
+      )[0];
 
-    const provider = new anchor.AnchorProvider(connection, wallet, {
-      commitment: "confirmed",
-    });
+    const getEscrowPda = (roundNumber: number) =>
+      PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("escrow"),
+          new anchor.BN(roundNumber).toArrayLike(Buffer, "le", 8),
+        ],
+        programId
+      )[0];
+    const getUserBetPda = (user: PublicKey, roundNumber: number) =>
+      PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("user_bet"),
+          user.toBuffer(),
+          new anchor.BN(roundNumber).toArrayLike(Buffer, "le", 8),
+        ],
+        programId
+      )[0];
 
-    anchor.setProvider(provider);
+    const provider = new anchor.AnchorProvider(
+      connection,
+      { userPubkey, signTransaction } as any,
+      { commitment: "confirmed" }
+    );
 
-    const program = new anchor.Program(idl, programId, provider);
+    const program = new anchor.Program(idl as any, programId, provider);
 
-    const txSig = await program.methods
-      .claimRewards()
-      .accounts({
-        user: userPubkey,
-        contract: contractAddress,
-        systemProgram: SystemProgram.programId,
-      })
-      .rpc();
+    const roundPda = getRoundPda(roundId);
+    const escrowPda = getEscrowPda(roundId);
+    const userBetPda = getUserBetPda(userPubkey, roundId);
 
     console.log("✅ Rewards claimed. Tx Signature:", txSig);
     return txSig;
