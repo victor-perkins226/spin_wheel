@@ -15,7 +15,8 @@ import { Connection, clusterApiUrl, PublicKey } from "@solana/web3.js";
 import { MobileLiveBets } from "./MobileBets";
 import { BetsHistory } from "./BetsHistory";
 import LiveBets from "./LiveBets";
-import { fetchConfig, useRoundManager } from "@/lib/round-manager";
+import {useRoundManager } from "@/lib/round-manager";
+import { useCountdownTimer } from "@/hooks/useCountdownTimer";
 
 // Contract address
 const PREDICTION_CONTRACT = "CXpSQ4p9H5HvLnfBptGzqmSYu2rbyrDpwJkP9gGMutoT";
@@ -27,46 +28,12 @@ export default function PredictionCards() {
   const { publicKey, connected, signTransaction,sendTransaction } = useWallet();
   const connectionRef = useRef(null);
 
-  const [config, setConfig] = useState(null);
-  const [remainingTime, setRemainingTime] = useState(null);
+  const {formattedTime} = useCountdownTimer();
 
-  useEffect(() => {
-    // Properly handle the async fetchConfig function
-    const getConfig = async () => {
-      try {
-        const configData = await fetchConfig();
-        setConfig(configData);
-        
-        if (configData?.roundDuration) {
-          setRemainingTime(configData.roundDuration);
-          
-          const interval = setInterval(() => {
-            setRemainingTime((prev) => {
-              if (prev <= 1) {
-                clearInterval(interval);
-                return 0;
-              }
-              return prev - 1;
-            });
-          }, 1000);
-          
-          return () => clearInterval(interval);
-        }
-      } catch (error) {
-        console.error("Error fetching config:", error);
-      }
-    };
-    
-    getConfig();
-  }, []);
-  
 
-  const formatTime = (seconds) => {
-    if (seconds === null) return "0:00";
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
+
+
+
 
   // Initialize connection
   useEffect(() => {
@@ -154,7 +121,7 @@ export default function PredictionCards() {
               {/* Display countdown for live round */}
               {rounds.length > 0 && (
                 <p className="flex items-center font-semibold text-[10px] sm:text-[12px] lg:text-[20px] gap-1 sm:gap-[7px]">
-                  <span>{formatTime(remainingTime)}</span>
+                  <span>{formattedTime}</span>
                   <span className="text-[6px] sm:text-[8px] lg:text-[12px]">
                     Live
                   </span>
@@ -200,7 +167,7 @@ export default function PredictionCards() {
                   </div>
                   <button
                     className="glass bg-green-500 py-2 px-4 rounded-lg font-semibold hover:bg-green-600 transition-colors"
-                    onClick={handleClaimRewards}
+                    onClick={()=>handleClaimRewards(activeRoundId)}
                     disabled={isProcessingAction}
                   >
                     Claim

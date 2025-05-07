@@ -4,7 +4,7 @@ import * as React from "react";
 const SliderComponent = (props: Slider.SliderProps) => (
   <form>
     <Slider.Root
-      className="relative flex h-5 w-full touch-none select-none items-center"
+      className="relative flex h-5 w-full cursor-default z-50 touch-none select-none items-center"
       defaultValue={[50]}
       max={100}
       step={1}
@@ -15,7 +15,7 @@ const SliderComponent = (props: Slider.SliderProps) => (
       </Slider.Track>
 
       <Slider.Thumb
-        className="block size-[32px] rounded-full bg-gray-500 hover:bg-violet3 focus:shadow-[0_0_0_1px] focus:shadow-whitepele focus:outline-none"
+        className="block size-[32px] rounded-full  cursor-default bg-gray-500 hover:bg-violet3 focus:shadow-[0_0_0_1px] focus:shadow-whitepele focus:outline-none"
         aria-label="Volume"
       />
     </Slider.Root>

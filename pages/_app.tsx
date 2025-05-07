@@ -6,6 +6,7 @@ import Head from "next/head";
 import { WalletContextProvider } from "@/components/wallet.provider.component";
 import { Toaster } from "react-hot-toast";
 
+
 export const poppins = Poppins({
   variable: "--font-poppins-sans",
   subsets: ["latin"],
@@ -13,6 +14,7 @@ export const poppins = Poppins({
 });
 
 export default function App({ Component, pageProps }: AppProps) {
+  
   return (
     <>
        <Toaster />
@@ -45,6 +47,7 @@ export default function App({ Component, pageProps }: AppProps) {
           }
         }
       `}</style>
+
 
       <WalletContextProvider>
         <Layout>
