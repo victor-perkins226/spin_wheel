@@ -6,6 +6,7 @@ import {
 } from "@solana/web3.js";
 import * as anchor from "@project-serum/anchor";
 import idl from "../lib/idl.json"; // Adjust the path accordingly
+import toast from "react-hot-toast";
 
 // place bet
 export async function placeBet(
@@ -77,6 +78,12 @@ export async function placeBet(
     const escrowPda = getEscrowPda(roundId);
     const userBetPda = getUserBetPda(userPubkey, roundId);
 
+
+    console.log(configPda,"config pda");
+    
+    console.log(roundPda,"roundPda");
+    
+
     let isBull = false;
 
     const tx = await program.methods
@@ -95,6 +102,8 @@ export async function placeBet(
       })
       .transaction();
 
+     
+
     console.log("====================================");
     console.log(tx, "tx");
     console.log("====================================");
@@ -110,6 +119,8 @@ export async function placeBet(
         preflightCommitment: "processed",
       }
     );
+
+   
 
     await connection.confirmTransaction(signature, "confirmed");
 
@@ -145,6 +156,9 @@ export async function claimPayout(
       [Buffer.from("config")],
       programId
     );
+
+    console.log(configPda,"config pda");
+    
 
     const getRoundPda = (roundNumber: number) =>
       PublicKey.findProgramAddressSync(

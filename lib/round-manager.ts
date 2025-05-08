@@ -130,7 +130,7 @@ const generateRoundsFromConfig = (currentPrice, config, timerInfo) => {
 
   // Later round
   rounds.push({
-    id: currentRound + 1,
+    id: currentRound+1,
     variant: "later",
     status: "LATER",
     prizePool: 0,
@@ -670,7 +670,7 @@ export function useRoundManager({
     } catch (error) {
       console.error("Error placing bet:", error);
       toast.dismiss(toastId);
-      toast.error("Failed to place bet: " + error.message);
+      toast.error("Failed to place bet, Try again");
     } finally {
       setIsProcessingAction(false);
     }
@@ -740,7 +740,7 @@ export function useRoundManager({
     } catch (error) {
       console.error("Error claiming rewards:", error);
       toast.dismiss(toastId);
-      toast.error("Failed to claim rewards: " + error.message);
+      toast.error("Failed to claim rewards Try again ");
     } finally {
       setIsProcessingAction(false);
     }

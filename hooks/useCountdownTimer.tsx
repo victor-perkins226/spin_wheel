@@ -31,8 +31,10 @@ export const useCountdownTimer = () => {
     const updateTimer = async () => {
       const { remainingSeconds, roundNumber, elapsedPercentage } = await getRemainingTime();
       
+
       // Round is considered ending when less than 10 seconds remain
       const isRoundEnding = remainingSeconds < 10;
+
 
       setTimerState({
         remainingSeconds,
