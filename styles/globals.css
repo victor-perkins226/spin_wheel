@@ -15,9 +15,9 @@ body {
   @apply mx-auto max-w-[1355px] px-4;
 }
 
-.wallet-adapter-dropdown-list{
-  top:-50%!important;
-  right:110%!important
+.wallet-adapter-dropdown-list {
+  top: -50% !important;
+  right: 110% !important;
 }
 
 .swiper-pagination-centered {
@@ -26,7 +26,7 @@ body {
 }
 
 /* Customize range thumb */
-input[type='range'].custom-slider::-webkit-slider-thumb {
+input[type="range"].custom-slider::-webkit-slider-thumb {
   appearance: none;
   height: 35px;
   width: 35px;
@@ -35,7 +35,7 @@ input[type='range'].custom-slider::-webkit-slider-thumb {
   cursor: pointer;
 }
 
-input[type='range'].custom-slider::-moz-range-thumb {
+input[type="range"].custom-slider::-moz-range-thumb {
   height: 35px;
   width: 35px;
   border-radius: 9999px;
@@ -43,6 +43,20 @@ input[type='range'].custom-slider::-moz-range-thumb {
   cursor: pointer;
 }
 
+/* If not using Tailwind's animate-spin */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.loader {
+  border-top-color: #6366f1; /* indigo-500 */
+  animation: spin 1s linear infinite;
+}
 
 .glass {
   background: rgba(255, 255, 255, 0.05);

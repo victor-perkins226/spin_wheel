@@ -53,7 +53,7 @@ export const getRemainingTime = async (): Promise<{
   
   // Calculate the current position within the current round
   const secondsInCurrentRound = elapsedSeconds % duration;
-  const remainingSeconds = duration - secondsInCurrentRound;
+  const remainingSeconds = duration - secondsInCurrentRound ;
   
   // Calculate the actual current round number
   const actualRoundNumber = roundNumber + passedRounds;

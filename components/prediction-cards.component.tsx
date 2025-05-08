@@ -32,15 +32,15 @@ export default function PredictionCards() {
 
 
 
-
-
-
+  
+  
+  
   // Initialize connection
   useEffect(() => {
     // Initialize Solana connection
     const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
     connectionRef.current = connection;
-
+    
     const updateScreenWidth = () => {
       setScreenWidth(window.innerWidth);
     };
@@ -79,10 +79,12 @@ export default function PredictionCards() {
     contractAddress: PREDICTION_CONTRACT,
   });
 
+  const isLoading = !formattedTime || rounds.length === 0;
+
   const formatCardVariant = (round) => {
     return round.variant;
   };
-
+  
   const getSlidesPerView = () => {
     if (!mounted) return 1;
     if (screenWidth < 640) return 1;
@@ -92,6 +94,16 @@ export default function PredictionCards() {
 
   // Get the active round ID for determining which rounds can be bet on
   const activeRoundId = getActiveRoundId();
+
+
+  
+if (isLoading) {
+  return (
+    <div className="flex justify-center items-center h-screen">
+      <div className="loader border-4 border-t-4 border-gray-200 rounded-full w-12 h-12 animate-spin" />
+    </div>
+  );
+}
 
   return (
     <div className="container px-3 sm:px-4 md:px-6 lg:px-8 mt-5 md:mt-6 lg:mt-[70px] flex flex-col gap-4 md:gap-6 lg:gap-[40px]">
