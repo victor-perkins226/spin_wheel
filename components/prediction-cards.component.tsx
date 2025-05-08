@@ -236,6 +236,7 @@ if (isLoading) {
                     currentRoundId={activeRoundId}
                     bufferTimeInSeconds={30}
                     isRoundBettable={isRoundBettable}
+                    liveRoundPrice={currentPrice}
                   />
                 </SwiperSlide>
               ))}

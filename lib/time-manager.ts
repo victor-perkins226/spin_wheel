@@ -47,22 +47,24 @@ export const getRemainingTime = async (): Promise<{
   const now = Date.now();
   const elapsedMs = now - start;
   const elapsedSeconds = Math.floor(elapsedMs / 1000);
-  
+
   // Calculate how many full rounds have passed since the start
   const passedRounds = Math.floor(elapsedSeconds / duration);
-  
+
   // Calculate the current position within the current round
   const secondsInCurrentRound = elapsedSeconds % duration;
-  const remainingSeconds = duration - secondsInCurrentRound ;
-  
+  const remainingSeconds = duration - secondsInCurrentRound;
+
   // Calculate the actual current round number
   const actualRoundNumber = roundNumber + passedRounds;
-  
+
   // Calculate elapsed percentage for progress bars
   const elapsedPercentage = (secondsInCurrentRound / duration) * 100;
 
+  const adjustedRemainingSeconds = Math.max(0, remainingSeconds - 60);
+
   return {
-    remainingSeconds: Math.max(0, remainingSeconds),
+    remainingSeconds: adjustedRemainingSeconds,
     roundNumber: actualRoundNumber,
     roundDuration: duration,
     elapsedPercentage: elapsedPercentage,
@@ -81,14 +83,14 @@ export const hasRoundConfigChanged = async (
 ): Promise<boolean> => {
   const durationStr = localStorage.getItem(ROUND_DURATION_KEY);
   const roundStr = localStorage.getItem(CURRENT_ROUND_KEY);
-  
+
   if (!durationStr || !roundStr) return true;
-  
+
   const currentDuration = parseInt(durationStr, 10);
   const roundFromTime = await getRemainingTime();
-  
+
   return (
-    currentDuration !== newRoundDuration || 
+    currentDuration !== newRoundDuration ||
     roundFromTime.roundNumber !== newRoundNumber
   );
 };

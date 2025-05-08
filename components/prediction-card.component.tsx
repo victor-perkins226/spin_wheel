@@ -8,6 +8,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import SolanaBg from "@/public/assets/solana_bg.png";
 import { useCountdownTimer } from "@/hooks/useCountdownTimer";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { ArrowDown, ArrowUp } from "lucide-react";
 
 interface IProps {
   variant?: "live" | "expired" | "next" | "later";
@@ -21,8 +22,8 @@ interface IProps {
     timeRemaining?: number;
     upBets?: number;
     downBets?: number;
-    upPayout?: number;
-    downPayout?: number;
+    upPayout?: number; // Added for dynamic payout calculation
+    downPayout?: number; // Added for dynamic payout calculation
     status?: "LIVE" | "LOCKED" | "ENDED" | "UPCOMING" | "LATER";
   };
   onPlaceBet?: (
@@ -33,9 +34,9 @@ interface IProps {
   currentRoundId?: number;
   bufferTimeInSeconds?: number;
   isRoundBettable?: (roundId: number) => boolean;
-  liveRoundPrice?: number;
-  userBetDirection?: "up" | "down" | null;
-  userBetStatus?: "WON" | "LOST" | "PENDING" | null;
+  liveRoundPrice?: number; // Added to compare with ended round price
+  userBetDirection?: "up" | "down" | null; // Added to show user's bet
+  userBetStatus?: "WON" | "LOST" | "PENDING" | null; // Added to show bet status
 }
 
 const CUSTOM_INPUTS = [
@@ -49,14 +50,14 @@ const CUSTOM_INPUTS = [
 export default function PredictionCard({
   variant = "live",
   roundId = 1,
-  roundData:initialRoundData,
+  roundData: initialRoundData,
   onPlaceBet,
   currentRoundId,
   bufferTimeInSeconds = 30,
   isRoundBettable,
   liveRoundPrice,
   userBetDirection,
-  userBetStatus
+  userBets,
 }: IProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [mode, setMode] = useState<"up" | "down" | "">("");
@@ -67,59 +68,100 @@ export default function PredictionCard({
   const { formattedTime } = useCountdownTimer();
   const [roundData, setRoundData] = useState(initialRoundData);
   const [isLoading, setIsLoading] = useState(false);
-  const [prevRoundData, setPrevRoundData] = useState<any>(null);
   const [priceDifference, setPriceDifference] = useState<number>(0.0001);
   const [priceDirection, setPriceDirection] = useState<"up" | "down">("up");
+  const [prevRoundData, setPrevRoundData] = useState<any>(null);
+  const [userBetStatus, setUserBetsStatus] = useState(null);
+
+  useEffect(() => {
+    if (!userBets) return;
+    console.log("====================================");
+    console.log(userBets, "userBetss");
+    console.log("====================================");
+    const betStatus = userBets.find((bet) => bet.roundId === roundData?.id);
+    setUserBetsStatus(betStatus || null);
+  }, [userBets, currentRoundId]);
 
   // Fetch round data from API
   useEffect(() => {
+    console.log(liveRoundPrice, "iveRoundPrice");
+
     const fetchRoundData = async () => {
       // Only fetch data for live or expired rounds
       if (variant !== "live" && variant !== "expired") {
         return;
       }
-      
+
       setIsLoading(true);
       try {
         // Fetch current round data
-        const response = await fetch(`https://sol-prediction-backend.onrender.com/round/${roundId}`);
+        const response = await fetch(
+          `https://sol-prediction-backend.onrender.com/round/${roundId}`
+        );
         if (!response.ok) {
           throw new Error("Failed to fetch round data");
         }
-        
+
         const data = await response.json();
-        
+
         // Fetch previous round data for comparison
         const prevRoundId = roundId - 1;
         if (prevRoundId > 0) {
-          const prevResponse = await fetch(`https://sol-prediction-backend.onrender.com/round/${prevRoundId}`);
+          const prevResponse = await fetch(
+            `https://sol-prediction-backend.onrender.com/round/${prevRoundId}`
+          );
           if (prevResponse.ok) {
             const prevData = await prevResponse.json();
             setPrevRoundData(prevData);
-            
             // Calculate price difference between rounds
-            const currentEndPrice = Number(data.endPrice);
-            const prevEndPrice = Number(prevData.endPrice);
+            const currentEndPrice =
+              data?.endPrice && data.endPrice > 0
+                ? Number(data.endPrice)
+                : liveRoundPrice;
+
+            const prevEndPrice =
+              prevData?.endPrice && prevData.endPrice > 0
+                ? Number(prevData.endPrice)
+                : liveRoundPrice;
+
+            console.log("====================================");
+            console.log(
+              prevEndPrice,
+              "prev end price",
+              currentEndPrice,
+              "currentEndPrice"
+            );
+            console.log("====================================");
+
             const diff = Math.abs(currentEndPrice - prevEndPrice);
             setPriceDifference(diff);
             setPriceDirection(currentEndPrice >= prevEndPrice ? "up" : "down");
           }
         }
-        
+
         // Convert and format the data
         const formattedData = {
           ...roundData,
           lockPrice: Number(data.lockPrice),
-          closePrice: Number(data.endPrice),
+          closePrice:
+            data?.endPrice > 0 ? Number(data.endPrice) : liveRoundPrice,
           currentPrice: liveRoundPrice || Number(data.lockPrice),
           prizePool: Number(data.totalAmount) / LAMPORTS_PER_SOL,
           upBets: Number(data.totalBullAmount) / LAMPORTS_PER_SOL,
           downBets: Number(data.totalBearAmount) / LAMPORTS_PER_SOL,
           // Calculate payouts based on bet amounts if needed
-          upPayout: calculatePayout("up", Number(data.totalBullAmount), Number(data.totalAmount)),
-          downPayout: calculatePayout("down", Number(data.totalBearAmount), Number(data.totalAmount))
+          upPayout: calculatePayout(
+            "up",
+            Number(data.totalBullAmount),
+            Number(data.totalAmount)
+          ),
+          downPayout: calculatePayout(
+            "down",
+            Number(data.totalBearAmount),
+            Number(data.totalAmount)
+          ),
         };
-        
+
         setRoundData(formattedData);
       } catch (error) {
         console.error("Error fetching round data:", error);
@@ -128,16 +170,21 @@ export default function PredictionCard({
         setIsLoading(false);
       }
     };
-    
+
     fetchRoundData();
   }, [variant, roundId, liveRoundPrice]);
 
   // Helper function to calculate payouts
   const calculatePayout = (direction, directionAmount, totalAmount) => {
-    if (!totalAmount || totalAmount === 0 || !directionAmount || directionAmount === 0) {
+    if (
+      !totalAmount ||
+      totalAmount === 0 ||
+      !directionAmount ||
+      directionAmount === 0
+    ) {
       return 2.51; // Default payout
     }
-    
+
     // Calculate a payout multiplier based on the bet distribution
     // Formula: (TotalAmount * 0.97) / DirectionAmount
     // The 0.97 accounts for a hypothetical 3% platform fee
@@ -156,12 +203,12 @@ export default function PredictionCard({
       const currentEndPrice = roundData.closePrice;
       return currentEndPrice > prevEndPrice ? "up" : "down";
     }
-    
+
     // For live rounds, compare with current round's lock price
-    if (variant === "live" && roundData?.currentPrice && roundData?.lockPrice) {
-      return roundData.currentPrice > roundData.lockPrice ? "up" : "down";
+    if (variant === "live" && roundData?.closePrice && roundData?.lockPrice) {
+      return roundData?.closePrice > roundData.lockPrice ? "up" : "down";
     }
-    
+
     return null;
   };
 
@@ -169,20 +216,34 @@ export default function PredictionCard({
 
   // Determine if this round can be bet on
   useEffect(() => {
-    // Check if round is bettable using the provided function
-    if (isRoundBettable && roundId) {
-      setCanBet(isRoundBettable(roundId));
-    } else {
-      // Fallback to PancakeSwap style logic: can only bet on the next round
-      const isNextRound = roundId === (currentRoundId || 0) + 1;
+    const checkBetEligibility = async () => {
+      if (isRoundBettable && roundId) {
+        setCanBet(isRoundBettable(roundId));
+      } else if (roundId) {
+        try {
+          const response = await fetch(
+            `https://sol-prediction-backend.onrender.com/round/${roundId}`
+          );
+          const round = await response.json();
 
-      // Check if there's enough time left in the current round (more than buffer time)
-      const hasEnoughTimeLeft =
-        roundData?.timeRemaining &&
-        roundData.timeRemaining > bufferTimeInSeconds;
+          const isNextRound = roundId === (currentRoundId || 0) + 1;
+          const hasEnoughTimeLeft =
+            roundData?.timeRemaining &&
+            roundData.timeRemaining > bufferTimeInSeconds;
 
-      setCanBet(isNextRound && hasEnoughTimeLeft);
-    }
+          const isActive = round?.isActive === true;
+
+          setCanBet(isNextRound && hasEnoughTimeLeft && isActive);
+        } catch (error) {
+          console.error("Failed to check round status:", error);
+          setCanBet(false);
+        }
+      } else {
+        setCanBet(false);
+      }
+    };
+
+    checkBetEligibility();
   }, [
     roundId,
     currentRoundId,
@@ -245,32 +306,16 @@ export default function PredictionCard({
 
   // Generate button style based on variant and price movement
   const getButtonStyle = (direction: "up" | "down") => {
-    if (variant === "expired") {
+    if (variant === "expired" || variant === "live") {
       // For expired rounds, highlight the winning direction
-      if (priceMovement === direction) {
-        return direction === "up" 
-          ? "linear-gradient(90deg, #06C729 0%, #04801B 100%)" 
+      if (priceDirection === direction) {
+        return direction === "up"
+          ? "linear-gradient(90deg, #06C729 0%, #04801B 100%)"
           : "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)";
       } else {
         return "linear-gradient(228.15deg, rgba(255, 255, 255, 0.2) -64.71%, rgba(255, 255, 255, 0.05) 102.6%)";
       }
     }
-    
-    // For live rounds, highlight based on current price vs lock price
-    if (variant === "live") {
-      if (priceMovement === direction) {
-        return direction === "up" 
-          ? "linear-gradient(90deg, #06C729 0%, #04801B 100%)" 
-          : "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)";
-      } else {
-        return "linear-gradient(228.15deg, rgba(255, 255, 255, 0.2) -64.71%, rgba(255, 255, 255, 0.05) 102.6%)";
-      }
-    }
-    
-    // Default styles for other variants
-    return direction === "up" 
-      ? "linear-gradient(90deg, #06C729 0%, #04801B 100%)"
-      : "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)";
   };
 
   // Render the next round content (bettable)
@@ -328,7 +373,7 @@ export default function PredictionCard({
     if (variant !== "later") return null;
 
     return (
-      <div className="flex-1 glass rounded-[20px] flex flex-col gap-[12px] items-center justify-center">
+      <div className="glass flex-1 rounded-[20px] flex flex-col gap-[12px] items-center justify-center">
         <Image
           alt="Solana Background"
           src={SolanaBg}
@@ -363,9 +408,20 @@ export default function PredictionCard({
                 ${roundData?.closePrice?.toFixed(4) ?? 585.1229}
               </p>
 
-              <div className="bg-white flex items-center gap-[4px] text-[#1F1F43] px-[10px] py-[5px] rounded-[5px]">
-                <SVG width={8} height={8} iconName={priceDirection === "up" ? "arrow-up" : "arrow-down"} />
-                <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
+              <div
+                className={`bg-white flex items-center gap-[4px] ${
+                  priceDirection === "up" ? "text-green-500" : "text-red-500"
+                } px-[10px] py-[5px] rounded-[5px]`}
+              >
+                {priceDirection === "up" ? (
+                  <ArrowUp size={12} />
+                ) : (
+                  <ArrowDown size={12} />
+                )}
+
+                <p className="text-[10px]">
+                  ${priceDifference.toFixed(4) ?? 0.0}
+                </p>
               </div>
             </div>
 
@@ -388,6 +444,11 @@ export default function PredictionCard({
   const renderExpiredRoundContent = () => {
     if (variant !== "expired" && variant !== "locked") return null;
 
+    const isUp =
+      roundData?.closePrice &&
+      roundData?.lockPrice &&
+      roundData.closePrice > roundData.lockPrice;
+
     return (
       <div className="flex-1 flex flex-col glass p-[10px] rounded-[20px] items-center opacity-80">
         <div className="max-w-[215px] flex flex-col gap-[33px] justify-between flex-1">
@@ -403,18 +464,18 @@ export default function PredictionCard({
                 ${roundData?.closePrice?.toFixed(4) ?? 585.1229}
               </p>
 
-              <div className={`bg-white flex items-center gap-[4px] ${
-                priceDirection === "up" ? "text-green-500" : "text-red-500"
-              } px-[10px] py-[5px] rounded-[5px]`}
+              <div
+                className={`bg-white flex items-center gap-[4px] ${
+                  priceDirection === "up" ? "text-green-500" : "text-red-500"
+                } px-[10px] py-[5px] rounded-[5px]`}
               >
-                <SVG
-                  width={8}
-                  height={8}
-                  iconName={priceDirection === "up" ? "arrow-up" : "arrow-down"}
-                />
-                <p className="text-[10px]">
-                  ${priceDifference.toFixed(4)}
-                </p>
+                {priceDirection === "up" ? (
+                  <ArrowUp size={12} />
+                ) : (
+                  <ArrowDown size={12} />
+                )}
+
+                <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
               </div>
             </div>
 
@@ -427,12 +488,18 @@ export default function PredictionCard({
               <p>Prize Pool</p>
               <p>{roundData?.prizePool?.toFixed(4) ?? 8.6015} SOL</p>
             </div>
-            
+
             {/* Add bet status if user placed a bet on this round */}
             {userBetDirection && userBetStatus && (
-              <div className={`flex justify-center text-[16px] font-bold ${
-                userBetStatus === "WON" ? "text-green-500" : userBetStatus === "LOST" ? "text-red-500" : "text-white"
-              }`}>
+              <div
+                className={`flex justify-center text-[16px] font-bold ${
+                  userBetStatus === "WON"
+                    ? "text-green-500"
+                    : userBetStatus === "LOST"
+                    ? "text-red-500"
+                    : "text-white"
+                }`}
+              >
                 <p>{userBetStatus}</p>
               </div>
             )}
@@ -473,21 +540,24 @@ export default function PredictionCard({
             background: getButtonStyle("up"),
           }}
           className={`glass flex flex-col gap-4 py-[16px] ${
-            variant === "expired" && priceMovement === "up" ? "border-2 border-green-500" : ""
-          } ${
-            userBetDirection === "up" ? "border-2 border-yellow-400" : ""
-          }`}
-          onClick={() =>
-            variant === "next" && canBet && handleEnterPrediction("up")
-          }
+            variant === "expired" ||
+            (variant === "live" && priceDirection === "up")
+              ? "border-2 border-green-500"
+              : ""
+          } `}
         >
           <div className="flex justify-center items-center gap-2">
             <p className="text-[20px] font-[600] leading-0">UP</p>
-            {userBetDirection === "up" && userBetStatus && (
-              <span className={`text-[12px] font-bold ml-2 ${
-                userBetStatus === "WON" ? "text-green-500" : 
-                userBetStatus === "LOST" ? "text-red-500" : "text-yellow-400"
-              }`}>
+            {userBetStatus && (
+              <span
+                className={`text-[12px] font-bold ml-2 ${
+                  userBetStatus === "WON"
+                    ? "text-green-500"
+                    : userBetStatus === "LOST"
+                    ? "text-red-500"
+                    : "text-yellow-400"
+                }`}
+              >
                 {userBetStatus}
               </span>
             )}
@@ -507,27 +577,30 @@ export default function PredictionCard({
           : variant === "locked"
           ? renderExpiredRoundContent()
           : renderLiveRoundContent()}
-          
+
         <Button
           style={{
             background: getButtonStyle("down"),
           }}
           className={`glass flex flex-col gap-4 py-[16px] ${
-            variant === "expired" && priceMovement === "down" ? "border-2 border-red-500" : ""
-          } ${
-            userBetDirection === "down" ? "border-2 border-yellow-400" : ""
+            variant === "expired" ||
+            (variant === "live" && priceDirection === "down")
+              ? "border-2 border-red-500"
+              : ""
           }`}
-          onClick={() =>
-            variant === "next" && canBet && handleEnterPrediction("down")
-          }
         >
           <div className="flex justify-center items-center gap-2">
             <p className="text-[20px] font-[600] leading-0">DOWN</p>
-            {userBetDirection === "down" && userBetStatus && (
-              <span className={`text-[12px] font-bold ml-2 ${
-                userBetStatus === "WON" ? "text-green-500" : 
-                userBetStatus === "LOST" ? "text-red-500" : "text-yellow-400"
-              }`}>
+            {userBetStatus && (
+              <span
+                className={`text-[12px] font-bold ml-2 ${
+                  userBetStatus === "WON"
+                    ? "text-green-500"
+                    : userBetStatus === "LOST"
+                    ? "text-red-500"
+                    : "text-yellow-400"
+                }`}
+              >
                 {userBetStatus}
               </span>
             )}
