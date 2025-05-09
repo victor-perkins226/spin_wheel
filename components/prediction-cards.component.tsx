@@ -17,6 +17,7 @@ import { BetsHistory } from "./BetsHistory";
 import LiveBets from "./LiveBets";
 import {useRoundManager } from "@/lib/round-manager";
 import { useCountdownTimer } from "@/hooks/useCountdownTimer";
+import ConnectionStatus from "./connection-status";
 
 // Contract address
 const PREDICTION_CONTRACT = "CXpSQ4p9H5HvLnfBptGzqmSYu2rbyrDpwJkP9gGMutoT";
@@ -237,12 +238,15 @@ if (isLoading) {
                     bufferTimeInSeconds={30}
                     isRoundBettable={isRoundBettable}
                     liveRoundPrice={currentPrice}
+                    userBets={userBets}
                   />
                 </SwiperSlide>
               ))}
             </Swiper>
             <div className="swiper-pagination !relative !mt-4" />
           </div>
+
+          <ConnectionStatus/>
 
           {/* Line Chart Component */}
           <div className="mt-10">
