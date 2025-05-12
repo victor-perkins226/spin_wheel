@@ -10,6 +10,7 @@ import { useCountdownTimer } from "@/hooks/useCountdownTimer"
 import { LAMPORTS_PER_SOL } from "@solana/web3.js"
 import { ArrowDown, ArrowUp } from "lucide-react"
 import { fetchRoundDetails } from "@/lib/time-manager"
+import { useQueryClient } from "@tanstack/react-query"
 
 interface IProps {
   variant?: "live" | "expired" | "next" | "later"
@@ -47,9 +48,8 @@ const CUSTOM_INPUTS = [
 ]
 
 export default function PredictionCard({
-  variant = "live",
-  roundId = 1,
-  roundData: initialRoundData,
+  variant = "expired",
+  roundId,
   onPlaceBet,
   currentRoundId,
   bufferTimeInSeconds = 30,
@@ -57,19 +57,17 @@ export default function PredictionCard({
   liveRoundPrice,
   userBets,
 }: IProps) {
-  const [isFlipped, setIsFlipped] = useState(false)
-  const [mode, setMode] = useState<"up" | "down" | "">("")
-  const [amount, setAmount] = useState<number>(0.1)
-  const [maxAmount, setMaxAmount] = useState<number>(10)
-  const [canBet, setCanBet] = useState<boolean>(false)
-  const { connected, publicKey } = useWallet()
-  const { formattedTime, isLockPhase } = useCountdownTimer()
-  const [roundData, setRoundData] = useState(initialRoundData)
-  const [isLoading, setIsLoading] = useState(false)
-  const [priceDifference, setPriceDifference] = useState<number>(0.0001)
-  const [priceDirection, setPriceDirection] = useState<"up" | "down">("up")
-  const [prevRoundData, setPrevRoundData] = useState<any>(null)
-  const [userBetStatus, setUserBetsStatus] = useState(null)
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [mode, setMode] = useState<"up" | "down" | "">("");
+  const [amount, setAmount] = useState<number>(0.1);
+  const [maxAmount, setMaxAmount] = useState<number>(10);
+  const { connected, publicKey } = useWallet();
+  const queryClient = useQueryClient();
+
+  // Fetch config and round data
+  const { data: config } = useConfig();
+  const { data: roundData, isLoading } = useRound(roundId);
+  const { data: previousRoundsData } = usePreviousRounds(config?.currentRound);
 
   // Refs for tracking data fetching
   const lastFetchTime = useRef(0)
@@ -89,164 +87,164 @@ export default function PredictionCard({
     setUserBetsStatus(betStatus || null)
   }, [userBets, roundId])
 
-  // Fetch round data from API with caching and throttling
-  useEffect(() => {
-    // Only fetch data for live or expired rounds
-    if (variant !== "live" && variant !== "expired") {
-      return
-    }
+  // // Fetch round data from API with caching and throttling
+  // useEffect(() => {
+  //   // Only fetch data for live or expired rounds
+  //   if (variant !== "live" && variant !== "expired") {
+  //     return
+  //   }
 
-    const fetchRoundData = async () => {
-      // Check if we need to fetch (first time or more than interval since last fetch)
-      const now = Date.now()
-      if (now - lastFetchTime.current < FETCH_INTERVAL && roundData) {
-        return
-      }
+  //   const fetchRoundData = async () => {
+  //     // Check if we need to fetch (first time or more than interval since last fetch)
+  //     const now = Date.now()
+  //     if (now - lastFetchTime.current < FETCH_INTERVAL && roundData) {
+  //       return
+  //     }
 
-      setIsLoading(true)
-      try {
-        // Fetch current round data
-        const data = await fetchRoundDetails(roundId)
-        if (!data) {
-          throw new Error("Failed to fetch round data")
-        }
+  //     setIsLoading(true)
+  //     try {
+  //       // Fetch current round data
+  //       const data = await fetchRoundDetails(roundId)
+  //       if (!data) {
+  //         throw new Error("Failed to fetch round data")
+  //       }
 
-        lastFetchTime.current = now
+  //       lastFetchTime.current = now
 
-        // Fetch previous round data for comparison (only if needed)
-        let prevData = prevRoundData
-        if (!prevRoundData) {
-          const prevRoundId = roundId - 1
-          if (prevRoundId > 0) {
-            prevData = await fetchRoundDetails(prevRoundId)
-            if (prevData && isMounted.current) {
-              setPrevRoundData(prevData)
-            }
-          }
-        }
+  //       // Fetch previous round data for comparison (only if needed)
+  //       let prevData = prevRoundData
+  //       if (!prevRoundData) {
+  //         const prevRoundId = roundId - 1
+  //         if (prevRoundId > 0) {
+  //           prevData = await fetchRoundDetails(prevRoundId)
+  //           if (prevData && isMounted.current) {
+  //             setPrevRoundData(prevData)
+  //           }
+  //         }
+  //       }
 
-        if (prevData) {
-          // Calculate price difference between rounds
-          const currentEndPrice = data?.endPrice && data.endPrice > 0 ? Number(data.endPrice) : liveRoundPrice
-          const prevEndPrice = prevData?.endPrice && prevData.endPrice > 0 ? Number(prevData.endPrice) : liveRoundPrice
-          const diff = Math.abs(currentEndPrice - prevEndPrice)
+  //       if (prevData) {
+  //         // Calculate price difference between rounds
+  //         const currentEndPrice = data?.endPrice && data.endPrice > 0 ? Number(data.endPrice) : liveRoundPrice
+  //         const prevEndPrice = prevData?.endPrice && prevData.endPrice > 0 ? Number(prevData.endPrice) : liveRoundPrice
+  //         const diff = Math.abs(currentEndPrice - prevEndPrice)
 
-          if (isMounted.current) {
-            setPriceDifference(diff)
-            setPriceDirection(currentEndPrice >= prevEndPrice ? "up" : "down")
-          }
-        }
+  //         if (isMounted.current) {
+  //           setPriceDifference(diff)
+  //           setPriceDirection(currentEndPrice >= prevEndPrice ? "up" : "down")
+  //         }
+  //       }
 
-        // Convert and format the data
-        const formattedData = {
-          ...roundData,
-          lockPrice: Number(data.lockPrice),
-          closePrice: data?.endPrice > 0 ? Number(data.endPrice) : liveRoundPrice,
-          currentPrice: liveRoundPrice || Number(data.lockPrice),
-          prizePool: Number(data.totalAmount) / LAMPORTS_PER_SOL,
-          upBets: Number(data.totalBullAmount) / LAMPORTS_PER_SOL,
-          downBets: Number(data.totalBearAmount) / LAMPORTS_PER_SOL,
-          // Calculate payouts based on bet amounts if needed
-          upPayout: calculatePayout("up", Number(data.totalBullAmount), Number(data.totalAmount)),
-          downPayout: calculatePayout("down", Number(data.totalBearAmount), Number(data.totalAmount)),
-        }
+  //       // Convert and format the data
+  //       const formattedData = {
+  //         ...roundData,
+  //         lockPrice: Number(data.lockPrice),
+  //         closePrice: data?.endPrice > 0 ? Number(data.endPrice) : liveRoundPrice,
+  //         currentPrice: liveRoundPrice || Number(data.lockPrice),
+  //         prizePool: Number(data.totalAmount) / LAMPORTS_PER_SOL,
+  //         upBets: Number(data.totalBullAmount) / LAMPORTS_PER_SOL,
+  //         downBets: Number(data.totalBearAmount) / LAMPORTS_PER_SOL,
+  //         // Calculate payouts based on bet amounts if needed
+  //         upPayout: calculatePayout("up", Number(data.totalBullAmount), Number(data.totalAmount)),
+  //         downPayout: calculatePayout("down", Number(data.totalBearAmount), Number(data.totalAmount)),
+  //       }
 
-        if (isMounted.current) {
-          setRoundData(formattedData)
-        }
-      } catch (error) {
-        console.error("Error fetching round data:", error)
-        // Keep using the initial data if API call fails
-      } finally {
-        if (isMounted.current) {
-          setIsLoading(false)
-        }
-      }
-    }
+  //       if (isMounted.current) {
+  //         setRoundData(formattedData)
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching round data:", error)
+  //       // Keep using the initial data if API call fails
+  //     } finally {
+  //       if (isMounted.current) {
+  //         setIsLoading(false)
+  //       }
+  //     }
+  //   }
 
-    fetchRoundData()
+  //   fetchRoundData()
 
-    // Set up polling for live rounds - less frequent than before
-    let intervalId
-    if (variant === "live") {
-      intervalId = setInterval(fetchRoundData, FETCH_INTERVAL)
-    }
+  //   // Set up polling for live rounds - less frequent than before
+  //   let intervalId
+  //   if (variant === "live") {
+  //     intervalId = setInterval(fetchRoundData, FETCH_INTERVAL)
+  //   }
 
-    return () => {
-      if (intervalId) clearInterval(intervalId)
-    }
-  }, [variant, roundId, liveRoundPrice, prevRoundData, roundData])
+  //   return () => {
+  //     if (intervalId) clearInterval(intervalId)
+  //   }
+  // }, [variant, roundId, liveRoundPrice, prevRoundData, roundData])
 
-  // Helper function to calculate payouts
-  const calculatePayout = (direction, directionAmount, totalAmount) => {
-    if (!totalAmount || totalAmount === 0 || !directionAmount || directionAmount === 0) {
-      return 2.51 // Default payout
-    }
+  // // Helper function to calculate payouts
+  // const calculatePayout = (direction, directionAmount, totalAmount) => {
+  //   if (!totalAmount || totalAmount === 0 || !directionAmount || directionAmount === 0) {
+  //     return 2.51 // Default payout
+  //   }
 
-    // Calculate a payout multiplier based on the bet distribution
-    // Formula: (TotalAmount * 0.97) / DirectionAmount
-    // The 0.97 accounts for a hypothetical 3% platform fee
-    return (totalAmount * 0.97) / directionAmount
-  }
+  //   // Calculate a payout multiplier based on the bet distribution
+  //   // Formula: (TotalAmount * 0.97) / DirectionAmount
+  //   // The 0.97 accounts for a hypothetical 3% platform fee
+  //   return (totalAmount * 0.97) / directionAmount
+  // }
 
   // Get payout values with fallbacks
   const upPayout = roundData?.upPayout ?? 2.51
   const downPayout = roundData?.downPayout ?? 2.51
 
   // Determine price movement direction
-  const getPriceMovement = () => {
-    // For expired rounds, compare with previous round
-    if (variant === "expired" && prevRoundData && roundData?.closePrice) {
-      const prevEndPrice = Number(prevRoundData.endPrice || 0)
-      const currentEndPrice = roundData.closePrice
-      return currentEndPrice > prevEndPrice ? "up" : "down"
-    }
+  // const getPriceMovement = () => {
+  //   // For expired rounds, compare with previous round
+  //   if (variant === "expired" && prevRoundData && roundData?.closePrice) {
+  //     const prevEndPrice = Number(prevRoundData.endPrice || 0)
+  //     const currentEndPrice = roundData.closePrice
+  //     return currentEndPrice > prevEndPrice ? "up" : "down"
+  //   }
 
-    // For live rounds, compare with current round's lock price
-    if (variant === "live" && roundData?.closePrice && roundData?.lockPrice) {
-      return roundData?.closePrice > roundData.lockPrice ? "up" : "down"
-    }
+  //   // For live rounds, compare with current round's lock price
+  //   if (variant === "live" && roundData?.closePrice && roundData?.lockPrice) {
+  //     return roundData?.closePrice > roundData.lockPrice ? "up" : "down"
+  //   }
 
-    return null
-  }
+  //   return null
+  // }
 
-  const priceMovement = getPriceMovement()
+  // const priceMovement = getPriceMovement()
 
   // Determine if this round can be bet on - with reduced API calls
-  useEffect(() => {
-    const checkBetEligibility = async () => {
-      if (isRoundBettable && roundId) {
-        setCanBet(isRoundBettable(roundId))
-      } else if (roundId) {
-        // Only check if we haven't determined bettability yet
-        if (canBet === false) {
-          try {
-            const roundData = await fetchRoundDetails(roundId)
+  // useEffect(() => {
+  //   const checkBetEligibility = async () => {
+  //     if (isRoundBettable && roundId) {
+  //       setCanBet(isRoundBettable(roundId))
+  //     } else if (roundId) {
+  //       // Only check if we haven't determined bettability yet
+  //       if (canBet === false) {
+  //         try {
+  //           const roundData = await fetchRoundDetails(roundId)
 
-            if (!roundData) {
-              setCanBet(false)
-              return
-            }
+  //           if (!roundData) {
+  //             setCanBet(false)
+  //             return
+  //           }
 
-            const isNextRound = roundId === (currentRoundId || 0) + 1
-            const hasEnoughTimeLeft =
-              initialRoundData?.timeRemaining && initialRoundData.timeRemaining > bufferTimeInSeconds
+  //           const isNextRound = roundId === (currentRoundId || 0) + 1
+  //           const hasEnoughTimeLeft =
+  //             initialRoundData?.timeRemaining && initialRoundData.timeRemaining > bufferTimeInSeconds
 
-            const isActive = roundData?.isActive === true
+  //           const isActive = roundData?.isActive === true
 
-            setCanBet(isNextRound && hasEnoughTimeLeft && isActive)
-          } catch (error) {
-            console.error("Failed to check round status:", error)
-            setCanBet(false)
-          }
-        }
-      } else {
-        setCanBet(false)
-      }
-    }
+  //           setCanBet(isNextRound && hasEnoughTimeLeft && isActive)
+  //         } catch (error) {
+  //           console.error("Failed to check round status:", error)
+  //           setCanBet(false)
+  //         }
+  //       }
+  //     } else {
+  //       setCanBet(false)
+  //     }
+  //   }
 
-    checkBetEligibility()
-  }, [roundId, currentRoundId, initialRoundData?.timeRemaining, bufferTimeInSeconds, isRoundBettable, canBet])
+  //   checkBetEligibility()
+  // }, [roundId, currentRoundId, initialRoundData?.timeRemaining, bufferTimeInSeconds, isRoundBettable, canBet])
 
   // Handle wallet balance
   useEffect(() => {
