@@ -15,9 +15,9 @@ import { Connection, clusterApiUrl, PublicKey } from "@solana/web3.js";
 import { MobileLiveBets } from "./MobileBets";
 import { BetsHistory } from "./BetsHistory";
 import LiveBets from "./LiveBets";
-import {useRoundManager } from "@/lib/round-manager";
-import { useCountdownTimer } from "@/hooks/useCountdownTimer";
-import ConnectionStatus from "./connection-status";
+import {useRoundManager } from "@/hooks/roundManager";
+// import { useCountdownTimer } from "@/hooks/useCountdownTimer";
+// import ConnectionStatus from "./connection-status";
 
 // Contract address
 const PREDICTION_CONTRACT = "CXpSQ4p9H5HvLnfBptGzqmSYu2rbyrDpwJkP9gGMutoT";
@@ -25,22 +25,27 @@ const PREDICTION_CONTRACT = "CXpSQ4p9H5HvLnfBptGzqmSYu2rbyrDpwJkP9gGMutoT";
 export default function PredictionCards() {
   const [screenWidth, setScreenWidth] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const swiperRef = useRef(null);
   const { publicKey, connected, signTransaction,sendTransaction } = useWallet();
   const connectionRef = useRef(null);
 
-  const {formattedTime} = useCountdownTimer();
+  const {
+    config,
+    currentRound,
+    previousRounds,
+    totalPreviousRounds,
+    isLoading,
+    isPaused,
+    getRoundOutcome,
+  } = useRoundManager(limit, offset);
 
-
-
-  
-  
+  //const {formattedTime} = useCountdownTimer();
   
   // Initialize connection
   useEffect(() => {
     // Initialize Solana connection
     const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
-    connectionRef.current = connection;
     
     const updateScreenWidth = () => {
       setScreenWidth(window.innerWidth);
@@ -59,28 +64,28 @@ export default function PredictionCards() {
   }, []);
 
   // Use our custom round manager hook
-  const {
-    rounds,
-    currentPrice,
-    historicalPrices,
-    liveBets,
-    userBets,
-    userBalance,
-    claimableRewards,
-    isProcessingAction,
-    placeBet: handlePlaceBet,
-    claimRewards: handleClaimRewards,
-    getActiveRoundId,
-    isRoundBettable,
-  } = useRoundManager({
-    wallet: { publicKey, connected },
-    signTransaction,
-    sendTransaction,
-    connection: connectionRef.current,
-    contractAddress: PREDICTION_CONTRACT,
-  });
+  // const {
+  //   rounds,
+  //   currentPrice,
+  //   historicalPrices,
+  //   liveBets,
+  //   userBets,
+  //   userBalance,
+  //   claimableRewards,
+  //   isProcessingAction,
+  //   placeBet: handlePlaceBet,
+  //   claimRewards: handleClaimRewards,
+  //   getActiveRoundId,
+  //   isRoundBettable,
+  // } = useRoundManager({
+  //   wallet: { publicKey, connected },
+  //   signTransaction,
+  //   sendTransaction,
+  //   connection: connectionRef.current,
+  //   contractAddress: PREDICTION_CONTRACT,
+  // });
 
-  const isLoading = !formattedTime || rounds.length === 0;
+  //const isLoading = !formattedTime || rounds.length === 0;
 
   const formatCardVariant = (round) => {
     return round.variant;
@@ -93,8 +98,8 @@ export default function PredictionCards() {
     return 3;
   };
 
-  // Get the active round ID for determining which rounds can be bet on
-  const activeRoundId = getActiveRoundId();
+  // // Get the active round ID for determining which rounds can be bet on
+  // const activeRoundId = getActiveRoundId();
 
 
   
@@ -125,21 +130,21 @@ if (isLoading) {
                   SOL/USDT
                 </p>
                 <p className="text-[10px] sm:text-[12px]">
-                  ${currentPrice.toFixed(4)}
+                  ${111.1}
                 </p>
               </div>
             </div>
 
             <div className="glass py-1 sm:py-[6px] lg:py-[15px] px-3 sm:px-[24px] rounded-full w-[90px] sm:w-[104px] lg:w-[210px] relative">
               {/* Display countdown for live round */}
-              {rounds.length > 0 && (
+              {/* {rounds.length > 0 && (
                 <p className="flex items-center font-semibold text-[10px] sm:text-[12px] lg:text-[20px] gap-1 sm:gap-[7px]">
-                  <span>{formattedTime}</span>
+                  <span>Time</span>
                   <span className="text-[6px] sm:text-[8px] lg:text-[12px]">
                     Live
                   </span>
                 </p>
-              )}
+              )} */}
               <div className="hidden w-[64px] h-[64px] glass absolute rounded-full right-[24px] top-[-2px] lg:flex items-center justify-center backdrop-blur-2xl">
                 <SVG width={40} height={40} iconName="clock" />
               </div>
@@ -216,17 +221,17 @@ if (isLoading) {
               modules={[EffectCoverflow, Pagination]}
               className="w-full px-4 sm:px-0"
             >
-              {rounds.map((round, key) => (
+              {previousRounds.map((round, key) => (
                 <SwiperSlide
-                  key={key}
+                  key={round.number}
                   className="flex justify-center items-center"
                 >
                   <PredictionCard
                     variant={formatCardVariant(round)}
                     roundId={round.id}
                     roundData={{
-                      lockPrice: round.lockPrice,
-                      currentPrice: round.currentPrice || currentPrice,
+                      lockPrice: {new Date(round.lockTime * 1000).toLocaleString()}
+                      // currentPrice: round.currentPrice || currentPrice,
                       closePrice: round.closePrice,
                       prizePool: round.prizePool,
                       timeRemaining: round.timeRemaining,
@@ -246,9 +251,9 @@ if (isLoading) {
             <div className="swiper-pagination !relative !mt-4" />
           </div>
 
-          <ConnectionStatus/>
+          {/* <ConnectionStatus/> */}
 
-          {/* Line Chart Component */}
+          {/* Line Chart Component
           <div className="mt-10">
             <LineChart
               currentPrice={currentPrice}
@@ -257,7 +262,7 @@ if (isLoading) {
                 (r) => r.status === "LIVE" || r.status === "LOCKED"
               )}
             />
-          </div>
+          </div> */}
 
           {/* Mobile-only Live Bets */}
           <div className="xl:hidden">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react"
 import { toast } from "react-hot-toast"
-import { getPriceData } from "@/lib/price-utils"
+// import { getPriceData } from "@/lib/price-utils"
 import { placeBet, claimPayout } from "@/lib/contract-utils"
 import { PublicKey } from "@solana/web3.js"
 import {
@@ -14,8 +14,8 @@ import {
   calculateRoundTimes,
 } from "./time-manager"
 import { useCountdownTimer } from "@/hooks/useCountdownTimer"
-import { useWebSocket } from "@/hooks/useWebSocket"
-import { WebSocketEventType } from "@/lib/websocket-manager"
+// import { useWebSocket } from "@/hooks/useWebSocket"
+// import { WebSocketEventType } from "@/lib/websocket-manager"
 
 // Helper to truncate wallet addresses
 const truncateAddress = (address) => {
@@ -227,27 +227,27 @@ export function useRoundManager({ wallet = {}, signTransaction, sendTransaction,
   const [isUsingWebSocket, setIsUsingWebSocket] = useState(false)
 
   // WebSocket connection
-  const {
-    state: wsState,
-    addEventListener,
-    removeEventListener,
-    sendMessage,
-  } = useWebSocket({
-    autoConnect: true,
-    onOpen: () => {
-      console.log("WebSocket connected, subscribing to updates")
-      setIsUsingWebSocket(true)
-      // Subscribe to updates
-      sendMessage("subscribe", {
-        types: ["price_update", "round_update", "round_transition", "config_update", "bet_placed"],
-        wallet: publicKey ? publicKey.toString() : null,
-      })
-    },
-    onClose: () => {
-      console.log("WebSocket disconnected, falling back to polling")
-      setIsUsingWebSocket(false)
-    },
-  })
+  // const {
+  //   state: wsState,
+  //   addEventListener,
+  //   removeEventListener,
+  //   sendMessage,
+  // } = useWebSocket({
+  //   autoConnect: true,
+  //   onOpen: () => {
+  //     console.log("WebSocket connected, subscribing to updates")
+  //     setIsUsingWebSocket(true)
+  //     // Subscribe to updates
+  //     sendMessage("subscribe", {
+  //       types: ["price_update", "round_update", "round_transition", "config_update", "bet_placed"],
+  //       wallet: publicKey ? publicKey.toString() : null,
+  //     })
+  //   },
+  //   onClose: () => {
+  //     console.log("WebSocket disconnected, falling back to polling")
+  //     setIsUsingWebSocket(false)
+  //   },
+  // })
 
   // Refs to track last fetch times to prevent excessive API calls
   const lastConfigFetchTime = useRef(0)
@@ -380,55 +380,55 @@ export function useRoundManager({ wallet = {}, signTransaction, sendTransaction,
 
 
   // Update user bets with round results
-  const updateUserBetsWithRoundResults = useCallback(
-    (completedRound) => {
-      if (!completedRound || !userBets.length) return
+  // const updateUserBetsWithRoundResults = useCallback(
+  //   (completedRound) => {
+  //     if (!completedRound || !userBets.length) return
 
-      const updatedUserBets = userBets.map((bet) => {
-        if (bet.roundId === completedRound.id && bet.status === "PENDING") {
-          // Determine if bet won
-          const isWinner =
-            (bet.direction === "up" && completedRound.closePrice > completedRound.lockPrice) ||
-            (bet.direction === "down" && completedRound.closePrice < completedRound.lockPrice)
+  //     const updatedUserBets = userBets.map((bet) => {
+  //       if (bet.roundId === completedRound.id && bet.status === "PENDING") {
+  //         // Determine if bet won
+  //         const isWinner =
+  //           (bet.direction === "up" && completedRound.closePrice > completedRound.lockPrice) ||
+  //           (bet.direction === "down" && completedRound.closePrice < completedRound.lockPrice)
 
-          // Calculate payout - winners get 2.51x their bet, losers get 0
-          const payout = isWinner ? bet.amount * 2.51 : 0
+  //         // Calculate payout - winners get 2.51x their bet, losers get 0
+  //         const payout = isWinner ? bet.amount * 2.51 : 0
 
-          // Check if this round is already claimed
-          const isClaimed = claimedRounds.includes(completedRound.id)
+  //         // Check if this round is already claimed
+  //         const isClaimed = claimedRounds.includes(completedRound.id)
 
-          return {
-            ...bet,
-            status: isWinner ? "WON" : "LOST",
-            payout,
-            claimed: isClaimed,
-            lockPrice: completedRound.lockPrice,
-            closePrice: completedRound.closePrice,
-            endTime: completedRound.endTime,
-          }
-        }
-        return bet
-      })
+  //         return {
+  //           ...bet,
+  //           status: isWinner ? "WON" : "LOST",
+  //           payout,
+  //           claimed: isClaimed,
+  //           lockPrice: completedRound.lockPrice,
+  //           closePrice: completedRound.closePrice,
+  //           endTime: completedRound.endTime,
+  //         }
+  //       }
+  //       return bet
+  //     })
 
-      // Only update state if there were changes
-      if (JSON.stringify(updatedUserBets) !== JSON.stringify(userBets)) {
-        setUserBets(updatedUserBets)
-        saveUserBets(updatedUserBets)
+  //     // Only update state if there were changes
+  //     if (JSON.stringify(updatedUserBets) !== JSON.stringify(userBets)) {
+  //       setUserBets(updatedUserBets)
+  //       saveUserBets(updatedUserBets)
 
-        // Recalculate claimable rewards immediately
-        const newClaimable = updatedUserBets
-          .filter((bet) => bet.status === "WON" && !bet.claimed)
-          .reduce((total, bet) => total + bet.payout, 0)
+  //       // Recalculate claimable rewards immediately
+  //       const newClaimable = updatedUserBets
+  //         .filter((bet) => bet.status === "WON" && !bet.claimed)
+  //         .reduce((total, bet) => total + bet.payout, 0)
 
-        setClaimableRewards(newClaimable)
+  //       setClaimableRewards(newClaimable)
 
-        if (newClaimable > 0) {
-          toast.success(`You won ${newClaimable.toFixed(4)} SOL! Claim your rewards.`)
-        }
-      }
-    },
-    [userBets, claimedRounds, saveUserBets],
-  )
+  //       if (newClaimable > 0) {
+  //         toast.success(`You won ${newClaimable.toFixed(4)} SOL! Claim your rewards.`)
+  //       }
+  //     }
+  //   },
+  //   [userBets, claimedRounds, saveUserBets],
+  // )
 
    // Update a round in historical data
   const updateHistoricalRound = useCallback(
@@ -599,7 +599,7 @@ export function useRoundManager({ wallet = {}, signTransaction, sendTransaction,
       removeEventListener(WebSocketEventType.CONFIG_UPDATE, handleConfigUpdate)
       removeEventListener(WebSocketEventType.BET_PLACED, handleBetPlaced)
     }
-  }, [addEventListener, removeEventListener, updateHistoricalRound, updateUserBetsWithRoundResults])
+  }, [  updateHistoricalRound,])
 
   // Initialize with price data and configuration
   useEffect(() => {
@@ -1196,7 +1196,6 @@ export function useRoundManager({ wallet = {}, signTransaction, sendTransaction,
 
   return {
     rounds,
-    currentPrice,
     historicalPrices,
     liveBets,
     userBets,
