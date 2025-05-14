@@ -55,6 +55,10 @@ export const useRound = (roundNumber?: number) => {
         queryKey: ["round", roundNumber],
         queryFn: () => fetchRound(roundNumber!),
         enabled: !!roundNumber && !isNaN(roundNumber),
+        // retry: (failureCount, error) => {
+        //     if (error.status === 404) return false; // Don't retry on 404
+        //     return failureCount < 3;
+        // },
         staleTime: 30 * 1000,
         refetchInterval: (data) => {
             if (!data) return false;
@@ -117,7 +121,7 @@ export const usePreviousRounds = (
         queryFn: () => fetchPreviousRounds(currentRound!, limit, offset),
         enabled: !!currentRound && currentRound > 1 && !isNaN(currentRound),
         staleTime: 2 * 60 * 1000, // Cache for 5 minute
-        
+
     });
 };
 

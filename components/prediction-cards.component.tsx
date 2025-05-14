@@ -19,6 +19,7 @@ import idl from "@/lib/idl.json";
 import { useRoundManager } from "@/hooks/roundManager";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Round, UserBet } from "@/types/round";
+import { useRound } from "@/hooks/useConfig";
 
 
 const queryClient = new QueryClient();
@@ -48,6 +49,11 @@ export default function PredictionCards() {
     timeLeft,
     isLocked,
   } = useRoundManager(5, 0);
+
+  // Fetch next round
+  const nextRoundNumber = currentRound ? Number(currentRound.number) + 1 : undefined;
+  const { data: nextRound, isLoading: isNextRoundLoading } = useRound(nextRoundNumber);
+
 
   useEffect(() => {
     connectionRef.current = new Connection(clusterApiUrl("devnet"), "confirmed");
@@ -170,15 +176,12 @@ export default function PredictionCards() {
     return 3;
   };
 
-  const formatCardVariant = (round: Round, currentRoundNumber: number): "live" | "expired" | "next" | "later" | "locked" => {
+  const formatCardVariant = (round: Round, currentRoundNumber: number): "next" | "expired" | "later" | "locked" => {
     const roundNumber = Number(round.number);
     if (roundNumber === currentRoundNumber) {
-      return timeLeft !== null && timeLeft > 0 && !isLocked ? "live" : "locked";
+      return round.isActive && timeLeft !== null && timeLeft > 0 && !isLocked ? "next" : "locked";
     }
     if (roundNumber === currentRoundNumber + 1) {
-      return "next";
-    }
-    if (roundNumber > currentRoundNumber + 1) {
       return "later";
     }
     return "expired";
@@ -204,19 +207,7 @@ export default function PredictionCards() {
         })
         .slice(0, 5)
       : []),
-    ...(currentRound && config?.currentRound && config?.roundDuration
-      ? [{
-        id: (currentRound.id || 0) + 1,
-        number: Number(currentRound.number) + 1,
-        startTime: new Date(
-          Number(currentRound.startTime) * 1000 + (config.roundDuration * 1000)
-        ),
-        status: "ended" as const,
-        isActive: false,
-        lockTime: currentRound.closeTime,
-        closeTime: currentRound.closeTime ? currentRound.closeTime + (config.lockDuration || 150) : undefined,
-      }]
-      : []),
+      ...(nextRound ? [nextRound] : []),
   ];
 
   // Deduplicate rounds, preserving currentRound
@@ -317,7 +308,7 @@ export default function PredictionCards() {
                     </div>
                     <button
                       className="glass bg-green-500 py-2 px-4 rounded-lg font-semibold hover:bg-green-600 transition-colors"
-                      onClick={() => handleClaimRewards(currentRound?.number || 0)}
+                      onClick={() => handleClaimRewards(Number(currentRound?.number) || 0)}
                       disabled={!claimableRewards}
                     >
                       Claim
@@ -325,6 +316,10 @@ export default function PredictionCards() {
                   </div>
                 )}
               </div>
+            )}
+
+            {isLocked && currentRound?.number !== config?.currentRound && (
+              <div className="text-center py-3 font-semibold">Waiting for new round...</div>
             )}
 
             <div className="relative">
@@ -373,12 +368,9 @@ export default function PredictionCards() {
                           upBets: (round.totalBullAmount || 0) / LAMPORTS_PER_SOL,
                           downBets: (round.totalBearAmount || 0) / LAMPORTS_PER_SOL,
                           timeRemaining: Math.max(0, closeTime - Date.now() / 1000),
-                          lockTimeRemaining: timeLeft !== null ? timeLeft : Math.max(0, lockTime - Date.now() / 1000),
-                          status: roundNumber === Number(config?.currentRound) && timeLeft !== null && timeLeft > 0 && !isLocked
-                            ? "LIVE"
-                            : roundNumber === Number(config?.currentRound) && isLocked
-                              ? "LOCKED"
-                              : "ENDED",
+                          lockTimeRemaining: timeLeft !== null && roundNumber === Number(config?.currentRound) ? timeLeft : Math.max(0, lockTime - Date.now() / 1000),
+                          lockTime: timeLeft !== null && roundNumber === Number(config?.currentRound) ? Date.now() / 1000 + timeLeft : lockTime,
+                          isActive: round.isActive 
                         }}
                         onPlaceBet={handlePlaceBet}
                         currentRoundId={Number(config?.currentRound)}
@@ -386,6 +378,7 @@ export default function PredictionCards() {
                         liveRoundPrice={liveRoundPrice}
                         userBets={userBets}
                         isLocked={isLocked}
+                        timeLeft={timeLeft}
                       />
                     </SwiperSlide>
                   );

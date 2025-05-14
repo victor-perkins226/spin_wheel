@@ -1,42 +1,37 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Button from "./button.component"
-import SVG from "./svg.component"
-import Image from "next/image"
-import { useWallet } from "@solana/wallet-adapter-react"
-import SolanaBg from "@/public/assets/solana_bg.png"
-import { LAMPORTS_PER_SOL } from "@solana/web3.js"
-import { ArrowDown, ArrowUp } from "lucide-react"
-import { useQueryClient } from "@tanstack/react-query"
-import { useConfig, usePreviousRounds, useRound } from "@/hooks/useConfig"
+import { useState, useEffect } from "react";
+import Button from "./button.component";
+import SVG from "./svg.component";
+import Image from "next/image";
+import { useWallet } from "@solana/wallet-adapter-react";
+import SolanaBg from "@/public/assets/solana_bg.png";
+import { ArrowDown, ArrowUp } from "lucide-react";
+import { UserBet } from "@/types/round";
 
 interface IProps {
-  variant?: "live" | "expired" | "next" | "later"
-  roundId?: number
+  variant?: "live" | "expired" | "next" | "later" | "locked";
+  roundId?: number;
   roundData?: {
-    lockPrice?: number
-    currentPrice?: number
-    closePrice?: number
-    endTime?: number
-    prizePool?: number
-    timeRemaining?: number
-    lockTimeRemaining?: number
-    upBets?: number
-    downBets?: number
-    upPayout?: number // Added for dynamic payout calculation
-    downPayout?: number // Added for dynamic payout calculation
-    status?: "LIVE" | "LOCKED" | "ENDED" ;
-  }
-  onPlaceBet?: (direction: "up" | "down", amount: number, roundId: number) => void
-  currentRoundId?: number
-  bufferTimeInSeconds?: number
-  isRoundBettable?: (roundId: number) => boolean
-  liveRoundPrice?: number // Added to compare with ended round price
-  userBetDirection?: "up" | "down" | null // Added to show user's bet
-  userBetStatus?: "WON" | "LOST" | "PENDING" | null // Added to show bet status
-  userBets?: any[];
+    lockPrice: number;
+    closePrice: number;
+    currentPrice: number;
+    prizePool: number;
+    upBets: number;
+    downBets: number;
+    timeRemaining: number;
+    lockTimeRemaining: number;
+    lockTime: number;
+    isActive: boolean;
+  };
+  onPlaceBet?: (direction: "up" | "down", amount: number, roundId: number) => void;
+  currentRoundId?: number;
+  bufferTimeInSeconds?: number;
+  isRoundBettable?: (roundId: number) => boolean;
+  liveRoundPrice?: number;
+  userBets?: UserBet[];
   isLocked: boolean;
+  timeLeft: number | null;
 }
 
 const CUSTOM_INPUTS = [
@@ -45,48 +40,25 @@ const CUSTOM_INPUTS = [
   { label: "50%", value: 0.5 },
   { label: "75%", value: 0.75 },
   { label: "Max", value: 1.0 },
-]
+];
 
 export default function PredictionCard({
-  variant = "expired",
-  roundId,
+  variant,
+  roundId = 0,
+  roundData,
   onPlaceBet,
   currentRoundId,
   bufferTimeInSeconds = 30,
-  isRoundBettable,
   liveRoundPrice,
   userBets,
   isLocked,
+  timeLeft,
 }: IProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [mode, setMode] = useState<"up" | "down" | "">("");
   const [amount, setAmount] = useState<number>(0.1);
   const [maxAmount, setMaxAmount] = useState<number>(10);
   const { connected, publicKey } = useWallet();
-  const queryClient = useQueryClient();
-
-  // Fetch config and round data
-  const { data: config } = useConfig();
-  const { data: roundData, isLoading } = useRound(roundId);
-  const { data: previousRoundsData } = usePreviousRounds(config?.currentRound);
-
-  // Poll for new round after lockTime
-  useEffect(() => {
-    if (!roundData || !config?.roundDuration || variant !== "live") return;
-
-    const now = Date.now() / 1000;
-    const lockTime = roundData.lockTime;
-    const timeUntilLock = (lockTime - now) * 1000;
-
-    if (timeUntilLock > 0) {
-      const timer = setTimeout(() => {
-        queryClient.invalidateQueries(["config"]);
-        queryClient.invalidateQueries(["previousRounds"]);
-      }, timeUntilLock + 1000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [roundData, config?.roundDuration, queryClient, variant]);
 
   // Wallet balance
   useEffect(() => {
@@ -102,262 +74,71 @@ export default function PredictionCard({
   // Calculate price movement and direction
   const getPriceMovement = () => {
     if (!roundData) return { difference: 0, direction: "up" as "up" | "down" };
-
     const currentPrice =
-      variant === "expired" && roundData.endPrice > 0
-        ? roundData.endPrice / 1e8
-        : liveRoundPrice || roundData.lockPrice / 1e8;
-    const lockPrice = roundData.lockPrice / 1e8;
-
+      variant === "expired" && roundData.closePrice > 0 ? roundData.closePrice : liveRoundPrice || roundData.lockPrice;
+    const lockPrice = roundData.lockPrice;
     const difference = Math.abs(currentPrice - lockPrice);
     const direction = currentPrice >= lockPrice ? "up" : "down";
-
     return { difference, direction };
   };
 
   const { difference: priceDifference, direction: priceDirection } = getPriceMovement();
 
-  // Calculate payouts
-  const calculatePayout = (direction: "up" | "down") => {
-    if (!roundData || !roundData.totalAmount || roundData.totalAmount === 0) return 2.51;
-
-    const directionAmount =
-      direction === "up" ? roundData.totalBullAmount : roundData.totalBearAmount;
-    if (!directionAmount || directionAmount === 0) return 2.51;
-
-    const fee = config?.treasuryFee ? config.treasuryFee / 10000 : 0.03; // Default 3%
-    return (roundData.totalAmount * (1 - fee)) / directionAmount / 1e9; // Convert lamports to SOL
-  };
-
-  const upPayout = calculatePayout("up");
-  const downPayout = calculatePayout("down");
-
   // Determine if round is bettable
   const canBet =
-    variant === "live" &&
-    roundData?.isActive &&  !isLocked &&
-    roundId === (currentRoundId || 0) + 1 &&
-    Date.now() / 1000 < roundData.lockTime - bufferTimeInSeconds;
+  variant === "next" &&
+  roundData?.isActive == true &&
+  !isLocked &&
+  (timeLeft !== null ? timeLeft > bufferTimeInSeconds : false);
 
-    // const canBet = variant === "live" && roundData.status === "LIVE" && !isLocked && roundData.lockTimeRemaining > bufferTimeInSeconds;
+  // Format timeLeft as MM:SS
+  const formatTimeLeft = (seconds: number | null) => {
+    if (seconds === null || seconds <= 0) return "Locked";
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`;
+  };
+
+  // // Debug canBet conditions
+  // useEffect(() => {
+  //   console.log("PredictionCard Props:", {
+  //     roundId,
+  //     variant,
+  //     isActive: roundData?.isActive,
+  //     canBet,
+  //   });
+  // }, [roundId, variant, roundData?.isActive, isLocked, timeLeft, roundData?.lockTime, roundData?.lockTimeRemaining, bufferTimeInSeconds, canBet]);
 
   // Map roundData to component's expected format
   const formattedRoundData = roundData
     ? {
-      lockPrice: roundData.lockPrice / 1e8, // Convert to USD
-      closePrice:
-        roundData.endPrice > 0 ? roundData.endPrice / 1e8 : liveRoundPrice || roundData.lockPrice / 1e8,
-      currentPrice: liveRoundPrice || roundData.lockPrice / 1e8,
-      prizePool: roundData.totalAmount / LAMPORTS_PER_SOL,
-      upBets: roundData.totalBullAmount / LAMPORTS_PER_SOL,
-      downBets: roundData.totalBearAmount / LAMPORTS_PER_SOL,
-      upPayout,
-      downPayout,
-      endTime: roundData.closeTime,
-      lockTimeRemaining: Math.max(0, roundData.lockTime - Date.now() / 1000),
-      timeRemaining: Math.max(0, roundData.closeTime - Date.now() / 1000),
-      status: roundData.isActive
-        ? Date.now() / 1000 < roundData.lockTime
-          ? "LIVE"
-          : "LOCKED"
-        : "ENDED",
-    }
+        lockPrice: roundData.lockPrice,
+        closePrice: roundData.closePrice > 0 ? roundData.closePrice : liveRoundPrice || roundData.lockPrice,
+        currentPrice: liveRoundPrice || roundData.lockPrice,
+        prizePool: roundData.prizePool,
+        upBets: roundData.upBets,
+        downBets: roundData.downBets,
+        lockTimeRemaining: timeLeft !== null ? timeLeft : Math.max(0, roundData.lockTime - Date.now() / 1000),
+        timeRemaining: Math.max(0, roundData.timeRemaining),
+        status: roundData.isActive
+          ? timeLeft !== null && timeLeft > 0
+            ? "LIVE"
+            : "LOCKED"
+          : "ENDED",
+      }
     : {
-      lockPrice: 0,
-      closePrice: liveRoundPrice || 0,
-      currentPrice: liveRoundPrice || 0,
-      prizePool: 0,
-      upBets: 0,
-      downBets: 0,
-      upPayout: 2.51,
-      downPayout: 2.51,
-      endTime: 0,
-      lockTimeRemaining: 0,
-      timeRemaining: 0,
-      status: "ENDED" as const,
-    };
+        lockPrice: 0,
+        closePrice: liveRoundPrice || 0,
+        currentPrice: liveRoundPrice || 0,
+        prizePool: 0,
+        upBets: 0,
+        downBets: 0,
+        lockTimeRemaining: 0,
+        timeRemaining: 0,
+        status: "ENDED" as const,
+      };
 
-
-
-
-
-  // useEffect(() => {
-  //   isMounted.current = true
-  //   return () => {
-  //     isMounted.current = false
-  //   }
-  // }, [])
-
-  // useEffect(() => {
-  //   if (!userBets) return
-  //   const betStatus = userBets.find((bet) => bet.roundId === roundId)
-  //   setUserBetsStatus(betStatus || null)
-  // }, [userBets, roundId])
-
-  // // Fetch round data from API with caching and throttling
-  // useEffect(() => {
-  //   // Only fetch data for live or expired rounds
-  //   if (variant !== "live" && variant !== "expired") {
-  //     return
-  //   }
-
-  //   const fetchRoundData = async () => {
-  //     // Check if we need to fetch (first time or more than interval since last fetch)
-  //     const now = Date.now()
-  //     if (now - lastFetchTime.current < FETCH_INTERVAL && roundData) {
-  //       return
-  //     }
-
-  //     setIsLoading(true)
-  //     try {
-  //       // Fetch current round data
-  //       const data = await fetchRoundDetails(roundId)
-  //       if (!data) {
-  //         throw new Error("Failed to fetch round data")
-  //       }
-
-  //       lastFetchTime.current = now
-
-  //       // Fetch previous round data for comparison (only if needed)
-  //       let prevData = prevRoundData
-  //       if (!prevRoundData) {
-  //         const prevRoundId = roundId - 1
-  //         if (prevRoundId > 0) {
-  //           prevData = await fetchRoundDetails(prevRoundId)
-  //           if (prevData && isMounted.current) {
-  //             setPrevRoundData(prevData)
-  //           }
-  //         }
-  //       }
-
-  //       if (prevData) {
-  //         // Calculate price difference between rounds
-  //         const currentEndPrice = data?.endPrice && data.endPrice > 0 ? Number(data.endPrice) : liveRoundPrice
-  //         const prevEndPrice = prevData?.endPrice && prevData.endPrice > 0 ? Number(prevData.endPrice) : liveRoundPrice
-  //         const diff = Math.abs(currentEndPrice - prevEndPrice)
-
-  //         if (isMounted.current) {
-  //           setPriceDifference(diff)
-  //           setPriceDirection(currentEndPrice >= prevEndPrice ? "up" : "down")
-  //         }
-  //       }
-
-  //       // Convert and format the data
-  //       const formattedData = {
-  //         ...roundData,
-  //         lockPrice: Number(data.lockPrice),
-  //         closePrice: data?.endPrice > 0 ? Number(data.endPrice) : liveRoundPrice,
-  //         currentPrice: liveRoundPrice || Number(data.lockPrice),
-  //         prizePool: Number(data.totalAmount) / LAMPORTS_PER_SOL,
-  //         upBets: Number(data.totalBullAmount) / LAMPORTS_PER_SOL,
-  //         downBets: Number(data.totalBearAmount) / LAMPORTS_PER_SOL,
-  //         // Calculate payouts based on bet amounts if needed
-  //         upPayout: calculatePayout("up", Number(data.totalBullAmount), Number(data.totalAmount)),
-  //         downPayout: calculatePayout("down", Number(data.totalBearAmount), Number(data.totalAmount)),
-  //       }
-
-  //       if (isMounted.current) {
-  //         setRoundData(formattedData)
-  //       }
-  //     } catch (error) {
-  //       console.error("Error fetching round data:", error)
-  //       // Keep using the initial data if API call fails
-  //     } finally {
-  //       if (isMounted.current) {
-  //         setIsLoading(false)
-  //       }
-  //     }
-  //   }
-
-  //   fetchRoundData()
-
-  //   // Set up polling for live rounds - less frequent than before
-  //   let intervalId
-  //   if (variant === "live") {
-  //     intervalId = setInterval(fetchRoundData, FETCH_INTERVAL)
-  //   }
-
-  //   return () => {
-  //     if (intervalId) clearInterval(intervalId)
-  //   }
-  // }, [variant, roundId, liveRoundPrice, prevRoundData, roundData])
-
-  // // Helper function to calculate payouts
-  // const calculatePayout = (direction, directionAmount, totalAmount) => {
-  //   if (!totalAmount || totalAmount === 0 || !directionAmount || directionAmount === 0) {
-  //     return 2.51 // Default payout
-  //   }
-
-  //   // Calculate a payout multiplier based on the bet distribution
-  //   // Formula: (TotalAmount * 0.97) / DirectionAmount
-  //   // The 0.97 accounts for a hypothetical 3% platform fee
-  //   return (totalAmount * 0.97) / directionAmount
-  // }
-
-
-  // Determine price movement direction
-  // const getPriceMovement = () => {
-  //   // For expired rounds, compare with previous round
-  //   if (variant === "expired" && prevRoundData && roundData?.closePrice) {
-  //     const prevEndPrice = Number(prevRoundData.endPrice || 0)
-  //     const currentEndPrice = roundData.closePrice
-  //     return currentEndPrice > prevEndPrice ? "up" : "down"
-  //   }
-
-  //   // For live rounds, compare with current round's lock price
-  //   if (variant === "live" && roundData?.closePrice && roundData?.lockPrice) {
-  //     return roundData?.closePrice > roundData.lockPrice ? "up" : "down"
-  //   }
-
-  //   return null
-  // }
-
-  // const priceMovement = getPriceMovement()
-
-  // Determine if this round can be bet on - with reduced API calls
-  // useEffect(() => {
-  //   const checkBetEligibility = async () => {
-  //     if (isRoundBettable && roundId) {
-  //       setCanBet(isRoundBettable(roundId))
-  //     } else if (roundId) {
-  //       // Only check if we haven't determined bettability yet
-  //       if (canBet === false) {
-  //         try {
-  //           const roundData = await fetchRoundDetails(roundId)
-
-  //           if (!roundData) {
-  //             setCanBet(false)
-  //             return
-  //           }
-
-  //           const isNextRound = roundId === (currentRoundId || 0) + 1
-  //           const hasEnoughTimeLeft =
-  //             initialRoundData?.timeRemaining && initialRoundData.timeRemaining > bufferTimeInSeconds
-
-  //           const isActive = roundData?.isActive === true
-
-  //           setCanBet(isNextRound && hasEnoughTimeLeft && isActive)
-  //         } catch (error) {
-  //           console.error("Failed to check round status:", error)
-  //           setCanBet(false)
-  //         }
-  //       }
-  //     } else {
-  //       setCanBet(false)
-  //     }
-  //   }
-
-  //   checkBetEligibility()
-  // }, [roundId, currentRoundId, initialRoundData?.timeRemaining, bufferTimeInSeconds, isRoundBettable, canBet])
-
-  // Handle wallet balance
-  useEffect(() => {
-    if (connected && publicKey) {
-      // In a real application, you would fetch the user's SOL balance here
-      // For now, we'll just set a default max amount
-      setMaxAmount(10)
-    }
-  }, [connected, publicKey])
+  const isLockPhase = roundData && Date.now() / 1000 >= roundData.lockTime && Date.now() / 1000 < roundData.closeTime;
 
   const handleEnterPrediction = (mode: "up" | "down") => {
     if (!connected) {
@@ -400,18 +181,16 @@ export default function PredictionCard({
   // Generate button style based on variant and price movement
   const getButtonStyle = (direction: "up" | "down") => {
     if (variant === "expired" || variant === "live") {
-      // For expired rounds, highlight the winning direction
       if (priceDirection === direction) {
         return direction === "up"
           ? "linear-gradient(90deg, #06C729 0%, #04801B 100%)"
-          : "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)"
+          : "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)";
       } else {
-        return "linear-gradient(228.15deg, rgba(255, 255, 255, 0.2) -64.71%, rgba(255, 255, 255, 0.05) 102.6%)"
+        return "linear-gradient(228.15deg, rgba(255, 255, 255, 0.2) -64.71%, rgba(255, 255, 255, 0.05) 102.6%)";
       }
     }
-  }
-
-  const isLockPhase = roundData && Date.now() / 1000 >= roundData.lockTime && Date.now() / 1000 < roundData.closeTime;
+    return "";
+  };
 
   const renderNextRoundContent = () => {
     if (variant !== "next") return null;
@@ -425,9 +204,13 @@ export default function PredictionCard({
             width={215}
             height={142}
           />
-          <div className="flex justify-between gap-1 font-semibold text-[16px]">
+          <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
             <p>Prize Pool</p>
             <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
+          </div>
+          <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
+            <p>Time Left</p>
+            <p>{formatTimeLeft(timeLeft)}</p>
           </div>
         </div>
         {canBet ? (
@@ -454,7 +237,6 @@ export default function PredictionCard({
     );
   };
 
-  // Render later round content (waiting for entry phase)
   const renderLaterRoundContent = () => {
     if (variant !== "later") return null;
     return (
@@ -495,8 +277,9 @@ export default function PredictionCard({
             <div className="flex justify-between">
               <p className="text-[20px]">${formattedRoundData.closePrice.toFixed(4)}</p>
               <div
-                className={`bg-white flex items-center gap-[4px] ${priceDirection === "up" ? "text-green-500" : "text-red-500"
-                  } px-[10px] py-[5px] rounded-[5px]`}
+                className={`bg-white flex items-center gap-[4px] ${
+                  priceDirection === "up" ? "text-green-500" : "text-red-500"
+                } px-[10px] py-[5px] rounded-[5px]`}
               >
                 {priceDirection === "up" ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
                 <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
@@ -516,7 +299,6 @@ export default function PredictionCard({
       </div>
     );
   };
-
 
   const renderExpiredRoundContent = () => {
     if (variant !== "expired" && variant !== "locked") return null;
@@ -556,7 +338,7 @@ export default function PredictionCard({
                   userBetStatus.status === "WON"
                     ? "text-green-500"
                     : userBetStatus.status === "LOST"
-                      ? "text-red-500"
+                    ? "text-red-500"
                     : "text-white"
                 }`}
               >
@@ -569,7 +351,6 @@ export default function PredictionCard({
     );
   };
 
-  if (isLoading) return <div>Loading...</div>;
   if (!roundData && variant !== "later") return <div>No round data available</div>;
 
   return (
@@ -582,7 +363,7 @@ export default function PredictionCard({
         <div className={`${variant === "expired" ? "opacity-80" : ""} flex justify-between font-semibold text-[20px]`}>
           <div className="flex items-center gap-[10px]">
             <SVG width={12} height={12} iconName="play-fill" />
-            <p className="capitalize">{variant ?? "Expired"}</p>
+            <p className="capitalize">{variant}</p>
           </div>
           <p>#{roundId}</p>
         </div>
@@ -600,7 +381,7 @@ export default function PredictionCard({
                   userBetStatus.status === "WON"
                     ? "text-green-500"
                     : userBetStatus.status === "LOST"
-                      ? "text-red-500"
+                    ? "text-red-500"
                     : "text-yellow-400"
                 }`}
               >
@@ -608,7 +389,7 @@ export default function PredictionCard({
               </span>
             )}
           </div>
-          <p className="text-[10px] font-[600] leading-0">{upPayout.toFixed(2)}x payout</p>
+          <p className="text-[10px] font-[600] leading-0">x payout</p>
         </Button>
         {variant === "later"
           ? renderLaterRoundContent()
@@ -633,7 +414,7 @@ export default function PredictionCard({
                   userBetStatus.status === "WON"
                     ? "text-green-500"
                     : userBetStatus.status === "LOST"
-                      ? "text-red-500"
+                    ? "text-red-500"
                     : "text-yellow-400"
                 }`}
               >
@@ -641,7 +422,7 @@ export default function PredictionCard({
               </span>
             )}
           </div>
-          <p className="text-[10px] font-[600] leading-0">{downPayout.toFixed(2)}x payout</p>
+          <p className="text-[10px] font-[600] leading-0">x payout</p>
         </Button>
       </div>
       <div className={`${isFlipped ? "flex" : "hidden"} flex-col gap-[26px]`}>

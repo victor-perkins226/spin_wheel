@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useConfig, usePreviousRounds, useRound, fetchPreviousRounds, getRoundOutcome } from "./useConfig";
 import { useQueryClient } from "@tanstack/react-query";
 import { Config, Round } from "@/types/round";
@@ -13,11 +13,12 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
   const [allPreviousRounds, setAllPreviousRounds] = useState<Round[]>([]);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [isLocked, setIsLocked] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null); // Store interval
 
 
   const { data: config, isLoading: isConfigLoading } = useConfig();
   const currentRoundNumber = config?.currentRound ? Number(config.currentRound) : undefined;
-  const { data: currentRound, isLoading: isCurrentRoundLoading } = useRound(config?.currentRound);
+  const { data: currentRound, isLoading: isCurrentRoundLoading } = useRound(currentRoundNumber);
   const { data: previousRoundsData, isLoading: isPreviousRoundsLoading } = usePreviousRounds(
     currentRoundNumber,
     initialLimit,
@@ -28,71 +29,91 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
   const previousRounds = previousRoundsData?.rounds || [];
   const totalPreviousRounds = previousRoundsData?.total || 0;
 
-  // Log currentRound for debugging
-  useEffect(() => {
-    console.log("Current Round:", currentRound ? Number(currentRound.number) : "undefined", "Time Left:", timeLeft, "Is Locked:", isLocked);
-  }, [currentRound, timeLeft, isLocked]);
-
-
   // Calculate time left for lock duration
   useEffect(() => {
-    if (!currentRound || !config?.lockDuration) {
+    if (!currentRound || !config?.lockDuration || isCurrentRoundLoading) {
       setTimeLeft(null);
       setIsLocked(false);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
       return;
     }
 
     const calculateTimeLeft = () => {
-      const now = Date.now() / 1000; // Current time in seconds
+      const now = Date.now() / 1000;
       const startTimeMs = typeof currentRound.startTime === "string" && !isNaN(Number(currentRound.startTime))
         ? Number(currentRound.startTime) * 1000
         : new Date(currentRound.startTime).getTime();
-      const lockTime = currentRound.lockTime || startTimeMs / 1000 + config.lockDuration;
+      let lockTime = currentRound.lockTime || startTimeMs / 1000 + config.lockDuration;
 
-      // Ensure lockTime is in the future
+      // Override invalid lockTime
       if (lockTime <= now) {
-        console.warn("Invalid lockTime:", lockTime, "Current Time:", now);
-        setTimeLeft(null);
-        setIsLocked(false);
-        return;
+        console.warn("Invalid lockTime:", lockTime, "Current Time:", now, "Using fallback");
+        lockTime = now + config.lockDuration; // Set lockTime to now + lockDuration
       }
       const timeRemaining = lockTime - now;
 
       if (timeRemaining <= 0) {
         setTimeLeft(0);
         setIsLocked(true);
+        // Stop calculating until new round
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
       } else {
         setTimeLeft(Math.floor(timeRemaining));
         setIsLocked(false);
       }
     };
 
-    calculateTimeLeft();
-    const interval = setInterval(calculateTimeLeft, 1000);
+    // Initialize timeLeft for new round
+    if (!isLocked && currentRound.number === currentRoundNumber) {
+      setTimeLeft(config.lockDuration);
+    }
 
-    return () => clearInterval(interval);
-  }, [currentRound, config?.lockDuration,isCurrentRoundLoading]);
+    // Only start interval if not locked
+    if (!isLocked && !intervalRef.current) {
+      calculateTimeLeft();
+      intervalRef.current = setInterval(calculateTimeLeft, 1000);
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+
+  }, [currentRound, config?.lockDuration, isCurrentRoundLoading, isLocked,currentRoundNumber]);
 
   // Detect new round and reset timer
   useEffect(() => {
-    if (!currentRoundNumber || !isLocked) return;
+    if (!currentRoundNumber) return;
 
     const checkNewRound = async () => {
-      const newConfig = await queryClient.fetchQuery({
-        queryKey: ["config"],
-        queryFn: fetchConfig,
-      });
-      if (newConfig.currentRound > currentRoundNumber) {
-        // New round detected, refetch current round
-        await queryClient.invalidateQueries({ queryKey: ["round", currentRoundNumber] });
-        setIsLocked(false);
-        setTimeLeft(null); // Will be recalculated in the above useEffect
+      try {
+        const newConfig = await queryClient.fetchQuery({
+          queryKey: ["config"],
+          queryFn: fetchConfig,
+        });
+        if (newConfig.currentRound > currentRoundNumber) {
+          console.log("New round detected:", newConfig.currentRound);
+          await queryClient.invalidateQueries({ queryKey: ["round", currentRoundNumber], refetchType: "all" });
+          await queryClient.invalidateQueries({ queryKey: ["round", newConfig.currentRound], refetchType: "all" });
+          setIsLocked(false);
+          setTimeLeft(config?.lockDuration || 300);
+        }
+      } catch (error) {
+        console.error("Failed to fetch config:", error);
       }
     };
 
     const interval = setInterval(checkNewRound, 2000); // Check every 5 seconds
     return () => clearInterval(interval);
-  }, [currentRoundNumber, isLocked, queryClient]);
+  }, [currentRoundNumber, isLocked, queryClient, config?.lockDuration]);
 
   const fetchConfig = async (): Promise<Config> => {
     const response = await axios.get("https://sol-prediction-backend.onrender.com/round/config");
