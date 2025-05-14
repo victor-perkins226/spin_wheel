@@ -11,7 +11,7 @@ export default function Home() {
       </Head>
 
       <Hero />
-      {/* <PredictionCards /> */}
+      <PredictionCards />
 
       {/* <PredictionCard /> */}
     </>

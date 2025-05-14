@@ -1,35 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
+import { Config, Round } from "@/types/round";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://sol-prediction-backend.onrender.com/round';
 
-interface Config {
-    roundDuration: number; // u64
-    currentRound: number; // u64
-    isPaused: boolean;
-    minBetAmount: number; // u64
-    treasuryFee: number; // u64
-    lockDuration: number; // u64
-    bufferSeconds: number; // u64
-    genesisStarted: boolean;
-    genesisLocked: boolean;
-    // Other fields as needed
-}
 
-interface Round {
-    number: number; // u64
-    startTime: number; // i64 (Unix timestamp)
-    lockTime: number; // i64
-    closeTime: number; // i64
-    lockPrice: number; // u64
-    endPrice: number; // u64
-    isActive: boolean;
-    totalBullAmount: number; // u64
-    totalBearAmount: number; // u64
-    totalAmount: number; // u64
-    rewardBaseCalAmount: number; // u64
-    rewardAmount: number; // u64
-}
+
 
 // New hook for fetching previous rounds
 interface PreviousRoundsResponse {
@@ -52,47 +29,99 @@ export const useConfig = () => {
 };
 
 const fetchRound = async (roundNumber: number): Promise<Round> => {
-    const response = await axios.get(`${API_URL}/${roundNumber}`);
-    return response.data;
+    const response = await axios.get(`https://sol-prediction-backend.onrender.com/round/${roundNumber}`);
+    const data = response.data;
+    return {
+        number: Number(data.number || data.roundNumber),
+        startTime: typeof data.startTime === "string" && !isNaN(Number(data.startTime))
+            ? new Date(Number(data.startTime) * 1000).toISOString()
+            : data.startTime,
+        status: data.status || (data.isActive ? "started" : data.endPrice ? "ended" : "locked"),
+        lockTime: data.lockTime || new Date(data.startTime).getTime() / 1000 + 300,
+        closeTime: data.closeTime || new Date(data.startTime).getTime() / 1000 + 450,
+        lockPrice: data.lockPrice || 50 * 1e8,
+        endPrice: data.endPrice || 0,
+        isActive: data.isActive ?? data.status === "started",
+        totalBullAmount: data.totalBullAmount || 0,
+        totalBearAmount: data.totalBearAmount || 0,
+        totalAmount: data.totalAmount || 0,
+        rewardBaseCalAmount: data.rewardBaseCalAmount || 0,
+        rewardAmount: data.rewardAmount || 0,
+    };
 };
 
-export const useRound = (roundNumber: number | undefined) => {
+export const useRound = (roundNumber?: number) => {
     return useQuery({
         queryKey: ["round", roundNumber],
         queryFn: () => fetchRound(roundNumber!),
-        enabled: !!roundNumber && roundNumber > 0, // Only fetch if valid
-        staleTime: 30 * 1000, // Cache for 30 seconds
+        enabled: !!roundNumber && !isNaN(roundNumber),
+        staleTime: 30 * 1000,
         refetchInterval: (data) => {
             if (!data) return false;
             const now = Date.now() / 1000;
-            if (now >= data.closeTime) return false; // Stop polling after close
-            if (now < data.lockTime) return 10 * 1000; // Poll every 10s during betting
-            return 30 * 1000; // Poll every 30s after lock
+            const lockTime = data.lockTime || new Date(data.startTime).getTime() / 1000 + 300;
+            return now >= lockTime ? 5 * 1000 : 10 * 1000;
         },
     });
 };
 
-const fetchPreviousRounds = async (
+export const fetchPreviousRounds = async (
     currentRound: number,
-    limit: number = 10,
+    limit: number = 5,
     offset: number = 0
 ): Promise<PreviousRoundsResponse> => {
-    const response = await axios.get("/api/rounds", {
+    const response = await axios.get("https://sol-prediction-backend.onrender.com/rounds", {
         params: { limit, offset, maxRound: currentRound - 1 },
     });
-    return response.data;
+    // Map and deduplicate by number
+    const roundMap = new Map<number, Round>();
+    response.data.forEach((r: any) => {
+        const roundNumber = Number(r.roundNumber || r.number);
+        if (!roundMap.has(roundNumber)) {
+            roundMap.set(roundNumber, {
+                id: r.id,
+                number: roundNumber,
+                startTime: r.startTime,
+                status: r.status,
+                lockTime: r.lockTime || new Date(r.startTime).getTime() / 1000 + 300,
+                closeTime: r.closeTime || new Date(r.startTime).getTime() / 1000 + 450,
+                lockPrice: r.lockPrice || 50 * 1e8,
+                endPrice: r.endPrice || 0,
+                isActive: r.status === "started",
+                totalBullAmount: r.totalBullAmount || 0,
+                totalBearAmount: r.totalBearAmount || 0,
+                totalAmount: r.totalAmount || 0,
+                rewardBaseCalAmount: r.rewardBaseCalAmount || 0,
+                rewardAmount: r.rewardAmount || 0,
+            });
+        }
+    });
+    // Sort descending and take top 5
+    const sortedRounds = Array.from(roundMap.values())
+        .sort((a, b) => Number(b.number) - Number(a.number))
+        .slice(0, limit);
+    return {
+        rounds: sortedRounds,
+        total: response.data.length,
+    };
 };
 
+
 export const usePreviousRounds = (
-    currentRound: number | undefined,
-    limit: number = 10,
+    currentRound?: number,
+    limit: number = 5,
     offset: number = 0
 ) => {
     return useQuery({
         queryKey: ["previousRounds", currentRound, limit, offset],
         queryFn: () => fetchPreviousRounds(currentRound!, limit, offset),
-        enabled: !!currentRound && currentRound > 1, // Only fetch if there are previous rounds
-        staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-        refetchInterval: false, // No polling, refetch when currentRound changes
+        enabled: !!currentRound && currentRound > 1 && !isNaN(currentRound),
+        staleTime: 2 * 60 * 1000, // Cache for 5 minute
+        
     });
+};
+
+export const getRoundOutcome = (round: Round) => {
+    if (!round.endPrice || !round.lockPrice) return "PENDING";
+    return round.endPrice > round.lockPrice ? "UP" : round.endPrice < round.lockPrice ? "DOWN" : "TIE";
 };
