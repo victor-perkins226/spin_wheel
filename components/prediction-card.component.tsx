@@ -86,10 +86,10 @@ export default function PredictionCard({
 
   // Determine if round is bettable
   const canBet =
-  variant === "next" &&
-  roundData?.isActive == true &&
-  !isLocked &&
-  (timeLeft !== null ? timeLeft > bufferTimeInSeconds : false);
+    variant === "next" &&
+    roundData?.isActive == true &&
+    !isLocked &&
+    (timeLeft !== null ? timeLeft > bufferTimeInSeconds : false);
 
   // Format timeLeft as MM:SS
   const formatTimeLeft = (seconds: number | null) => {
@@ -112,31 +112,27 @@ export default function PredictionCard({
   // Map roundData to component's expected format
   const formattedRoundData = roundData
     ? {
-        lockPrice: roundData.lockPrice,
-        closePrice: roundData.closePrice > 0 ? roundData.closePrice : liveRoundPrice || roundData.lockPrice,
-        currentPrice: liveRoundPrice || roundData.lockPrice,
-        prizePool: roundData.prizePool,
-        upBets: roundData.upBets,
-        downBets: roundData.downBets,
-        lockTimeRemaining: timeLeft !== null ? timeLeft : Math.max(0, roundData.lockTime - Date.now() / 1000),
-        timeRemaining: Math.max(0, roundData.timeRemaining),
-        status: roundData.isActive
-          ? timeLeft !== null && timeLeft > 0
-            ? "LIVE"
-            : "LOCKED"
-          : "ENDED",
-      }
+      lockPrice: roundData.lockPrice,
+      closePrice: roundData.closePrice > 0 ? roundData.closePrice : liveRoundPrice || roundData.lockPrice,
+      currentPrice: liveRoundPrice || roundData.lockPrice,
+      prizePool: roundData.prizePool,
+      upBets: roundData.upBets,
+      downBets: roundData.downBets,
+      lockTimeRemaining: timeLeft !== null ? timeLeft : Math.max(0, roundData.lockTime - Date.now() / 1000),
+      timeRemaining: Math.max(0, roundData.timeRemaining),
+      status: roundData.isActive ? "LIVE" : roundData.timeRemaining > 0 ? "LOCKED" : "ENDED",
+    }
     : {
-        lockPrice: 0,
-        closePrice: liveRoundPrice || 0,
-        currentPrice: liveRoundPrice || 0,
-        prizePool: 0,
-        upBets: 0,
-        downBets: 0,
-        lockTimeRemaining: 0,
-        timeRemaining: 0,
-        status: "ENDED" as const,
-      };
+      lockPrice: 0,
+      closePrice: liveRoundPrice || 0,
+      currentPrice: liveRoundPrice || 0,
+      prizePool: 0,
+      upBets: 0,
+      downBets: 0,
+      lockTimeRemaining: 0,
+      timeRemaining: 0,
+      status: "ENDED" as const,
+    };
 
   const isLockPhase = roundData && Date.now() / 1000 >= roundData.lockTime && Date.now() / 1000 < roundData.closeTime;
 
@@ -277,9 +273,8 @@ export default function PredictionCard({
             <div className="flex justify-between">
               <p className="text-[20px]">${formattedRoundData.closePrice.toFixed(4)}</p>
               <div
-                className={`bg-white flex items-center gap-[4px] ${
-                  priceDirection === "up" ? "text-green-500" : "text-red-500"
-                } px-[10px] py-[5px] rounded-[5px]`}
+                className={`bg-white flex items-center gap-[4px] ${priceDirection === "up" ? "text-green-500" : "text-red-500"
+                  } px-[10px] py-[5px] rounded-[5px]`}
               >
                 {priceDirection === "up" ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
                 <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
@@ -316,9 +311,8 @@ export default function PredictionCard({
             <div className="flex justify-between">
               <p className="text-[20px]">${formattedRoundData.closePrice.toFixed(4)}</p>
               <div
-                className={`bg-white flex items-center gap-[4px] ${
-                  priceDirection === "up" ? "text-green-500" : "text-red-500"
-                } px-[10px] py-[5px] rounded-[5px]`}
+                className={`bg-white flex items-center gap-[4px] ${priceDirection === "up" ? "text-green-500" : "text-red-500"
+                  } px-[10px] py-[5px] rounded-[5px]`}
               >
                 {priceDirection === "up" ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
                 <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
@@ -334,13 +328,12 @@ export default function PredictionCard({
             </div>
             {userBetStatus && (
               <div
-                className={`flex justify-center text-[16px] font-bold ${
-                  userBetStatus.status === "WON"
+                className={`flex justify-center text-[16px] font-bold ${userBetStatus.status === "WON"
                     ? "text-green-500"
                     : userBetStatus.status === "LOST"
-                    ? "text-red-500"
-                    : "text-white"
-                }`}
+                      ? "text-red-500"
+                      : "text-white"
+                  }`}
               >
                 <p>{userBetStatus.status}</p>
               </div>
@@ -355,9 +348,8 @@ export default function PredictionCard({
 
   return (
     <div
-      className={`card_container glass rounded-[20px] p-[15px] sm:p-[25px] ${
-        variant === "live" ? "min-w-[280px] sm:min-w-[320px] md:min-w-[380px]" : "min-w-[240px] sm:min-w-[273px] w-full"
-      }`}
+      className={`card_container glass rounded-[20px] p-[15px] sm:p-[25px] ${variant === "live" ? "min-w-[280px] sm:min-w-[320px] md:min-w-[380px]" : "min-w-[240px] sm:min-w-[273px] w-full"
+        }`}
     >
       <div className={`${isFlipped ? "hidden" : "flex"} flex-col justify-between gap-[10px]`}>
         <div className={`${variant === "expired" ? "opacity-80" : ""} flex justify-between font-semibold text-[20px]`}>
@@ -369,21 +361,19 @@ export default function PredictionCard({
         </div>
         <Button
           style={{ background: getButtonStyle("up") }}
-          className={`glass flex flex-col gap-4 py-[16px] ${
-            variant === "expired" || (variant === "live" && priceDirection === "up") ? "border-2 border-green-500" : ""
-          } `}
+          className={`glass flex flex-col gap-4 py-[16px] ${variant === "expired" || (variant === "live" && priceDirection === "up") ? "border-2 border-green-500" : ""
+            } `}
         >
           <div className="flex justify-center items-center gap-2">
             <p className="text-[20px] font-[600] leading-0">UP</p>
             {userBetStatus && userBetStatus.direction === "up" && (
               <span
-                className={`text-[12px] font-bold ml-2 ${
-                  userBetStatus.status === "WON"
+                className={`text-[12px] font-bold ml-2 ${userBetStatus.status === "WON"
                     ? "text-green-500"
                     : userBetStatus.status === "LOST"
-                    ? "text-red-500"
-                    : "text-yellow-400"
-                }`}
+                      ? "text-red-500"
+                      : "text-yellow-400"
+                  }`}
               >
                 {userBetStatus.status}
               </span>
@@ -394,29 +384,27 @@ export default function PredictionCard({
         {variant === "later"
           ? renderLaterRoundContent()
           : variant === "next"
-          ? renderNextRoundContent()
-          : variant === "expired"
-          ? renderExpiredRoundContent()
-          : variant === "locked"
-          ? renderExpiredRoundContent()
-          : renderLiveRoundContent()}
+            ? renderNextRoundContent()
+            : variant === "expired"
+              ? renderExpiredRoundContent()
+              : variant === "locked"
+                ? renderExpiredRoundContent()
+                : renderLiveRoundContent()}
         <Button
           style={{ background: getButtonStyle("down") }}
-          className={`glass flex flex-col gap-4 py-[16px] ${
-            variant === "expired" || (variant === "live" && priceDirection === "down") ? "border-2 border-red-500" : ""
-          }`}
+          className={`glass flex flex-col gap-4 py-[16px] ${variant === "expired" || (variant === "live" && priceDirection === "down") ? "border-2 border-red-500" : ""
+            }`}
         >
           <div className="flex justify-center items-center gap-2">
             <p className="text-[20px] font-[600] leading-0">DOWN</p>
             {userBetStatus && userBetStatus.direction === "down" && (
               <span
-                className={`text-[12px] font-bold ml-2 ${
-                  userBetStatus.status === "WON"
+                className={`text-[12px] font-bold ml-2 ${userBetStatus.status === "WON"
                     ? "text-green-500"
                     : userBetStatus.status === "LOST"
-                    ? "text-red-500"
-                    : "text-yellow-400"
-                }`}
+                      ? "text-red-500"
+                      : "text-yellow-400"
+                  }`}
               >
                 {userBetStatus.status}
               </span>

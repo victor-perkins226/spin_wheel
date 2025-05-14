@@ -20,6 +20,7 @@ import { useRoundManager } from "@/hooks/roundManager";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Round, UserBet } from "@/types/round";
 import { useRound } from "@/hooks/useConfig";
+import { isNumberObject } from "util/types";
 
 
 const queryClient = new QueryClient();
@@ -176,16 +177,35 @@ export default function PredictionCards() {
     return 3;
   };
 
-  const formatCardVariant = (round: Round, currentRoundNumber: number): "next" | "expired" | "later" | "locked" => {
+  const formatCardVariant = (round: Round, currentRoundNumber: number): "next" | "expired" | "later" | "locked" | "live" => {
     const roundNumber = Number(round.number);
     if (roundNumber === currentRoundNumber) {
       return round.isActive && timeLeft !== null && timeLeft > 0 && !isLocked ? "next" : "locked";
+    }
+    if (roundNumber === currentRoundNumber - 1) {
+      return  isLocked  ? "live" : "live";
     }
     if (roundNumber === currentRoundNumber + 1) {
       return "later";
     }
     return "expired";
   };
+
+  // const formatCardVariant = (round: Round, currentRoundNumber: number): "live" | "expired" | "next" | "later" | "locked" => {
+  //   const roundNumber = Number(round.number);
+  //   if (roundNumber === currentRoundNumber) {
+  //     return timeLeft !== null && timeLeft > 0 && !isLocked ? "live" : "locked";
+  //   }
+  //   if (roundNumber === currentRoundNumber + 1) {
+  //     return "next";
+  //   }
+  //   if (roundNumber > currentRoundNumber + 1) {
+  //     return "later";
+  //   }
+  //   return "expired";
+  // };
+
+
 
   const handleSlideChange = () => {
     if (!swiperRef.current) return;
@@ -207,7 +227,7 @@ export default function PredictionCards() {
         })
         .slice(0, 5)
       : []),
-      ...(nextRound ? [nextRound] : []),
+    ...(nextRound ? [nextRound] : []),
   ];
 
   // Deduplicate rounds, preserving currentRound
@@ -370,7 +390,7 @@ export default function PredictionCards() {
                           timeRemaining: Math.max(0, closeTime - Date.now() / 1000),
                           lockTimeRemaining: timeLeft !== null && roundNumber === Number(config?.currentRound) ? timeLeft : Math.max(0, lockTime - Date.now() / 1000),
                           lockTime: timeLeft !== null && roundNumber === Number(config?.currentRound) ? Date.now() / 1000 + timeLeft : lockTime,
-                          isActive: round.isActive 
+                          isActive: round.isActive
                         }}
                         onPlaceBet={handlePlaceBet}
                         currentRoundId={Number(config?.currentRound)}
