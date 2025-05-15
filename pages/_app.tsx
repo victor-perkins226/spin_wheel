@@ -5,6 +5,7 @@ import { Poppins } from "next/font/google";
 import Head from "next/head";
 import { WalletContextProvider } from "@/components/wallet.provider.component";
 import { Toaster } from "react-hot-toast";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 
 export const poppins = Poppins({
@@ -13,11 +14,14 @@ export const poppins = Poppins({
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
 
+// Create QueryClient instance
+const queryClient = new QueryClient();
+
 export default function App({ Component, pageProps }: AppProps) {
-  
+
   return (
     <>
-       <Toaster />
+      <Toaster />
       <Head>
         <link
           rel="apple-touch-icon"
@@ -48,12 +52,13 @@ export default function App({ Component, pageProps }: AppProps) {
         }
       `}</style>
 
-
-      <WalletContextProvider>
-        <Layout>
-          <Component {...pageProps} />
-        </Layout>
-      </WalletContextProvider>
+      <QueryClientProvider client={queryClient}>
+        <WalletContextProvider>
+          <Layout>
+            <Component {...pageProps} />
+          </Layout>
+        </WalletContextProvider>
+      </QueryClientProvider>
     </>
   );
 }

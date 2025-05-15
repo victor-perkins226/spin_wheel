@@ -25,7 +25,7 @@ export const WalletContextProvider = ({ children }) => {
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
 
   const wallets = useMemo(
-    () => [new UnsafeBurnerWalletAdapter(), new PhantomWalletAdapter()],
+    () => [ new PhantomWalletAdapter()],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [network]
   );
