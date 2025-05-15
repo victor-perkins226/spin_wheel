@@ -17,13 +17,13 @@ import { MobileLiveBets } from "./MobileBets";
 import LiveBets from "./LiveBets";
 import idl from "@/lib/idl.json";
 import { useRoundManager } from "@/hooks/roundManager";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Round, UserBet } from "@/types/round";
 import { useRound } from "@/hooks/useConfig";
-import { isNumberObject } from "util/types";
+import { useSolPredictor } from "@/hooks/useBuyClaim"
 
 
-const queryClient = new QueryClient();
+
+
 
 const PREDICTION_CONTRACT = "CXpSQ4p9H5HvLnfBptGzqmSYu2rbyrDpwJkP9gGMutoT";
 
@@ -37,6 +37,7 @@ export default function PredictionCards() {
   const [userBets, setUserBets] = useState<UserBet[]>([]);
   const [liveRoundPrice, setLiveRoundPrice] = useState(50.5);
   const [claimableRewards, setClaimableRewards] = useState(0);
+  const { handlePlaceBet } = useSolPredictor();
 
   const {
     config,
@@ -104,37 +105,26 @@ export default function PredictionCards() {
     fetchClaimableRewards();
   }, [connected, publicKey, currentRound?.number]);
 
-  const handlePlaceBet = async (direction: "up" | "down", amount: number, roundId: number) => {
+ 
+
+
+  const handleBet = async (direction: "up" | "down", amount: number, roundId: number) => {
     if (!connected || !publicKey || !signTransaction || !sendTransaction || !connectionRef.current) {
       alert("Please connect your wallet");
       return;
     }
 
     try {
-      const provider = new AnchorProvider(connectionRef.current, { publicKey, signTransaction, sendTransaction }, {});
-      const program = new Program(idl as any, new PublicKey(PREDICTION_CONTRACT), provider);
-      const config = new PublicKey("CONFIG_PUBKEY");
-      const round = new PublicKey("ROUND_PUBKEY");
-      const escrow = new PublicKey("ESCROW_PUBKEY");
-      const userBet = new PublicKey("USER_BET_PUBKEY");
-
-      await program.rpc.placeBet(new BN(amount * LAMPORTS_PER_SOL), direction === "up", new BN(roundId), {
-        accounts: {
-          config,
-          round,
-          userBet,
-          user: publicKey,
-          escrow,
-          systemProgram: PublicKey.default,
-        },
-      });
-
+      
+      await handlePlaceBet(roundId,direction === "up",amount)
       alert(`Bet placed: ${amount} SOL ${direction} on round ${roundId}`);
     } catch (error) {
       console.error("Failed to place bet:", error);
       alert("Failed to place bet");
     }
   };
+
+ 
 
   const handleClaimRewards = async (roundId: number) => {
     if (!connected || !publicKey || !signTransaction || !sendTransaction || !connectionRef.current) {
@@ -183,28 +173,13 @@ export default function PredictionCards() {
       return round.isActive && timeLeft !== null && timeLeft > 0 && !isLocked ? "next" : "locked";
     }
     if (roundNumber === currentRoundNumber - 1) {
-      return  isLocked  ? "live" : "live";
+      return isLocked ? "live" : "live";
     }
     if (roundNumber === currentRoundNumber + 1) {
       return "later";
     }
     return "expired";
   };
-
-  // const formatCardVariant = (round: Round, currentRoundNumber: number): "live" | "expired" | "next" | "later" | "locked" => {
-  //   const roundNumber = Number(round.number);
-  //   if (roundNumber === currentRoundNumber) {
-  //     return timeLeft !== null && timeLeft > 0 && !isLocked ? "live" : "locked";
-  //   }
-  //   if (roundNumber === currentRoundNumber + 1) {
-  //     return "next";
-  //   }
-  //   if (roundNumber > currentRoundNumber + 1) {
-  //     return "later";
-  //   }
-  //   return "expired";
-  // };
-
 
 
   const handleSlideChange = () => {
@@ -265,158 +240,158 @@ export default function PredictionCards() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <div className="container px-3 sm:px-4 md:px-6 lg:px-8 mt-5 md:mt-6 lg:mt-[70px] flex flex-col gap-4 md:gap-6 lg:gap-[40px]">
-        <div className="grid grid-cols-12 gap-4 lg:gap-6 xl:gap-[40px]">
-          <div className="flex flex-col gap-6 md:gap-8 lg:gap-[40px] col-span-12 xl:col-span-9">
-            <div className="flex justify-between items-center flex-wrap gap-2 md:gap-4">
-              <div className="relative">
-                <Image
-                  className="w-[24px] sm:w-[32px] lg:w-[64px] h-auto object-contain absolute left-0 top-0 z-10"
-                  src="/assets/solana_logo.png"
-                  alt="Solana"
-                  width={64}
-                  height={64}
-                />
-                <div className="glass flex gap-2 sm:gap-[9px] lg:gap-[26px] relative top-0 left-[8px] sm:left-[10px] lg:left:[20px] items-center font-semibold px-3 sm:px-[20px] lg:px-[44px] py-1 sm:py-[6px] lg:py-[15px] rounded-full">
-                  <p className="text-[10px] sm:text-[12px] lg:text-[20px]">SOL/USDT</p>
-                  <p className="text-[10px] sm:text-[12px]">${liveRoundPrice.toFixed(2)}</p>
-                </div>
-              </div>
-              <div className="glass py-1 sm:py-[6px] lg:py-[15px] px-3 sm:px-[24px] rounded-full w-[90px] sm:w-[104px] lg:w-[210px] relative">
-                <p className="flex items-center font-semibold text-[10px] sm:text-[12px] lg:text-[20px] gap-1 sm:gap-[7px]">
-                  <span>Time</span>
-                  <span className="text-[6px] sm:text-[8px] lg:text-[12px]">
-                    {formatTimeLeft(timeLeft)}
-                  </span>
-                </p>
-                <div className="hidden w-[64px] h-[64px] glass absolute rounded-full right-[24px] top-[-2px] lg:flex items-center justify-center backdrop-blur-2xl">
-                  <SVG width={40} height={40} iconName="clock" />
-                </div>
-              </div>
-            </div>
 
-            {connected && (
-              <div className="glass rounded-xl p-4 flex justify-between items-center flex-wrap gap-4">
-                <div>
-                  <p className="text-sm opacity-70">Your Balance</p>
-                  <div className="flex items-center gap-1 font-semibold">
-                    <Image
-                      className="w-[20px] h-auto object-contain"
-                      src="/assets/solana_logo.png"
-                      alt="Solana"
-                      width={20}
-                      height={20}
-                    />
-                    <span>{userBalance.toFixed(4)} SOL</span>
-                  </div>
-                </div>
-                {claimableRewards > 0 && (
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <p className="text-sm opacity-70">Unclaimed Rewards</p>
-                      <div className="flex items-center gap-1 font-semibold text-green-500">
-                        <Image
-                          className="w-[20px] h-auto object-contain"
-                          src="/assets/solana_logo.png"
-                          alt="Solana"
-                          width={20}
-                          height={20}
-                        />
-                        <span>{claimableRewards.toFixed(4)} SOL</span>
-                      </div>
-                    </div>
-                    <button
-                      className="glass bg-green-500 py-2 px-4 rounded-lg font-semibold hover:bg-green-600 transition-colors"
-                      onClick={() => handleClaimRewards(Number(currentRound?.number) || 0)}
-                      disabled={!claimableRewards}
-                    >
-                      Claim
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {isLocked && currentRound?.number !== config?.currentRound && (
-              <div className="text-center py-3 font-semibold">Waiting for new round...</div>
-            )}
-
+    <div className="container px-3 sm:px-4 md:px-6 lg:px-8 mt-5 md:mt-6 lg:mt-[70px] flex flex-col gap-4 md:gap-6 lg:gap-[40px]">
+      <div className="grid grid-cols-12 gap-4 lg:gap-6 xl:gap-[40px]">
+        <div className="flex flex-col gap-6 md:gap-8 lg:gap-[40px] col-span-12 xl:col-span-9">
+          <div className="flex justify-between items-center flex-wrap gap-2 md:gap-4">
             <div className="relative">
-              <Swiper
-                onSwiper={(swiper) => {
-                  swiperRef.current = swiper;
-                }}
-                onSlideChange={handleSlideChange}
-                effect="coverflow"
-                grabCursor={true}
-                centeredSlides={true}
-                slidesPerView={getSlidesPerView()}
-                spaceBetween={mounted && screenWidth < 640 ? 10 : 20}
-                coverflowEffect={{
-                  rotate: mounted && screenWidth < 640 ? 20 : 50,
-                  stretch: 0,
-                  depth: mounted && screenWidth < 640 ? 50 : 100,
-                  modifier: 1,
-                  slideShadows: true,
-                }}
-                pagination={{
-                  clickable: true,
-                  dynamicBullets: mounted && screenWidth < 640,
-                  el: ".swiper-pagination",
-                }}
-                modules={[EffectCoverflow, Pagination]}
-                className="w-full px-4 sm:px-0"
-              >
-                {uniqueRounds.map((round) => {
-                  const roundNumber = Number(round.number);
-                  const startTimeMs = typeof round.startTime === "string" && !isNaN(Number(round.startTime))
-                    ? Number(round.startTime) * 1000
-                    : new Date(round.startTime).getTime();
-                  const lockTime = round.lockTime || startTimeMs / 1000 + 300;
-                  const closeTime = round.closeTime || lockTime + 150;
-                  return (
-                    <SwiperSlide key={Number(round.number)} className="flex justify-center items-center">
-                      <PredictionCard
-                        variant={formatCardVariant(round, Number(config?.currentRound) || 0)}
-                        roundId={Number(round.number)}
-                        roundData={{
-                          lockPrice: (round.lockPrice || 50 * 1e8) / 1e8,
-                          closePrice: round.endPrice ? round.endPrice / 1e8 : liveRoundPrice,
-                          currentPrice: liveRoundPrice || (round.lockPrice || 50 * 1e8) / 1e8,
-                          prizePool: (round.totalAmount || 0) / LAMPORTS_PER_SOL,
-                          upBets: (round.totalBullAmount || 0) / LAMPORTS_PER_SOL,
-                          downBets: (round.totalBearAmount || 0) / LAMPORTS_PER_SOL,
-                          timeRemaining: Math.max(0, closeTime - Date.now() / 1000),
-                          lockTimeRemaining: timeLeft !== null && roundNumber === Number(config?.currentRound) ? timeLeft : Math.max(0, lockTime - Date.now() / 1000),
-                          lockTime: timeLeft !== null && roundNumber === Number(config?.currentRound) ? Date.now() / 1000 + timeLeft : lockTime,
-                          isActive: round.isActive
-                        }}
-                        onPlaceBet={handlePlaceBet}
-                        currentRoundId={Number(config?.currentRound)}
-                        bufferTimeInSeconds={config?.bufferSeconds || 30}
-                        liveRoundPrice={liveRoundPrice}
-                        userBets={userBets}
-                        isLocked={isLocked}
-                        timeLeft={timeLeft}
-                      />
-                    </SwiperSlide>
-                  );
-                })}
-              </Swiper>
-              <div className="swiper-pagination !relative !mt-4" />
+              <Image
+                className="w-[24px] sm:w-[32px] lg:w-[64px] h-auto object-contain absolute left-0 top-0 z-10"
+                src="/assets/solana_logo.png"
+                alt="Solana"
+                width={64}
+                height={64}
+              />
+              <div className="glass flex gap-2 sm:gap-[9px] lg:gap-[26px] relative top-0 left-[8px] sm:left-[10px] lg:left:[20px] items-center font-semibold px-3 sm:px-[20px] lg:px-[44px] py-1 sm:py-[6px] lg:py-[15px] rounded-full">
+                <p className="text-[10px] sm:text-[12px] lg:text-[20px]">SOL/USDT</p>
+                <p className="text-[10px] sm:text-[12px]">${liveRoundPrice.toFixed(2)}</p>
+              </div>
             </div>
-
-            <div className="xl:hidden">
-              <MobileLiveBets liveBets={[]} />
+            <div className="glass py-1 sm:py-[6px] lg:py-[15px] px-3 sm:px-[24px] rounded-full w-[90px] sm:w-[104px] lg:w-[210px] relative">
+              <p className="flex items-center font-semibold text-[10px] sm:text-[12px] lg:text-[20px] gap-1 sm:gap-[7px]">
+                <span>Time</span>
+                <span className="text-[6px] sm:text-[8px] lg:text-[12px]">
+                  {formatTimeLeft(timeLeft)}
+                </span>
+              </p>
+              <div className="hidden w-[64px] h-[64px] glass absolute rounded-full right-[24px] top-[-2px] lg:flex items-center justify-center backdrop-blur-2xl">
+                <SVG width={40} height={40} iconName="clock" />
+              </div>
             </div>
-
-            {/* {connected && userBets.length > 0 && <BetsHistory userBets={userBets} />} */}
           </div>
 
-          <LiveBets liveBets={[]} />
+          {connected && (
+            <div className="glass rounded-xl p-4 flex justify-between items-center flex-wrap gap-4">
+              <div>
+                <p className="text-sm opacity-70">Your Balance</p>
+                <div className="flex items-center gap-1 font-semibold">
+                  <Image
+                    className="w-[20px] h-auto object-contain"
+                    src="/assets/solana_logo.png"
+                    alt="Solana"
+                    width={20}
+                    height={20}
+                  />
+                  <span>{userBalance.toFixed(4)} SOL</span>
+                </div>
+              </div>
+              {claimableRewards > 0 && (
+                <div className="flex items-center gap-3">
+                  <div>
+                    <p className="text-sm opacity-70">Unclaimed Rewards</p>
+                    <div className="flex items-center gap-1 font-semibold text-green-500">
+                      <Image
+                        className="w-[20px] h-auto object-contain"
+                        src="/assets/solana_logo.png"
+                        alt="Solana"
+                        width={20}
+                        height={20}
+                      />
+                      <span>{claimableRewards.toFixed(4)} SOL</span>
+                    </div>
+                  </div>
+                  <button
+                    className="glass bg-green-500 py-2 px-4 rounded-lg font-semibold hover:bg-green-600 transition-colors"
+                    onClick={() => handleClaimRewards(Number(currentRound?.number) || 0)}
+                    disabled={!claimableRewards}
+                  >
+                    Claim
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {isLocked && currentRound?.number !== config?.currentRound && (
+            <div className="text-center py-3 font-semibold">Waiting for new round...</div>
+          )}
+
+          <div className="relative">
+            <Swiper
+              onSwiper={(swiper) => {
+                swiperRef.current = swiper;
+              }}
+              onSlideChange={handleSlideChange}
+              effect="coverflow"
+              grabCursor={true}
+              centeredSlides={true}
+              slidesPerView={getSlidesPerView()}
+              spaceBetween={mounted && screenWidth < 640 ? 10 : 20}
+              coverflowEffect={{
+                rotate: mounted && screenWidth < 640 ? 20 : 50,
+                stretch: 0,
+                depth: mounted && screenWidth < 640 ? 50 : 100,
+                modifier: 1,
+                slideShadows: true,
+              }}
+              pagination={{
+                clickable: true,
+                dynamicBullets: mounted && screenWidth < 640,
+                el: ".swiper-pagination",
+              }}
+              modules={[EffectCoverflow, Pagination]}
+              className="w-full px-4 sm:px-0"
+            >
+              {uniqueRounds.map((round) => {
+                const roundNumber = Number(round.number);
+                const startTimeMs = typeof round.startTime === "string" && !isNaN(Number(round.startTime))
+                  ? Number(round.startTime) * 1000
+                  : new Date(round.startTime).getTime();
+                const lockTime = round.lockTime || startTimeMs / 1000 + 300;
+                const closeTime = round.closeTime || lockTime + 150;
+                return (
+                  <SwiperSlide key={Number(round.number)} className="flex justify-center items-center">
+                    <PredictionCard
+                      variant={formatCardVariant(round, Number(config?.currentRound) || 0)}
+                      roundId={Number(round.number)}
+                      roundData={{
+                        lockPrice: (round.lockPrice || 50 * 1e8) / 1e8,
+                        closePrice: round.endPrice ? round.endPrice / 1e8 : liveRoundPrice,
+                        currentPrice: liveRoundPrice || (round.lockPrice || 50 * 1e8) / 1e8,
+                        prizePool: (round.totalAmount || 0) / LAMPORTS_PER_SOL,
+                        upBets: (round.totalBullAmount || 0) / LAMPORTS_PER_SOL,
+                        downBets: (round.totalBearAmount || 0) / LAMPORTS_PER_SOL,
+                        timeRemaining: Math.max(0, closeTime - Date.now() / 1000),
+                        lockTimeRemaining: timeLeft !== null && roundNumber === Number(config?.currentRound) ? timeLeft : Math.max(0, lockTime - Date.now() / 1000),
+                        lockTime: timeLeft !== null && roundNumber === Number(config?.currentRound) ? Date.now() / 1000 + timeLeft : lockTime,
+                        isActive: round.isActive
+                      }}
+                      onPlaceBet={handleBet}
+                      currentRoundId={Number(config?.currentRound)}
+                      bufferTimeInSeconds={config?.bufferSeconds || 30}
+                      liveRoundPrice={liveRoundPrice}
+                      userBets={userBets}
+                      isLocked={isLocked}
+                      timeLeft={timeLeft}
+                    />
+                  </SwiperSlide>
+                );
+              })}
+            </Swiper>
+            <div className="swiper-pagination !relative !mt-4" />
+          </div>
+
+          <div className="xl:hidden">
+            <MobileLiveBets liveBets={[]} />
+          </div>
+
+          {/* {connected && userBets.length > 0 && <BetsHistory userBets={userBets} />} */}
         </div>
+
+        <LiveBets liveBets={[]} />
       </div>
-    </QueryClientProvider>
+    </div>
+
   );
 }

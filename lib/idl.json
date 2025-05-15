@@ -1,4 +1,4 @@
- {
+{
   "version": "0.1.0",
   "name": "sol_predictor1",
   "instructions": [
@@ -444,7 +444,7 @@
   ],
   "accounts": [
     {
-      "name": "config",
+      "name": "Config",
       "type": {
         "kind": "struct",
         "fields": [
@@ -512,7 +512,7 @@
       }
     },
     {
-      "name": "adminMultisig",
+      "name": "AdminMultisig",
       "type": {
         "kind": "struct",
         "fields": [
@@ -534,7 +534,7 @@
       }
     },
     {
-      "name": "operatorMultisig",
+      "name": "OperatorMultisig",
       "type": {
         "kind": "struct",
         "fields": [
@@ -556,7 +556,7 @@
       }
     },
     {
-      "name": "escrow",
+      "name": "Escrow",
       "type": {
         "kind": "struct",
         "fields": [
@@ -576,7 +576,7 @@
       }
     },
     {
-      "name": "treasury",
+      "name": "Treasury",
       "type": {
         "kind": "struct",
         "fields": [
@@ -592,7 +592,7 @@
       }
     },
     {
-      "name": "round",
+      "name": "Round",
       "type": {
         "kind": "struct",
         "fields": [
@@ -648,7 +648,7 @@
       }
     },
     {
-      "name": "userBet",
+      "name": "UserBet",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1286,5 +1286,8 @@
       "name": "InvalidSigners",
       "msg": "Invalid signers"
     }
-  ]
+  ],
+  "metadata": {
+    "address": "CXpSQ4p9H5HvLnfBptGzqmSYu2rbyrDpwJkP9gGMutoT"
+  }
 }
