@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import Chart from "chart.js/auto";
 import { useTheme } from "next-themes";
+import { getCoinGeckoHistoricalPrice, getPythHistoricalPrice, TIME_BUTTONS } from "@/lib/chart-utils";
 
 const LineChart = () => {
   const chartRef = useRef<HTMLCanvasElement>(null);
@@ -10,12 +11,28 @@ const LineChart = () => {
   const { theme, systemTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const [activePeriod, setActivePeriod] = useState("1D");
+  const [activeIndex, setActiveIndex] = useState<number>(1);
+  const [coinGeckoData, setCoinGeckoData] = useState([])
+  const [pythData, setPythData] = useState([]);
 
   const isDarkMode =
     mounted &&
     (theme === "dark" || (theme === "system" && systemTheme === "dark"));
+
+  useEffect(() => {
+    const fetchData = async() => {
+      const coinGeckoData = await getCoinGeckoHistoricalPrice(activeIndex)
+      const pythData = await getPythHistoricalPrice(activeIndex)
+
+      console.log({coinGeckoData, pythData})
+      setCoinGeckoData(coinGeckoData || [])
+      if (pythData) {
+        setPythData([...pythData])
+      }
+    }
+
+    fetchData()
+  }, [activeIndex])
 
   useEffect(() => {
     setMounted(true);
@@ -29,72 +46,6 @@ const LineChart = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Time period data mapping
-  const timePeriodsData = {
-    "1H": {
-      labels: [
-        "9:59AM",
-        "10:14AM",
-        "10:29AM",
-        "10:44AM",
-        "10:59AM",
-        "11:14AM",
-        "11:29AM",
-        "11:44AM",
-        "11:59AM",
-      ],
-      dataPoints: [4800, 4700, 4900, 5000, 4950, 5100, 5050, 5200, 5100],
-      secondLineData: [4600, 4500, 4700, 4800, 4750, 4900, 4850, 5000, 4900],
-    },
-    "4H": {
-      labels: [
-        "8:00AM",
-        "9:00AM",
-        "10:00AM",
-        "11:00AM",
-        "12:00PM",
-        "1:00PM",
-        "2:00PM",
-        "3:00PM",
-        "4:00PM",
-      ],
-      dataPoints: [4200, 4400, 4600, 4800, 5000, 4900, 5100, 5200, 5100],
-      secondLineData: [4000, 4200, 4400, 4600, 4800, 4700, 4900, 5000, 4900],
-    },
-    "1D": {
-      labels: [
-        "10:59PM",
-        "11:59PM",
-        "12:59AM",
-        "1:59AM",
-        "2:59AM",
-        "3:59AM",
-        "4:59AM",
-        "5:59AM",
-        "6:59AM",
-        "7:59AM",
-      ],
-      dataPoints: [3500, 3700, 3900, 4100, 4000, 4500, 4300, 4800, 5000, 4900],
-      secondLineData: [
-        3100, 3200, 3500, 3700, 3600, 3900, 4000, 4200, 4500, 4300,
-      ],
-    },
-    "1M": {
-      labels: [
-        "Apr 1",
-        "Apr 7",
-        "Apr 14",
-        "Apr 21",
-        "Apr 28",
-        "May 5",
-        "May 12",
-        "May 19",
-        "May 26",
-      ],
-      dataPoints: [3000, 3500, 4200, 4100, 4500, 4300, 4900, 5300, 5100],
-      secondLineData: [2800, 3300, 4000, 3900, 4300, 4100, 4700, 5100, 4900],
-    },
-  };
 
   // Create chart with grid background
   useEffect(() => {
@@ -106,10 +57,6 @@ const LineChart = () => {
 
     const ctx = chartRef.current.getContext("2d");
     if (!ctx) return;
-
-    // Get data for current time period
-    const currentData =
-      timePeriodsData[activePeriod as keyof typeof timePeriodsData];
 
     const primaryLineColor = "#10b981"; // Green line
     const secondaryLineColor = "#ef4444"; // Red line
@@ -164,11 +111,11 @@ const LineChart = () => {
     chartInstance.current = new Chart(ctx, {
       type: "line",
       data: {
-        labels: currentData.labels,
+        labels: pythData.map((item: any) => item.timestamp),
         datasets: [
           {
             label: "Oracle",
-            data: currentData.dataPoints,
+            data: pythData.map((item: any) => item.open_price),
             borderColor: primaryLineColor,
             backgroundColor: primaryGradient,
             fill: true,
@@ -182,7 +129,7 @@ const LineChart = () => {
           },
           {
             label: "TradingView",
-            data: currentData.secondLineData,
+            data: coinGeckoData.map((item: any) => item[1]),
             borderColor: secondaryLineColor,
             backgroundColor: secondaryGradient,
             fill: true,
@@ -258,8 +205,8 @@ const LineChart = () => {
             },
           },
           y: {
-            min: 2000,
-            max: 6500,
+            min: 0,
+            max: 300,
             ticks: {
               stepSize: isMobile ? 1000 : 500,
               color: textColor,
@@ -296,13 +243,11 @@ const LineChart = () => {
           mode: "index",
           intersect: false,
         },
-        onHover: (event, elements) => {
-          if (elements && elements.length) {
-            setActiveIndex(elements[0].index);
-          } else {
-            setActiveIndex(null);
-          }
-        },
+        // onHover: (event, elements) => {
+        //   if (elements && elements.length) {
+        //     setActiveIndex(elements[0].index);
+        //   }
+        // },
         animation: {
           duration: 1500,
           easing: "easeOutQuart",
@@ -316,14 +261,8 @@ const LineChart = () => {
         chartInstance.current.destroy();
       }
     };
-  }, [isDarkMode, mounted, isMobile, activeIndex, activePeriod]);
+  }, [isDarkMode, mounted, pythData]);
 
-  const timeButtons = [
-    { id: "1H", label: "1H" },
-    { id: "4H", label: "4H" },
-    { id: "1D", label: "1D" },
-    { id: "1M", label: "1M" },
-  ];
 
   if (!mounted) {
     return (
@@ -339,21 +278,21 @@ const LineChart = () => {
           <h3 className="font-medium">Market Overview</h3>
           <div className="flex items-center gap-1">
             <div className="w-[20px] h-[20px] bg-blue-500 rounded-full"></div>
-            <p className="text-[14px]">SOL/USDT</p>
+            <p className="text-[14px]">SOL/USD</p>
           </div>
         </div>
 
         {/* Time period selector buttons */}
         <div className="border border-gray-400 flex gap-2 bg-gray-800 bg-opacity-70 rounded-full p-1">
-          {timeButtons.map((btn) => (
+          {TIME_BUTTONS.map((btn, index) => (
             <button
               key={btn.id}
               className={`px-3 py-1 text-xs rounded-full cursor-pointer transition-all ${
-                activePeriod === btn.id
+                activeIndex == index
                   ? "bg-gray-700 text-white"
                   : "text-gray-300 hover:text-white"
               }`}
-              onClick={() => setActivePeriod(btn.id)}
+              onClick={() => setActiveIndex(index)}
             >
               {btn.label}
             </button>
