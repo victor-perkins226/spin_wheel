@@ -411,16 +411,21 @@ export default function PredictionCards() {
             </Swiper>
             <div className="swiper-pagination !relative !mt-4" />
           </div>
-
+              
           <div className="xl:hidden">
             <MobileLiveBets liveBets={[]} />
+          </div>
+          
+           {/* Line Chart Component */}
+          <div className="mt-10">
+            <LineChart/>
           </div>
 
           {connected && userBets.length > 0 && <BetsHistory userBets={userBets} />}
         </div>
 
         <LiveBets liveBets={[]} />
-        <LineChart />
+        {/* <LineChart /> */}
       </div>
     </div>
 
