@@ -355,7 +355,7 @@ export default function PredictionCards() {
                 dynamicBullets: mounted && screenWidth < 640,
                 el: ".swiper-pagination",
               }}
-              modules={[Pagination,]}
+              modules={[Pagination, EffectCoverflow]}
               className="w-full px-4 sm:px-0"
             >
               {uniqueRounds.map((round) => {
