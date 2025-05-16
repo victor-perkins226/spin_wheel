@@ -2,10 +2,10 @@
 export interface Round {
     id?: number;
     number: number | string; // Handle string from API (e.g., "862")
-    startTime: string | number;
+    startTime: Date | number | null;
     status: "started" | "locked" | "ended";
-    lockTime?: number;
-    closeTime?: number;
+    lockTime: Date | number | undefined;
+    closeTime: Date | number | undefined;
     lockPrice?: number;
     endPrice?: number;
     isActive?: boolean;
@@ -30,8 +30,8 @@ export interface Config {
 
 export interface UserBet {
     roundId: number;
-    direction: "up" | "down";
-    status: "WON" | "LOST" | "PENDING";
+    direction: 'up' | 'down';
+    status: 'WON' | 'LOST' | 'PENDING' | 'CLAIMED';
     amount: number;
-    payout:number
-}
+    payout: number;
+  }

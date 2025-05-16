@@ -20,6 +20,7 @@ import { useRound } from "@/hooks/useConfig";
 import { useSolPredictor } from "@/hooks/useBuyClaim"
 import { BetsHistory } from "./BetsHistory";
 import LineChart from "./LineChart";
+import { fetchLivePrice } from '@/lib/price-utils';
 
 
 
@@ -35,7 +36,7 @@ export default function PredictionCards() {
   const [userBets, setUserBets] = useState<UserBet[]>([]);
   const [liveRoundPrice, setLiveRoundPrice] = useState(50.5);
   const [claimableRewards, setClaimableRewards] = useState(0);
-  const { handlePlaceBet, handleClaimPayout } = useSolPredictor();
+  const { handlePlaceBet, handleClaimPayout, claimableBets } = useSolPredictor();
 
   const {
     config,
@@ -50,7 +51,21 @@ export default function PredictionCards() {
     isLocked,
   } = useRoundManager(5, 0);
 
-  // console.log(previousRounds);
+  // Calculate total claimable amount
+  const claimableAmount = claimableBets.reduce((sum, bet) => sum + bet.payout, 0);
+
+   // Fetch live price periodically
+   useEffect(() => {
+    const updateLivePrice = async () => {
+      const price = await fetchLivePrice();
+      setLiveRoundPrice(price);
+    };
+
+    updateLivePrice(); // Initial fetch
+    const interval = setInterval(updateLivePrice, 10000); // Update every 5 seconds
+
+    return () => clearInterval(interval); // Cleanup on unmount
+  }, []);
 
 
   // Fetch next round
@@ -58,11 +73,11 @@ export default function PredictionCards() {
   const { data: nextRound, isLoading: isNextRoundLoading } = useRound(nextRoundNumber);
 
   // console.log('previous rounds : ',previousRounds.length);
-  
+
 
 
   useEffect(() => {
-    connectionRef.current = new Connection("https://devnet.helius-rpc.com/?api-key=a4c93129-769a-49d8-bc1b-918f1f537075", {
+    connectionRef.current = new Connection("https://lb.drpc.org/ogrpc?network=solana-devnet&dkey=AqnRwY5nD0C_uEv_hPfBwlLj0fFzMcQR8JKdzoXPVSjK", {
       commitment: "finalized",
       wsEndpoint: undefined,
     });
@@ -103,13 +118,13 @@ export default function PredictionCards() {
       setUserBets(mockBets);
     };
 
-    const fetchClaimableRewards = async () => {
-      setClaimableRewards(0);
-    };
+    // const fetchClaimableRewards = async () => {
+    //   setClaimableRewards(0);
+    // };
 
     fetchBalance();
     fetchUserBets();
-    fetchClaimableRewards();
+    // fetchClaimableRewards();
   }, [connected, publicKey, currentRound?.number]);
 
 
@@ -186,30 +201,30 @@ export default function PredictionCards() {
     ...(currentRound && !isNaN(Number(currentRound.number)) && Number(currentRound.number) > 0 ? [currentRound] : []),
     ...(previousRounds && Array.isArray(previousRounds)
       ? previousRounds.filter(
-          (round) => !isNaN(Number(round.number)) && Number(round.number) > 0 && Number(round.number) <= currentRoundNumber - 1
-        )
+        (round) => !isNaN(Number(round.number)) && Number(round.number) > 0 && Number(round.number) <= currentRoundNumber - 1
+      )
       : []),
   ];
 
-  
+
 
 
   // console.log(rounds.length);
-  
-   // Deduplicate rounds
-   const roundMap = new Map<number, Round>();
-   rounds.forEach((round) => {
-     const roundNumber = Number(round.number);
-     if (!isNaN(roundNumber)) {
-       roundMap.set(roundNumber, round);
-     } else {
-       console.warn(`Skipping round with invalid number:`, round);
-     }
-   });
+
+  // Deduplicate rounds
+  const roundMap = new Map<number, Round>();
+  rounds.forEach((round) => {
+    const roundNumber = Number(round.number);
+    if (!isNaN(roundNumber)) {
+      roundMap.set(roundNumber, round);
+    } else {
+      console.warn(`Skipping round with invalid number:`, round);
+    }
+  });
 
 
 
-   const uniqueRounds = Array.from(roundMap.values()).sort((a, b) => Number(b.number) - Number(a.number));
+  const uniqueRounds = Array.from(roundMap.values()).sort((a, b) => Number(b.number) - Number(a.number));
   // console.log(uniqueRounds.length);
 
 
@@ -283,7 +298,7 @@ export default function PredictionCards() {
                   <span>{userBalance.toFixed(4)} SOL</span>
                 </div>
               </div>
-              {claimableRewards > 0 && (
+              {claimableAmount > 0 && (
                 <div className="flex items-center gap-3">
                   <div>
                     <p className="text-sm opacity-70">Unclaimed Rewards</p>
@@ -300,8 +315,10 @@ export default function PredictionCards() {
                   </div>
                   <button
                     className="glass bg-green-500 py-2 px-4 rounded-lg font-semibold hover:bg-green-600 transition-colors"
-                    onClick={() => handleClaimRewards(Number(currentRound?.number) || 0)}
-                    disabled={!claimableRewards}
+                    onClick={() => {
+                      claimableBets.forEach((bet: { roundNumber: number; }) => handleClaimRewards(bet.roundNumber));
+                    }}
+                    disabled={claimableAmount === 0}
                   >
                     Claim
                   </button>
@@ -343,18 +360,32 @@ export default function PredictionCards() {
             >
               {uniqueRounds.map((round) => {
                 const roundNumber = Number(round.number);
-                const startTimeMs = typeof round.startTime === "string" && !isNaN(Number(round.startTime))
-                  ? Number(round.startTime) * 1000
-                  : new Date(round.startTime).getTime();
-                const lockTime = round.lockTime || startTimeMs / 1000 + 120;
-                const closeTime = round.closeTime || lockTime + 120;
+                const startTimeMs =
+                  typeof round.startTime === 'number' && !isNaN(round.startTime)
+                    ? round.startTime * 1000
+                    : round.startTime instanceof Date
+                      ? round.startTime.getTime()
+                      : 0;
+                const lockTime =
+                  (round.lockTime) instanceof Date
+                    ? round.lockTime.getTime() / 1000
+                    : typeof round.lockTime === 'string' && !isNaN(Number(round.lockTime))
+                      ? Number(round.lockTime)
+                      : startTimeMs / 1000 + 120;
+                const closeTime =
+                  round.closeTime instanceof Date
+                    ? round.closeTime.getTime() / 1000
+                    : typeof round.closeTime === 'string' && !isNaN(Number(round.closeTime))
+                      ? Number(round.closeTime)
+                      : lockTime + 120;
+                //const claimableForRound = claimableBets.find((bet) => bet.roundNumber === roundNumber);
                 return (
                   <SwiperSlide key={Number(round.number)} className="flex justify-center items-center">
                     <PredictionCard
-                      variant={formatCardVariant(round, Number(config?.currentRound) || 0)}
+                      variant={formatCardVariant(round, currentRoundNumber)}
                       roundId={Number(round.number)}
                       roundData={{
-                        lockPrice: (round.lockPrice! ) / 1e8,
+                        lockPrice: (round.lockPrice!) / 1e8,
                         closePrice: round.endPrice ? round.endPrice / 1e8 : liveRoundPrice,
                         currentPrice: liveRoundPrice || (round.lockPrice || 50 * 1e8) / 1e8,
                         prizePool: (round.totalAmount || 0) / LAMPORTS_PER_SOL,
@@ -389,7 +420,7 @@ export default function PredictionCards() {
         </div>
 
         <LiveBets liveBets={[]} />
-        <LineChart/>
+        <LineChart />
       </div>
     </div>
 
