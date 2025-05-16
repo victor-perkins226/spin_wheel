@@ -12,7 +12,7 @@ interface SolPredictorHook {
     handleClaimPayout: (roundId: number) => Promise<void>;
 }
 
-const programId = new PublicKey("CXpSQ4p9H5HvLnfBptGzqmSYu2rbyrDpwJkP9gGMutoT")
+const programId = new PublicKey("AKui3UEpyUEhtnqsDChTL76DFncYx6rRqp6CSShnUm9r")
 
 export const useSolPredictor = (): SolPredictorHook => {
     const { publicKey } = useWallet();
@@ -113,12 +113,6 @@ export const useSolPredictor = (): SolPredictorHook => {
             alert("Please connect your wallet.");
             return;
         }
-
-        // const round = rounds.find((r: any) => parseInt(r.number) === roundId);
-        // if (!round) {
-        //     alert("Invalid round.");
-        //     return;
-        // }
 
         try {
             const roundPda = getRoundPda(roundId);

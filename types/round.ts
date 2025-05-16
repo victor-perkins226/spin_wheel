@@ -33,4 +33,5 @@ export interface UserBet {
     direction: "up" | "down";
     status: "WON" | "LOST" | "PENDING";
     amount: number;
+    payout:number
 }

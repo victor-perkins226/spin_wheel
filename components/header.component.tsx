@@ -38,8 +38,11 @@ export default function Header() {
         </nav> */}
 
         {/* {renderWalletButton()} */}
+        <div>
+          <WalletMultiButton />
+        </div>
 
-        <WalletMultiButton />
+
         {/* <WalletDisconnectButton/> */}
       </header>
 

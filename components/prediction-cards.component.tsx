@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-asserted-optional-chain */
 "use client";
 
 import { useRef, useState, useEffect } from "react";
@@ -5,39 +6,36 @@ import SVG from "./svg.component";
 import PredictionCard from "./prediction-card.component";
 import Image from "next/image";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { EffectCoverflow, Pagination } from "swiper/modules";
+import { EffectCoverflow, Pagination, } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-coverflow";
 import "swiper/css/pagination";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { Connection, clusterApiUrl, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { Program, AnchorProvider, BN } from "@project-serum/anchor";
+import { Connection, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { MobileLiveBets } from "./MobileBets";
-// import { BetsHistory } from "./BetsHistory";
 import LiveBets from "./LiveBets";
-import idl from "@/lib/idl.json";
 import { useRoundManager } from "@/hooks/roundManager";
 import { Round, UserBet } from "@/types/round";
 import { useRound } from "@/hooks/useConfig";
 import { useSolPredictor } from "@/hooks/useBuyClaim"
+import { BetsHistory } from "./BetsHistory";
+import LineChart from "./LineChart";
 
 
 
 
-
-const PREDICTION_CONTRACT = "CXpSQ4p9H5HvLnfBptGzqmSYu2rbyrDpwJkP9gGMutoT";
 
 export default function PredictionCards() {
   const [screenWidth, setScreenWidth] = useState(0);
   const [mounted, setMounted] = useState(false);
   const swiperRef = useRef<any>(null);
-  const { publicKey, connected, signTransaction, sendTransaction } = useWallet();
+  const { publicKey, connected } = useWallet();
   const connectionRef = useRef<Connection | null>(null);
   const [userBalance, setUserBalance] = useState(0);
   const [userBets, setUserBets] = useState<UserBet[]>([]);
   const [liveRoundPrice, setLiveRoundPrice] = useState(50.5);
   const [claimableRewards, setClaimableRewards] = useState(0);
-  const { handlePlaceBet } = useSolPredictor();
+  const { handlePlaceBet, handleClaimPayout } = useSolPredictor();
 
   const {
     config,
@@ -52,13 +50,22 @@ export default function PredictionCards() {
     isLocked,
   } = useRoundManager(5, 0);
 
+  // console.log(previousRounds);
+
+
   // Fetch next round
   const nextRoundNumber = currentRound ? Number(currentRound.number) + 1 : undefined;
   const { data: nextRound, isLoading: isNextRoundLoading } = useRound(nextRoundNumber);
 
+  // console.log('previous rounds : ',previousRounds.length);
+  
+
 
   useEffect(() => {
-    connectionRef.current = new Connection(clusterApiUrl("devnet"), "confirmed");
+    connectionRef.current = new Connection("https://devnet.helius-rpc.com/?api-key=a4c93129-769a-49d8-bc1b-918f1f537075", {
+      commitment: "finalized",
+      wsEndpoint: undefined,
+    });
 
     const updateScreenWidth = () => {
       setScreenWidth(window.innerWidth);
@@ -90,8 +97,8 @@ export default function PredictionCards() {
 
     const fetchUserBets = async () => {
       const mockBets: UserBet[] = [
-        { roundId: currentRound?.number! - 1, direction: "up", status: "WON", amount: 0.5 },
-        { roundId: currentRound?.number! - 2, direction: "down", status: "LOST", amount: 0.3 },
+        { roundId: 1000, direction: "up", status: "WON", amount: 0.5, payout: 0.1 },
+        { roundId: 2000, direction: "down", status: "LOST", amount: 0.3, payout: 0 },
       ];
       setUserBets(mockBets);
     };
@@ -105,18 +112,18 @@ export default function PredictionCards() {
     fetchClaimableRewards();
   }, [connected, publicKey, currentRound?.number]);
 
- 
+
 
 
   const handleBet = async (direction: "up" | "down", amount: number, roundId: number) => {
-    if (!connected || !publicKey || !signTransaction || !sendTransaction || !connectionRef.current) {
+    if (!connected || !publicKey || !connectionRef.current) {
       alert("Please connect your wallet");
       return;
     }
 
     try {
-      
-      await handlePlaceBet(roundId,direction === "up",amount)
+
+      await handlePlaceBet(roundId, direction === "up", amount)
       alert(`Bet placed: ${amount} SOL ${direction} on round ${roundId}`);
     } catch (error) {
       console.error("Failed to place bet:", error);
@@ -124,34 +131,17 @@ export default function PredictionCards() {
     }
   };
 
- 
+
 
   const handleClaimRewards = async (roundId: number) => {
-    if (!connected || !publicKey || !signTransaction || !sendTransaction || !connectionRef.current) {
+    if (!connected || !publicKey || !connectionRef.current) {
       alert("Please connect your wallet");
       return;
     }
 
     try {
-      const provider = new AnchorProvider(connectionRef.current, { publicKey, signTransaction, sendTransaction }, {});
-      const program = new Program(idl as any, new PublicKey(PREDICTION_CONTRACT), provider);
-      const config = new PublicKey("CONFIG_PUBKEY");
-      const round = new PublicKey("ROUND_PUBKEY");
-      const userBet = new PublicKey("USER_BET_PUBKEY");
-      const treasury = new PublicKey("TREASURY_PUBKEY");
-      const user = publicKey;
 
-      await program.rpc.claimPayout(new BN(roundId), {
-        accounts: {
-          config,
-          round,
-          userBet,
-          user,
-          treasury,
-          systemProgram: PublicKey.default,
-        },
-      });
-
+      await handleClaimPayout(roundId)
       alert(`Rewards claimed for round ${roundId}`);
       setClaimableRewards(0);
     } catch (error) {
@@ -190,31 +180,38 @@ export default function PredictionCards() {
     }
   };
 
-  // Construct rounds array
+  const currentRoundNumber = Number(config?.currentRound) || Number(currentRound?.number) || 1000;
+
   const rounds = [
-    ...(currentRound ? [currentRound] : []),
-    ...(Array.isArray(previousRounds)
-      ? previousRounds
-        .filter((round) => {
-          const roundNumber = Number(round.number);
-          return roundNumber <= (Number(currentRound?.number) || Number(config?.currentRound) || 0) - 1 &&
-            roundNumber > (Number(currentRound?.number) || Number(config?.currentRound) || 0) - 6;
-        })
-        .slice(0, 5)
+    ...(currentRound && !isNaN(Number(currentRound.number)) && Number(currentRound.number) > 0 ? [currentRound] : []),
+    ...(previousRounds && Array.isArray(previousRounds)
+      ? previousRounds.filter(
+          (round) => !isNaN(Number(round.number)) && Number(round.number) > 0 && Number(round.number) <= currentRoundNumber - 1
+        )
       : []),
-    ...(nextRound ? [nextRound] : []),
   ];
 
-  // Deduplicate rounds, preserving currentRound
-  const roundMap = new Map<number, Round>();
-  rounds.forEach((round) => {
-    const roundNumber = Number(round.number);
-    // Prioritize currentRound if it matches
-    if (!roundMap.has(roundNumber) || (currentRound && roundNumber === Number(currentRound.number))) {
-      roundMap.set(roundNumber, round);
-    }
-  });
-  const uniqueRounds = Array.from(roundMap.values()).sort((a, b) => Number(b.number) - Number(a.number));
+  
+
+
+  // console.log(rounds.length);
+  
+   // Deduplicate rounds
+   const roundMap = new Map<number, Round>();
+   rounds.forEach((round) => {
+     const roundNumber = Number(round.number);
+     if (!isNaN(roundNumber)) {
+       roundMap.set(roundNumber, round);
+     } else {
+       console.warn(`Skipping round with invalid number:`, round);
+     }
+   });
+
+
+
+   const uniqueRounds = Array.from(roundMap.values()).sort((a, b) => Number(b.number) - Number(a.number));
+  // console.log(uniqueRounds.length);
+
 
   // // Log rounds for debugging
   // useEffect(() => {
@@ -324,6 +321,7 @@ export default function PredictionCards() {
               }}
               onSlideChange={handleSlideChange}
               effect="coverflow"
+
               grabCursor={true}
               centeredSlides={true}
               slidesPerView={getSlidesPerView()}
@@ -340,7 +338,7 @@ export default function PredictionCards() {
                 dynamicBullets: mounted && screenWidth < 640,
                 el: ".swiper-pagination",
               }}
-              modules={[EffectCoverflow, Pagination]}
+              modules={[Pagination,]}
               className="w-full px-4 sm:px-0"
             >
               {uniqueRounds.map((round) => {
@@ -348,15 +346,15 @@ export default function PredictionCards() {
                 const startTimeMs = typeof round.startTime === "string" && !isNaN(Number(round.startTime))
                   ? Number(round.startTime) * 1000
                   : new Date(round.startTime).getTime();
-                const lockTime = round.lockTime || startTimeMs / 1000 + 300;
-                const closeTime = round.closeTime || lockTime + 150;
+                const lockTime = round.lockTime || startTimeMs / 1000 + 120;
+                const closeTime = round.closeTime || lockTime + 120;
                 return (
                   <SwiperSlide key={Number(round.number)} className="flex justify-center items-center">
                     <PredictionCard
                       variant={formatCardVariant(round, Number(config?.currentRound) || 0)}
                       roundId={Number(round.number)}
                       roundData={{
-                        lockPrice: (round.lockPrice || 50 * 1e8) / 1e8,
+                        lockPrice: (round.lockPrice! ) / 1e8,
                         closePrice: round.endPrice ? round.endPrice / 1e8 : liveRoundPrice,
                         currentPrice: liveRoundPrice || (round.lockPrice || 50 * 1e8) / 1e8,
                         prizePool: (round.totalAmount || 0) / LAMPORTS_PER_SOL,
@@ -365,11 +363,12 @@ export default function PredictionCards() {
                         timeRemaining: Math.max(0, closeTime - Date.now() / 1000),
                         lockTimeRemaining: timeLeft !== null && roundNumber === Number(config?.currentRound) ? timeLeft : Math.max(0, lockTime - Date.now() / 1000),
                         lockTime: timeLeft !== null && roundNumber === Number(config?.currentRound) ? Date.now() / 1000 + timeLeft : lockTime,
-                        isActive: round.isActive
+                        closeTime,
+                        isActive: round.isActive ? true : false
                       }}
                       onPlaceBet={handleBet}
                       currentRoundId={Number(config?.currentRound)}
-                      bufferTimeInSeconds={config?.bufferSeconds || 30}
+                      bufferTimeInSeconds={(config?.bufferSeconds! - 10) || 30}
                       liveRoundPrice={liveRoundPrice}
                       userBets={userBets}
                       isLocked={isLocked}
@@ -386,10 +385,11 @@ export default function PredictionCards() {
             <MobileLiveBets liveBets={[]} />
           </div>
 
-          {/* {connected && userBets.length > 0 && <BetsHistory userBets={userBets} />} */}
+          {connected && userBets.length > 0 && <BetsHistory userBets={userBets} />}
         </div>
 
         <LiveBets liveBets={[]} />
+        <LineChart/>
       </div>
     </div>
 

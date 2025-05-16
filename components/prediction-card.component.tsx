@@ -22,6 +22,7 @@ interface IProps {
     timeRemaining: number;
     lockTimeRemaining: number;
     lockTime: number;
+    closeTime:number;
     isActive: boolean;
   };
   onPlaceBet?: (direction: "up" | "down", amount: number, roundId: number) => void;
