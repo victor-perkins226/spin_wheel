@@ -15,8 +15,8 @@ import { Connection, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { MobileLiveBets } from "./MobileBets";
 import LiveBets from "./LiveBets";
 import { useRoundManager } from "@/hooks/roundManager";
-import { Round, UserBet } from "@/types/round";
-import { useRound } from "@/hooks/useConfig";
+import { Round } from "@/types/round";
+
 import { useSolPredictor } from "@/hooks/useBuyClaim"
 import { BetsHistory } from "./BetsHistory";
 import LineChart from "./LineChart";
@@ -54,7 +54,7 @@ export default function PredictionCards() {
 
   // Calculate total claimable amount
   const claimableAmount = claimableBets.reduce((sum, bet) => sum + bet.payout, 0);
-  // console.log(treasuryFee);
+  //  console.log(claimableAmount);
   
 
    // Fetch live price periodically
@@ -71,9 +71,9 @@ export default function PredictionCards() {
   }, []);
 
 
-  // Fetch next round
-  const nextRoundNumber = currentRound ? Number(currentRound.number) + 1 : undefined;
-  const { data: nextRound, isLoading: isNextRoundLoading } = useRound(nextRoundNumber);
+  // // Fetch next round
+  // const nextRoundNumber = currentRound ? Number(currentRound.number) + 1 : undefined;
+  // const { data: nextRound, isLoading: isNextRoundLoading } = useRound(nextRoundNumber);
 
   // console.log('previous rounds : ',previousRounds.length);
 
@@ -302,7 +302,7 @@ export default function PredictionCards() {
                         width={20}
                         height={20}
                       />
-                      <span>{claimableRewards.toFixed(4)} SOL</span>
+                      <span>{claimableAmount.toFixed(4)} SOL</span>
                     </div>
                   </div>
                   <button
