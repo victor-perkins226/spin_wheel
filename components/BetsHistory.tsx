@@ -1,6 +1,11 @@
-import React from "react";
+import React from 'react';
+import { UserBet } from '@/types/round';
 
-export function BetsHistory({ userBets }) {
+interface BetsHistoryProps {
+  userBets: UserBet[];
+}
+
+export function BetsHistory({ userBets }: BetsHistoryProps) {
   return (
     <div>
       <div className="glass p-4 rounded-xl">
@@ -22,27 +27,28 @@ export function BetsHistory({ userBets }) {
                   <td className="py-3">#{bet.roundId}</td>
                   <td
                     className={`py-3 ${
-                      bet.direction === "up" ? "text-green-500" : "text-red-500"
+                      bet.direction === 'up' ? 'text-green-500' : 'text-red-500'
                     }`}
                   >
                     {bet.direction.toUpperCase()}
                   </td>
-                  <td className="py-3">{bet.amount} SOL</td>
+                  <td className="py-3">{bet.amount.toFixed(2)} SOL</td>
                   <td className="py-3">
                     <span
                       className={`
-                            ${bet.status === "PENDING" ? "text-yellow-500" : ""}
-                            ${bet.status === "WON" ? "text-green-500" : ""}
-                            ${bet.status === "LOST" ? "text-red-500" : ""}
-                          `}
+                        ${bet.status === 'PENDING' ? 'text-yellow-500' : ''}
+                        ${bet.status === 'WON' ? 'text-green-500' : ''}
+                        ${bet.status === 'LOST' ? 'text-red-500' : ''}
+                        ${bet.status === 'CLAIMED' ? 'text-blue-500' : ''}
+                      `}
                     >
                       {bet.status}
                     </span>
                   </td>
                   <td className="py-3">
-                    {bet.status === "WON"
+                    {bet.status === 'WON' || bet.status === 'CLAIMED'
                       ? `${bet.payout.toFixed(2)} SOL`
-                      : "-"}
+                      : '-'}
                   </td>
                 </tr>
               ))}
@@ -53,4 +59,3 @@ export function BetsHistory({ userBets }) {
     </div>
   );
 }
-

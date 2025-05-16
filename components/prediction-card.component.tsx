@@ -8,6 +8,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import SolanaBg from "@/public/assets/solana_bg.png";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { UserBet } from "@/types/round";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 interface IProps {
   variant?: "live" | "expired" | "next" | "later" | "locked";
@@ -22,8 +23,9 @@ interface IProps {
     timeRemaining: number;
     lockTimeRemaining: number;
     lockTime: number;
-    closeTime:number;
+    closeTime: number;
     isActive: boolean;
+    treasuryFee: number; // Added
   };
   onPlaceBet?: (direction: "up" | "down", amount: number, roundId: number) => void;
   currentRoundId?: number;
@@ -60,6 +62,27 @@ export default function PredictionCard({
   const [amount, setAmount] = useState<number>(0.1);
   const [maxAmount, setMaxAmount] = useState<number>(10);
   const { connected, publicKey } = useWallet();
+
+  // Calculate multipliers
+  const calculateMultipliers = () => {
+    //const { prizePool, upBets, downBets, treasuryFee } = roundData;
+    const totalAmount = roundData!.prizePool * LAMPORTS_PER_SOL;
+    const totalBullAmount = roundData!.upBets * LAMPORTS_PER_SOL;
+    const totalBearAmount = roundData!.downBets * LAMPORTS_PER_SOL;
+
+    const treasuryAmt = (totalAmount * roundData!.treasuryFee) / 10000;
+    const rewardAmount = totalAmount - treasuryAmt;
+
+    const bullMultiplier = totalBullAmount > 0 ? rewardAmount / totalBullAmount : 0;
+    const bearMultiplier = totalBearAmount > 0 ? rewardAmount / totalBearAmount : 0;
+
+    return {
+      bullMultiplier: bullMultiplier.toFixed(2),
+      bearMultiplier: bearMultiplier.toFixed(2),
+    };
+  };
+
+  const { bullMultiplier, bearMultiplier } = calculateMultipliers();
 
   // Wallet balance
   useEffect(() => {
@@ -330,10 +353,10 @@ export default function PredictionCard({
             {userBetStatus && (
               <div
                 className={`flex justify-center text-[16px] font-bold ${userBetStatus.status === "WON"
-                    ? "text-green-500"
-                    : userBetStatus.status === "LOST"
-                      ? "text-red-500"
-                      : "text-white"
+                  ? "text-green-500"
+                  : userBetStatus.status === "LOST"
+                    ? "text-red-500"
+                    : "text-white"
                   }`}
               >
                 <p>{userBetStatus.status}</p>
@@ -370,17 +393,17 @@ export default function PredictionCard({
             {userBetStatus && userBetStatus.direction === "up" && (
               <span
                 className={`text-[12px] font-bold ml-2 ${userBetStatus.status === "WON"
-                    ? "text-green-500"
-                    : userBetStatus.status === "LOST"
-                      ? "text-red-500"
-                      : "text-yellow-400"
+                  ? "text-green-500"
+                  : userBetStatus.status === "LOST"
+                    ? "text-red-500"
+                    : "text-yellow-400"
                   }`}
               >
                 {userBetStatus.status}
               </span>
             )}
           </div>
-          <p className="text-[10px] font-[600] leading-0">x payout</p>
+          <p className="text-[10px] font-[600] leading-0">{bullMultiplier}x payout</p>
         </Button>
         {variant === "later"
           ? renderLaterRoundContent()
@@ -401,17 +424,17 @@ export default function PredictionCard({
             {userBetStatus && userBetStatus.direction === "down" && (
               <span
                 className={`text-[12px] font-bold ml-2 ${userBetStatus.status === "WON"
-                    ? "text-green-500"
-                    : userBetStatus.status === "LOST"
-                      ? "text-red-500"
-                      : "text-yellow-400"
+                  ? "text-green-500"
+                  : userBetStatus.status === "LOST"
+                    ? "text-red-500"
+                    : "text-yellow-400"
                   }`}
               >
                 {userBetStatus.status}
               </span>
             )}
           </div>
-          <p className="text-[10px] font-[600] leading-0">x payout</p>
+          <p className="text-[10px] font-[600] leading-0">{bearMultiplier}x payout</p>
         </Button>
       </div>
       <div className={`${isFlipped ? "flex" : "hidden"} flex-col gap-[26px]`}>

@@ -7,27 +7,30 @@ import { BN } from "@project-serum/anchor";
 // import * as idl from "@/lib/idl.json";
 import { useProgram } from "./useProgram";
 import { useCallback, useEffect, useState } from "react";
-import { UserBet } from "@/types/round";
+import { UserBet, ClaimableBet, UserBetAccount } from "@/types/round";
 
-interface ClaimableBet {
-    roundNumber: number;
-    amount: number; // User's bet amount
-    predictBull: boolean;
-    payout: number; // Calculated claimable amount
-}
+
 // Define the return type for the hook
 interface SolPredictorHook {
     handlePlaceBet: (roundId: number, isBull: boolean, amount: number) => Promise<void>;
     handleClaimPayout: (roundId: number) => Promise<void>;
     claimableBets: ClaimableBet[];
+    userBets: UserBet[];
+
 }
 
 const programId = new PublicKey("AKui3UEpyUEhtnqsDChTL76DFncYx6rRqp6CSShnUm9r")
 
 export const useSolPredictor = (): SolPredictorHook => {
-    const { publicKey,connected } = useWallet();
+    const { publicKey, connected } = useWallet();
     const { program } = useProgram();
+    // const [connection] = useState(
+    //     new Connection('https://devnet.helius-rpc.com/?api-key=a4c93129-769a-49d8-bc1b-918f1f537075', {
+    //         commitment: 'finalized',
+    //     })
+    // );
     const [claimableBets, setClaimableBets] = useState<ClaimableBet[]>([]);
+    const [userBets, setUserBets] = useState<UserBet[]>([]);
 
 
     // if (!program) return;
@@ -45,7 +48,7 @@ export const useSolPredictor = (): SolPredictorHook => {
             [Buffer.from("escrow"), new BN(roundNumber).toArrayLike(Buffer, "le", 8)],
             program!.programId
         )[0];
-        
+
     const getUserBetPda = (user: PublicKey, roundNumber: number) =>
         PublicKey.findProgramAddressSync(
             [Buffer.from("user_bet"), user.toBuffer(), new BN(roundNumber).toArrayLike(Buffer, "le", 8)],
@@ -56,19 +59,31 @@ export const useSolPredictor = (): SolPredictorHook => {
         if (!publicKey || !connected || !program) {
             console.log('Cannot fetch bets: wallet not connected or program not initialized');
             setClaimableBets([]);
+            setUserBets([]);
             return [];
-          }
+        }
 
         try {
+            console.log('Fetching user bets for:', publicKey.toBase58());
+
+            const [configPda] = PublicKey.findProgramAddressSync(
+                [Buffer.from('config')],
+                programId
+            );
+
+            const config = await program.account.config.fetch(configPda);
+            const treasuryFee = config.treasuryFee.toNumber();
             // Fetch user_bet accounts for the user
-            const userBetAccounts = await program!.account.userBet.all([
+            const userBetAccounts = await program.account.userBet.all([
                 {
                     memcmp: {
                         offset: 8, // Discriminator offset
                         bytes: publicKey.toBase58(),
                     },
                 },
-            ]);
+            ]) as unknown as { publicKey: PublicKey; account: UserBetAccount }[];
+
+            console.log('Raw User Bets:', userBetAccounts);
 
             const bets: UserBet[] = await Promise.all(
                 userBetAccounts.map(async (account) => {
@@ -77,7 +92,16 @@ export const useSolPredictor = (): SolPredictorHook => {
                     const amount = account.account.amount.toNumber() / LAMPORTS_PER_SOL;
                     const claimed = account.account.claimed;
 
+                    // Generate id using userBet PDA
+                    const [userBetPda] = PublicKey.findProgramAddressSync(
+                        [Buffer.from('user_bet'), publicKey.toBuffer(), new BN(roundNumber).toArrayLike(Buffer, 'le', 8)],
+                        programId
+                    );
+
+
+
                     let status: UserBet['status'] = 'PENDING';
+                    let payout = 0;
 
                     if (claimed) {
                         status = 'CLAIMED';
@@ -94,6 +118,9 @@ export const useSolPredictor = (): SolPredictorHook => {
                                     ? Number(round.endPrice) > Number(round.lockPrice)
                                     : Number(round.endPrice) < Number(round.lockPrice);
                                 status = isCorrect ? 'WON' : 'LOST';
+                                if (isCorrect && Number(round.rewardBaseCalAmount) > 0) {
+                                    payout = (amount * Number(round.rewardAmount)) / Number(round.rewardBaseCalAmount);
+                                }
                             }
                         } catch (error) {
                             console.error(`Failed to fetch round ${roundNumber} for status:`, error);
@@ -101,52 +128,40 @@ export const useSolPredictor = (): SolPredictorHook => {
                     }
 
                     return {
+                        id: userBetPda.toBase58(),
                         roundId: roundNumber,
                         direction: predictBull ? 'up' : 'down',
                         status,
                         amount,
-                        payout: 0, // Calculated in claimableBets
+                        payout,
                     };
                 })
             );
 
             // Calculate claimable bets
-            const claimable: ClaimableBet[] = [];
-            for (const bet of bets) {
-                if (bet.status !== 'WON') continue; // Only WON bets are claimable
+            const claimable: ClaimableBet[] = bets
+                .filter((bet) => bet.status === 'WON')
+                .map((bet) => ({
+                    roundNumber: bet.roundId,
+                    amount: bet.amount,
+                    predictBull: bet.direction === 'up',
+                    payout: bet.payout,
+                }));
 
-                try {
-                    const [roundPda] = PublicKey.findProgramAddressSync(
-                        [Buffer.from('round'), new BN(bet.roundId).toArrayLike(Buffer, 'le', 8)],
-                        programId
-                    );
-                    const round = await program!.account.round.fetch(roundPda);
-
-                    if (round.isActive || Number(round.rewardBaseCalAmount) === 0) continue;
-
-                    const payout =
-                        (bet.amount * Number(round.rewardAmount)) / Number(round.rewardBaseCalAmount);
-
-                    claimable.push({
-                        roundNumber: bet.roundId,
-                        amount: bet.amount,
-                        predictBull: bet.direction === 'up',
-                        payout,
-                    });
-                } catch (error) {
-                    console.error(`Failed to fetch round ${bet.roundId}:`, error);
-                }
-            }
-
+            setUserBets(bets);
             setClaimableBets(claimable);
+            console.log('Fetched User Bets:', bets);
             console.log('Fetched Claimable Bets:', claimable);
             return claimable;
+
+
         } catch (error) {
             console.error('Failed to fetch user bets:', error);
             setClaimableBets([]);
+            setUserBets([]);
             return [];
         }
-    }, [publicKey, program]);
+    }, [publicKey, connected, program]);
 
     const handlePlaceBet = useCallback(async (roundId: number, isBull: boolean, amount: number) => {
         if (!publicKey) {
@@ -213,12 +228,11 @@ export const useSolPredictor = (): SolPredictorHook => {
                 alert("Failed to place bet. Please try again.");
             }
         }
-    },[publicKey, getRoundPda, getEscrowPda, getUserBetPda, program, configPda, fetchUserBets]);
+    }, [publicKey, getRoundPda, getEscrowPda, getUserBetPda, program, configPda, fetchUserBets]);
 
-    const handleClaimPayout = async (roundId: number) => {
-        if (!publicKey) {
-            alert("Please connect your wallet.");
-            return;
+    const handleClaimPayout = useCallback(async (roundId: number) => {
+        if (!publicKey || !connected || !program) {
+            throw new Error('Wallet not connected or program not initialized');
         }
 
         try {
@@ -245,6 +259,10 @@ export const useSolPredictor = (): SolPredictorHook => {
             // const signature = await sendTransaction(tx, connection);
             // await connection.confirmTransaction(signature, "confirmed");
 
+            // Refresh bets after claiming
+            await fetchUserBets();
+
+
             console.log(`Payout claimed successfully: ${tx}`);
             alert("Payout claimed successfully!");
         } catch (error: any) {
@@ -267,11 +285,18 @@ export const useSolPredictor = (): SolPredictorHook => {
                 alert("Failed to claim payout. Please try again.");
             }
         }
-    };
+    }, [publicKey, connected, program, fetchUserBets]);
 
     useEffect(() => {
-        fetchUserBets();
-    }, [fetchUserBets]);
+        if (publicKey && connected && program) {
+            fetchUserBets();
+        } else {
+            console.log('Skipping fetchUserBets: wallet not connected or program not initialized');
+            setClaimableBets([]);
+            setUserBets([]);
+        }
+    }, [publicKey, connected, program, fetchUserBets]);
 
-    return { handlePlaceBet, handleClaimPayout, claimableBets };
+
+    return { handlePlaceBet, handleClaimPayout, claimableBets, userBets };
 };
