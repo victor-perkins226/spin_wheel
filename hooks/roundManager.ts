@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useConfig, usePreviousRounds, useRound, fetchPreviousRounds, getRoundOutcome } from "./useConfig";
+import { useConfig,  useRound,  getRoundOutcome,usePreviousRoundsByIds, } from "./useConfig";
 import { useQueryClient } from "@tanstack/react-query";
 import { Config, Round } from "@/types/round";
 import axios from "axios";
@@ -19,15 +19,30 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
   const { data: config, isLoading: isConfigLoading } = useConfig();
   const currentRoundNumber = config?.currentRound ? Number(config.currentRound) : undefined;
   const { data: currentRound, isLoading: isCurrentRoundLoading } = useRound(currentRoundNumber);
-  const { data: previousRoundsData, isLoading: isPreviousRoundsLoading } = usePreviousRounds(
+  const { data: previousRoundsData, isLoading: isPreviousRoundsLoading } = usePreviousRoundsByIds(
     currentRoundNumber,
     initialLimit,
     offset
   );
 
   // Merge new previous rounds with existing ones
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const previousRounds = previousRoundsData?.rounds || [];
-  const totalPreviousRounds = previousRoundsData?.total || 0;
+  const totalPreviousRounds = currentRoundNumber ? currentRoundNumber - 1 : 0; // Estimate total
+
+  useEffect(() => {
+    // Update allPreviousRounds when new previousRounds are fetched
+    if (previousRounds.length > 0) {
+      setAllPreviousRounds((prev) => {
+        const roundMap = new Map<number, Round>();
+        // Add existing rounds
+        prev.forEach((round) => roundMap.set(Number(round.number), round));
+        // Add new rounds, overwriting duplicates
+        previousRounds.forEach((round) => roundMap.set(Number(round.number), round));
+        return Array.from(roundMap.values()).sort((a, b) => Number(b.number) - Number(a.number));
+      });
+    }
+  }, [previousRounds]);
 
   // Calculate time left for lock duration
   useEffect(() => {
@@ -99,12 +114,20 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
           queryKey: ["config"],
           queryFn: fetchConfig,
         });
+        const nextRoundNumber = currentRoundNumber + 1;
         if (newConfig.currentRound > currentRoundNumber) {
           console.log("New round detected:", newConfig.currentRound);
           await queryClient.invalidateQueries({ queryKey: ["round", currentRoundNumber], refetchType: "all" });
           await queryClient.invalidateQueries({ queryKey: ["round", newConfig.currentRound], refetchType: "all" });
+          await queryClient.invalidateQueries({ queryKey: ["round", nextRoundNumber], refetchType: "all" });
+          await queryClient.invalidateQueries({ queryKey: ['previousRounds', currentRoundNumber], refetchType: 'all' });
           setIsLocked(false);
           setTimeLeft(config?.lockDuration || 300);
+          setOffset(initialOffset); // Reset offset for new round
+          setAllPreviousRounds([]); // Clear previous rounds
+        } else if (isLocked) {
+          // Try fetching next round after lock
+          await queryClient.invalidateQueries({ queryKey: ["round", nextRoundNumber], refetchType: "all" });
         }
       } catch (error) {
         console.error("Failed to fetch config:", error);
@@ -124,19 +147,9 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
   const fetchMoreRounds = async () => {
     if (!currentRoundNumber) return;
     const newOffset = offset + initialLimit;
-    const newData = await queryClient.fetchQuery({
-      queryKey: ["previousRounds", currentRoundNumber, initialLimit, newOffset],
-      queryFn: () => fetchPreviousRounds(currentRoundNumber, initialLimit, newOffset),
-    });
-    setAllPreviousRounds((prev) => {
-      const roundMap = new Map<number, Round>();
-      // Add existing rounds
-      prev.forEach((round) => roundMap.set(Number(round.number), round));
-      // Add new rounds, overwriting duplicates
-      newData.rounds.forEach((round) => roundMap.set(Number(round.number), round));
-      return Array.from(roundMap.values()).sort((a, b) => Number(b.number) - Number(a.number));
-    });
     setOffset(newOffset);
+    // The usePreviousRoundsByIds hook will automatically fetch new rounds due to the updated queryKey
+    console.log(`Fetching more rounds with offset ${newOffset}`);
   };
 
   return {

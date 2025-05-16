@@ -6,8 +6,6 @@ import { Config, Round } from "@/types/round";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://sol-prediction-backend.onrender.com/round';
 
 
-
-
 // New hook for fetching previous rounds
 interface PreviousRoundsResponse {
     rounds: Round[];
@@ -28,7 +26,7 @@ export const useConfig = () => {
     });
 };
 
-const fetchRound = async (roundNumber: number): Promise<Round> => {
+export const fetchRound = async (roundNumber: number): Promise<Round> => {
     const response = await axios.get(`https://sol-prediction-backend.onrender.com/round/${roundNumber}`);
     const data = response.data;
     return {
@@ -74,41 +72,51 @@ export const fetchPreviousRounds = async (
     limit: number = 5,
     offset: number = 0
 ): Promise<PreviousRoundsResponse> => {
+    const maxRound = currentRound - 1;
     const response = await axios.get("https://sol-prediction-backend.onrender.com/rounds", {
-        params: { limit, offset, maxRound: currentRound - 1 },
+        params: { limit, offset, maxRound },
     });
-    // Map and deduplicate by number
-    const roundMap = new Map<number, Round>();
-    response.data.forEach((r: any) => {
-        const roundNumber = Number(r.roundNumber || r.number);
-        if (!roundMap.has(roundNumber)) {
-            roundMap.set(roundNumber, {
-                id: r.id,
-                number: roundNumber,
-                startTime: r.startTime,
-                status: r.status,
-                lockTime: r.lockTime || new Date(r.startTime).getTime() / 1000 + 300,
-                closeTime: r.closeTime || new Date(r.startTime).getTime() / 1000 + 450,
-                lockPrice: r.lockPrice || 50 * 1e8,
-                endPrice: r.endPrice || 0,
-                isActive: r.status === "started",
-                totalBullAmount: r.totalBullAmount || 0,
-                totalBearAmount: r.totalBearAmount || 0,
-                totalAmount: r.totalAmount || 0,
-                rewardBaseCalAmount: r.rewardBaseCalAmount || 0,
-                rewardAmount: r.rewardAmount || 0,
-            });
+
+    // console.log('Raw API Response:', response.data);
+
+    const rounds = response.data.rounds.map((r: any) => {
+        const roundNumber = r.roundNumber || r.number; // Fallback to r.number if roundNumber is undefined
+        if (!roundNumber || isNaN(Number(roundNumber))) {
+            console.error(`Invalid roundNumber for round ${r.id}:`, roundNumber);
         }
+        return {
+            id: r.id,
+            number: Number(roundNumber) || 0, // Fallback to 0 if invalid
+            startTime: r.startTime ? new Date(r.startTime * 1000) : null, // Keep as Date
+            status: r.status,
+            lockTime: r.lockTime ? new Date(r.lockTime * 1000) : null,
+            closeTime: r.closeTime ? new Date(r.closeTime * 1000) : null,
+            lockPrice: r.lockPrice || "0",
+            endPrice: r.endPrice || "0",
+            isActive: r.isActive,
+            totalBullAmount: r.totalBullAmount || "0",
+            totalBearAmount: r.totalBearAmount || "0",
+            totalAmount: r.totalAmount || "0",
+            rewardBaseCalAmount: r.rewardBaseCalAmount || "0",
+            rewardAmount: r.rewardAmount || "0",
+        };
     });
-    // Sort descending and take top 5
-    const sortedRounds = Array.from(roundMap.values())
-        .sort((a, b) => Number(b.number) - Number(a.number))
-        .slice(0, limit);
+
+
     return {
-        rounds: sortedRounds,
-        total: response.data.length,
+        rounds,
+        total: response.data.total,
     };
 };
+// Sort descending and take top 5
+// const sortedRounds = Array.from(roundMap.values())
+//     .sort((a, b) => Number(b.number) - Number(a.number))
+//     .slice(0, limit);
+// return {
+//     rounds: sortedRounds,
+//     total: response.data.length,
+// };
+// };
 
 
 export const usePreviousRounds = (
@@ -128,4 +136,88 @@ export const usePreviousRounds = (
 export const getRoundOutcome = (round: Round) => {
     if (!round.endPrice || !round.lockPrice) return "PENDING";
     return round.endPrice > round.lockPrice ? "UP" : round.endPrice < round.lockPrice ? "DOWN" : "TIE";
+};
+
+export const fetchRoundById = async (roundNumber: number): Promise<Round> => {
+    try {
+        const response = await axios.get(`https://sol-prediction-backend.onrender.com/round/${roundNumber}`);
+        const r = response.data;
+        // console.log(`Raw Round Response for ${roundNumber}:`, r);
+        // Validate roundNumber
+        const number = Number(r.number);
+        // console.log('number',number);
+        
+        if (isNaN(number) || number <= 0) {
+            console.error(`Invalid roundNumber for round ${roundNumber}:`, Number(r.roundNumber));
+            throw new Error(`Invalid roundNumber: ${r.roundNumber}`);
+        }
+        // console.log(`Raw Round Response for ${roundNumber}:`, r);
+        return {
+            number: number,
+            startTime: r.startTime ? r.startTime : null,
+            status: r.status || 'unknown',
+            lockTime: r.lockTime ? r.lockTime : null,
+            closeTime: r.closeTime ? r.closeTime : null,
+            lockPrice: r.lockPrice || '0',
+            endPrice: r.endPrice || '0',
+            isActive: r.isActive ?? false,
+            totalBullAmount: r.totalBullAmount || '0',
+            totalBearAmount: r.totalBearAmount || '0',
+            totalAmount: r.totalAmount || '0',
+            rewardBaseCalAmount: r.rewardBaseCalAmount || '0',
+            rewardAmount: r.rewardAmount || '0',
+        };
+    } catch (error) {
+        console.error(`Failed to fetch round ${roundNumber}:`, error);
+        throw error; // Let useQuery handle retries
+
+    }
+
+
+};
+
+export const usePreviousRoundsByIds = (currentRound?: number, count: number = 5, offset: number = 0) => {
+    return useQuery({
+        queryKey: ['previousRounds', currentRound, count, offset],
+        queryFn: async (): Promise<PreviousRoundsResponse> => {
+            if (!currentRound || currentRound <= 1) {
+                return { rounds: [], total: 0 };
+            }
+
+            // Calculate round numbers to fetch: currentRound - 1 - offset, ..., up to count
+            const roundNumbers = Array.from(
+                { length: Math.min(count, currentRound - 1 - offset) },
+                (_, i) => currentRound - 1 - offset - i
+            ).filter((num) => num > 0); // Ensure no negative or zero round numbers
+            console.log(`Fetching rounds: ${roundNumbers.join(', ')}`);
+
+            // Fetch rounds in parallel
+            const rounds = await Promise.all(
+                roundNumbers.map(async (roundNumber) => {
+                    try {
+                        return await fetchRoundById(roundNumber);
+                    } catch (error) {
+                        console.error(`Failed to fetch round ${roundNumber}:`, error);
+                        return null;
+                    }
+                })
+            );
+
+            // Filter out null results (failed fetches)
+            const validRounds = rounds.filter((round): round is Round => round !== null);
+
+            return {
+                rounds: validRounds.sort((a, b) => Number(b.number) - Number(a.number)), // Sort descending
+                total: validRounds.length, // Total is approximate since we don't know the full count
+            };
+        },
+        enabled: !!currentRound && currentRound > 1 && !isNaN(currentRound),
+        staleTime: 2 * 60 * 1000, // 2 minutes
+        onSuccess: (data: { rounds: any[]; }) => {
+            console.log(`Fetched ${data.rounds.length} previous rounds:`, data.rounds.map((r: { number: any; endPrice: any; }) => ({ number: r.number, endPrice: r.endPrice })));
+        },
+        onError: (error: any) => {
+            console.error('Error fetching previous rounds:', error);
+        },
+    });
 };
