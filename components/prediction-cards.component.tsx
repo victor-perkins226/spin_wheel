@@ -33,14 +33,15 @@ export default function PredictionCards() {
   const { publicKey, connected } = useWallet();
   const connectionRef = useRef<Connection | null>(null);
   const [userBalance, setUserBalance] = useState(0);
-  const [userBets, setUserBets] = useState<UserBet[]>([]);
+  // const [userBets, setUserBets] = useState<UserBet[]>([]);
   const [liveRoundPrice, setLiveRoundPrice] = useState(50.5);
   const [claimableRewards, setClaimableRewards] = useState(0);
-  const { handlePlaceBet, handleClaimPayout, claimableBets } = useSolPredictor();
+  const { handlePlaceBet, handleClaimPayout, claimableBets,userBets } = useSolPredictor();
 
   const {
     config,
     currentRound,
+    treasuryFee,
     previousRounds,
     totalPreviousRounds,
     isLoading,
@@ -53,12 +54,14 @@ export default function PredictionCards() {
 
   // Calculate total claimable amount
   const claimableAmount = claimableBets.reduce((sum, bet) => sum + bet.payout, 0);
+  // console.log(treasuryFee);
+  
 
    // Fetch live price periodically
    useEffect(() => {
     const updateLivePrice = async () => {
       const price = await fetchLivePrice();
-      setLiveRoundPrice(price);
+      setLiveRoundPrice(price!);
     };
 
     updateLivePrice(); // Initial fetch
@@ -110,20 +113,9 @@ export default function PredictionCards() {
       }
     };
 
-    const fetchUserBets = async () => {
-      const mockBets: UserBet[] = [
-        { roundId: 1000, direction: "up", status: "WON", amount: 0.5, payout: 0.1 },
-        { roundId: 2000, direction: "down", status: "LOST", amount: 0.3, payout: 0 },
-      ];
-      setUserBets(mockBets);
-    };
-
-    // const fetchClaimableRewards = async () => {
-    //   setClaimableRewards(0);
-    // };
+ 
 
     fetchBalance();
-    fetchUserBets();
     // fetchClaimableRewards();
   }, [connected, publicKey, currentRound?.number]);
 
@@ -243,13 +235,13 @@ export default function PredictionCards() {
   };
 
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="loader border-4 border-t-4 border-gray-200 rounded-full w-12 h-12 animate-spin" />
-      </div>
-    );
-  }
+  // if (isLoading) {
+  //   return (
+  //     <div className="flex justify-center items-center h-screen">
+  //       <div className="loader border-4 border-t-4 border-gray-200 rounded-full w-12 h-12 animate-spin" />
+  //     </div>
+  //   );
+  // }
 
   return (
 
@@ -395,7 +387,8 @@ export default function PredictionCards() {
                         lockTimeRemaining: timeLeft !== null && roundNumber === Number(config?.currentRound) ? timeLeft : Math.max(0, lockTime - Date.now() / 1000),
                         lockTime: timeLeft !== null && roundNumber === Number(config?.currentRound) ? Date.now() / 1000 + timeLeft : lockTime,
                         closeTime,
-                        isActive: round.isActive ? true : false
+                        isActive: round.isActive ? true : false,
+                        treasuryFee : config ? treasuryFee! : 5 
                       }}
                       onPlaceBet={handleBet}
                       currentRoundId={Number(config?.currentRound)}
