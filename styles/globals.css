@@ -15,17 +15,21 @@ body {
   @apply mx-auto max-w-[1355px] px-4;
 }
 
-.apexcharts-tooltip.apexcharts-theme-light{
+.apexcharts-tooltip.apexcharts-theme-light, .apexcharts-tooltip-title {
   background: #1f1f43 !important;
   color: #ffffff !important;
 }
 
 .apexcharts-tooltip {
-  color: #000000;
+  color: #000 !important;
+  background: #1f1f43 !important;
 }
 
+
+
+
  .apexcharts-tooltip .apexcharts-tooltip-series-group.active {
-  background: #ffffff !important;
+  background: #1f1f43 !important;
 }
 
 .wallet-adapter-dropdown-list {
@@ -91,4 +95,5 @@ input::-webkit-inner-spin-button {
 /* Firefox */
 input[type="number"] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
