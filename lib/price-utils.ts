@@ -38,6 +38,20 @@ const connection = new Connection('https://devnet.helius-rpc.com/?api-key=a4c931
     commitment: 'finalized',
 });
 
+
+const COINGECKO_SIMPLE_PRICE = 
+  'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd';
+
+export async function fetchLivePrice2(): Promise<number> {
+  try {
+    const { data } = await axios.get(COINGECKO_SIMPLE_PRICE);
+    return data.solana.usd;
+  } catch {
+    // fallback or default
+    return 50.5;
+  }
+}
+
 export const fetchLivePrice = async (): Promise<number> => {
     try {
         // Option 1: Try backend API

@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { useTheme } from "next-themes";
 import { getCoinGeckoHistoricalPrice, getPythHistoricalPrice, TIME_BUTTONS } from "@/lib/chart-utils";
 import { ApexOptions } from 'apexcharts';
+import { fetchLivePrice, fetchLivePrice2 } from "@/lib/price-utils";
 
 const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
@@ -197,8 +198,39 @@ const LineChart = () => {
       }
     };
 
-  useEffect(() => {
+    useEffect(() => {
+      // if not LIVE, skip
+      if (activeIndex !== 0) return;
+    
+      setIsLoading(false);
+      setPythData([]);
+      setTradingViewData([]);
+    
+      // fetch one point immediately, then every 5s
+      const update = async () => {
+        const price = await fetchLivePrice();              // your existing fetchLivePrice util
+        const ts    = Date.now();
+        setCurrentPrice(price.toFixed(2));
+        setPythData(prev =>
+          // keep last 30 points max
+          [...prev, { x: ts, y: price }].slice(-30)
+        );
+        setTradingViewData(prev =>
+          [...prev, {
+            x: ts,
+            y: parseFloat((price * (1 + ((Math.random()-0.4)*0.05))).toFixed(2))
+          }].slice(-30)
+        );
+      };
+    
+      // initial & interval
+      update();
+      const iv = setInterval(update, 5000);
+      return () => clearInterval(iv);
+    }, [activeIndex]);
 
+  useEffect(() => {
+    if (activeIndex === 0) return
     fetchData();
   }, [activeIndex]);
 
@@ -260,7 +292,7 @@ const LineChart = () => {
     tooltip: {
       enabled: true,
       shared: true,
-      theme:  false,
+      theme:  'light',
       followCursor: true,
       style: {
         fontFamily: 'inherit',

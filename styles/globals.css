@@ -22,10 +22,13 @@ body {
 
 .apexcharts-tooltip {
   color: #000000;
+  background: #1f1f43 !important;
 }
 
+
+
  .apexcharts-tooltip .apexcharts-tooltip-series-group.active {
-  background: #ffffff !important;
+  background: #1f1f43 !important;
 }
 
 .wallet-adapter-dropdown-list {
