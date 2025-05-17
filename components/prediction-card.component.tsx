@@ -9,6 +9,7 @@ import SolanaBg from "@/public/assets/solana_bg.png";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { UserBet } from "@/types/round";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import toast from "react-hot-toast";
 
 interface IProps {
   variant?: "live" | "expired" | "next" | "later" | "locked";
@@ -162,11 +163,11 @@ export default function PredictionCard({
 
   const handleEnterPrediction = (mode: "up" | "down") => {
     if (!connected) {
-      alert("Please connect your wallet first");
+      toast("Please connect your wallet first");
       return;
     }
     if (!canBet) {
-      alert("Betting is not available for this round");
+      toast("Betting is not available for this round");
       return;
     }
     setIsFlipped(true);
@@ -175,15 +176,15 @@ export default function PredictionCard({
 
   const handlePlaceBet = () => {
     if (!connected) {
-      alert("Please connect your wallet first");
+      toast("Please connect your wallet first");
       return;
     }
     if (amount <= 0) {
-      alert("Please enter a valid amount");
+      toast("Please enter a valid amount");
       return;
     }
     if (!canBet) {
-      alert("Betting is not available for this round");
+      toast("Betting is not available for this round");
       return;
     }
     if (onPlaceBet && mode && roundId) {

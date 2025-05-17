@@ -21,6 +21,7 @@ import { useSolPredictor } from "@/hooks/useBuyClaim"
 import { BetsHistory } from "./BetsHistory";
 import LineChart from "./LineChart";
 import { fetchLivePrice } from '@/lib/price-utils';
+import toast from "react-hot-toast";
 
 
 
@@ -124,17 +125,17 @@ export default function PredictionCards() {
 
   const handleBet = async (direction: "up" | "down", amount: number, roundId: number) => {
     if (!connected || !publicKey || !connectionRef.current) {
-      alert("Please connect your wallet");
+      toast("Please connect your wallet");
       return;
     }
 
     try {
 
       await handlePlaceBet(roundId, direction === "up", amount)
-      alert(`Bet placed: ${amount} SOL ${direction} on round ${roundId}`);
+      toast(`Bet placed: ${amount} SOL ${direction} on round ${roundId}`);
     } catch (error) {
       console.error("Failed to place bet:", error);
-      alert("Failed to place bet");
+      toast("Failed to place bet");
     }
   };
 
@@ -142,18 +143,18 @@ export default function PredictionCards() {
 
   const handleClaimRewards = async (roundId: number) => {
     if (!connected || !publicKey || !connectionRef.current) {
-      alert("Please connect your wallet");
+      toast("Please connect your wallet");
       return;
     }
 
     try {
 
       await handleClaimPayout(roundId)
-      alert(`Rewards claimed for round ${roundId}`);
+      toast(`Rewards claimed for round ${roundId}`);
       setClaimableRewards(0);
     } catch (error) {
       console.error("Failed to claim rewards:", error);
-      alert("Failed to claim rewards");
+      toast("Failed to claim rewards");
     }
   };
 
