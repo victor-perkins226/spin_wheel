@@ -15,6 +15,19 @@ body {
   @apply mx-auto max-w-[1355px] px-4;
 }
 
+.apexcharts-tooltip.apexcharts-theme-light{
+  background: #1f1f43 !important;
+  color: #ffffff !important;
+}
+
+.apexcharts-tooltip {
+  color: #000000;
+}
+
+ .apexcharts-tooltip .apexcharts-tooltip-series-group.active {
+  background: #ffffff !important;
+}
+
 .wallet-adapter-dropdown-list {
   top: -50% !important;
   right: 110% !important;

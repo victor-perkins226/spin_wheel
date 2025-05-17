@@ -1,67 +1,60 @@
 import axios from "axios";
 
-const COINGECKO_PRICE_CHART_API = 'https://api.coingecko.com/api/v3/coins/solana/market_chart?vs_currency=usd&days='
-const PYTH_PRICE_CHART_API = 'https://web-api.pyth.network/history?symbol=Crypto.SOL%2FUSD'
-
 export const TIME_BUTTONS = [
-    { id: "live", label: "LIVE" },
-    { id: "1d", label: "1 DAY" },
-    { id: "1w", label: "1 WEEK" },
-    { id: "1m", label: "1 MONTH" },
+  {
+    id: "live",
+    label: "LIVE",
+    cgDays:   null,      // “null” means “don’t call market_chart, use simple-price”
+    pythRange: null,     // similarly, use the latest quote
+  },
+  { id: "1d", label: "1 DAY",   cgDays: 1,   pythRange: "1D"  },
+  { id: "1w", label: "1 WEEK",  cgDays: 7,   pythRange: "1W"  },
+  { id: "1m", label: "1 MONTH", cgDays: 30,  pythRange: "1M"  },
 ];
 
-export const getCoinGeckoHistoricalPrice = async (id: number) => {
+const COINGECKO_SIMPLE_PRICE = 
+  "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd";
+const COINGECKO_MARKETCHART = 
+  "https://api.coingecko.com/api/v3/coins/solana/market_chart";
+
+const PYTH_LATEST = 
+  "https://web-api.pyth.network/latest_price?symbol=Crypto.SOL/USD";
+const PYTH_HISTORY =
+  "https://web-api.pyth.network/history?symbol=Crypto.SOL/USD";
+
+export const getCoinGeckoHistoricalPrice = async (buttonIndex: number) => {
+  const btn = TIME_BUTTONS[buttonIndex];
   try {
-    let range = '';
-    switch (id) {
-      case 0:
-        range = 'live'
-        break;
-      case 1:
-        range = '1'
-        break;
-      case 2:
-        range = '7'
-        break;
-      case 3:
-        range = '30'
-        break;
+    if (btn.cgDays == null) {
+      // LIVE
+      const { data } = await axios.get(COINGECKO_SIMPLE_PRICE);
+      return [[Date.now(), data.solana.usd]];
+    } else {
+      const { data } = await axios.get(COINGECKO_MARKETCHART, {
+        params: { vs_currency: "usd", days: btn.cgDays }
+      });
+      return data.prices;  // [ [timestamp, price], … ]
     }
-
-    const uri = `${COINGECKO_PRICE_CHART_API}${range}`;
-
-    const { data } = await axios.get(uri);
-    return data.prices; 
-  }
-  catch (error) {
+  } catch {
     return null;
   }
-}
+};
 
-export const getPythHistoricalPrice = async (id: number) => {
+export const getPythHistoricalPrice = async (buttonIndex: number) => {
+  const btn = TIME_BUTTONS[buttonIndex];
   try {
-    let range = '';
-    switch (id) {
-      case 0:
-        range = 'live'
-        break;
-      case 1:
-        range = '1D'
-        break;
-      case 2:
-        range = '1W'
-        break;
-      case 3:
-        range = '1M'
-        break;
+    if (btn.pythRange == null) {
+      // LIVE
+      const { data } = await axios.get(PYTH_LATEST);
+      // normalize to same shape
+      return [{ timestamp: data.price_update_time, open_price: data.price }];
+    } else {
+      const { data } = await axios.get(PYTH_HISTORY, {
+        params: { range: btn.pythRange, cluster: "pythnet" }
+      });
+      return data;  // depends on the shape Pyth returns
     }
-  
-    const uri = `${PYTH_PRICE_CHART_API}&range=${range}&cluster=pythnet`;
-  
-    const { data } = await axios.get(uri);
-    return data; 
-  }
-  catch (error) {
+  } catch {
     return null;
   }
-}
+};
