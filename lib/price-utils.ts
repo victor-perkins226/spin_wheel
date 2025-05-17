@@ -21,6 +21,11 @@ const priceIds = [
       });
     // Fetch latest prices
     const priceFeeds = await connection.getLatestPriceFeeds(priceIds);
+    
+    if (!priceFeeds || priceFeeds.length === 0) {
+      return undefined;
+    }
+    
     const priceObj = priceFeeds[0].getPriceNoOlderThan(60);
 
     // priceObj may be undefined if the price is too old or unavailable

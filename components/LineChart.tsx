@@ -196,11 +196,11 @@ const LineChart = () => {
       } finally {
         setIsLoading(false);
       }
-    };
+  };
 
     useEffect(() => {
       // if not LIVE, skip
-      if (activeIndex !== 0) return;
+      if (activeIndex !== 0){ return};
     
       setIsLoading(false);
       setPythData([]);
@@ -210,18 +210,19 @@ const LineChart = () => {
       const update = async () => {
         const price = await fetchLivePrice();              // your existing fetchLivePrice util
         const ts    = Date.now();
-        setCurrentPrice(price.toFixed(2));
-        setPythData(prev =>
-          // keep last 30 points max
-          [...prev, { x: ts, y: price }].slice(-30)
-        );
-        setTradingViewData(prev =>
+        if (price !== undefined) {
+          setCurrentPrice(price.toFixed(2));
+          setPythData(prev =>
+            // keep last 30 points max
+            [...prev, { x: ts, y: price }].slice(-30)
+          );
+          setTradingViewData(prev =>
           [...prev, {
             x: ts,
             y: parseFloat((price * (1 + ((Math.random()-0.4)*0.05))).toFixed(2))
           }].slice(-30)
         );
-      };
+      }};
     
       // initial & interval
       update();
