@@ -1,3 +1,5 @@
+import { BN } from "@project-serum/anchor";
+
 // types/round.ts
 export interface Round {
     id?: number;
@@ -14,7 +16,7 @@ export interface Round {
     totalAmount?: number;
     rewardBaseCalAmount?: number;
     rewardAmount?: number;
-  }
+}
 
 export interface Config {
     roundDuration: number;
@@ -29,9 +31,27 @@ export interface Config {
 }
 
 export interface UserBet {
+    id: string; // Added for BetsHistory
     roundId: number;
     direction: 'up' | 'down';
     status: 'WON' | 'LOST' | 'PENDING' | 'CLAIMED';
     amount: number;
     payout: number;
-  }
+  
+}
+
+
+export interface ClaimableBet {
+    roundNumber: number;
+    amount: number;
+    predictBull: boolean;
+    payout: number;
+   
+}
+
+export interface UserBetAccount {
+    roundNumber: BN; // Anchor BN for u64
+    predictBull: boolean;
+    amount: BN; // Anchor BN for u64
+    claimed: boolean;
+}

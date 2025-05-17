@@ -30,6 +30,8 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
   const previousRounds = previousRoundsData?.rounds || [];
   const totalPreviousRounds = currentRoundNumber ? currentRoundNumber - 1 : 0; // Estimate total
 
+  const treasuryFee = config?.treasuryFee
+
   useEffect(() => {
     // Update allPreviousRounds when new previousRounds are fetched
     if (previousRounds.length > 0) {
@@ -154,6 +156,7 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
 
   return {
     config,
+    treasuryFee,
     currentRound,
     previousRounds: allPreviousRounds.length > 0 ? allPreviousRounds : previousRounds,
     totalPreviousRounds,
