@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useEffect, useRef, useState, Component, ErrorInfo, ReactNode, use } from "react";
+import React, { useEffect, useRef, useState, Component, ErrorInfo, ReactNode } from "react";
 import dynamic from 'next/dynamic';
 import { useTheme } from "next-themes";
 import { getCoinGeckoHistoricalPrice, getPythHistoricalPrice, TIME_BUTTONS } from "@/lib/chart-utils";
 import { ApexOptions } from 'apexcharts';
-import { fetchLivePrice, fetchLivePrice2 } from "@/lib/price-utils";
+import { fetchLivePrice } from "@/lib/price-utils";
 
 const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
@@ -41,8 +41,8 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 }
 
-// Function to simulate historical data
-const simulateHistoricalData = (days = 7, interval = 3600000) => {
+// Function to simulate historical data with consistent correlation between sources
+const simulateHistoricalData = (days = 7, interval = 3600000, isSecondary = false) => {
   try {
     const now = new Date();
     const data = [];
@@ -54,8 +54,26 @@ const simulateHistoricalData = (days = 7, interval = 3600000) => {
     for (let i = 0; i < totalPoints; i++) {
       const timestamp = new Date(now.getTime() - ((totalPoints - i) * interval));
       
-      const change = (Math.random() - 0.5) * 5; 
-      currentPrice = Math.max(50, Math.min(150, currentPrice + change)); 
+      // Use a more predictable change based on sine wave for more realistic-looking data
+      const baseChange = Math.sin(i / 10) * 2.5;
+      
+      // Add random noise
+      const noise = (Math.random() - 0.5) * 2;
+      
+      // Calculate primary price
+      const primaryChange = baseChange + noise;
+      currentPrice = Math.max(50, Math.min(150, currentPrice + primaryChange));
+      
+      // If we're generating secondary data, add a small consistent variation
+      // This ensures they have similar patterns but slight differences
+      if (isSecondary) {
+        // Apply a small bias (slightly lower on average)
+        const secondaryBias = -0.2;
+        // Apply a small variation from the primary price
+        const variation = ((Math.random() - 0.5) * 0.5) + secondaryBias;
+        currentPrice = currentPrice * (1 + variation);
+      }
+      
       data.push({
         x: timestamp.getTime(),
         y: parseFloat(currentPrice.toFixed(2))
@@ -121,117 +139,158 @@ const LineChart = () => {
       let coinGeckoData = [];
       let pythDataResult = [];
         
-        try {
-          coinGeckoData = await getCoinGeckoHistoricalPrice(activeIndex);
-        } catch (coinGeckoError) {
-          console.warn("Failed to fetch CoinGecko data:", coinGeckoError);
-          // Continue execution without crashing
-        }
-        
-        try {
-          pythDataResult = await getPythHistoricalPrice(activeIndex);
-        } catch (pythError) {
-          console.warn("Failed to fetch Pyth data:", pythError);
-          // Continue execution without crashing
-        }
-        
-        // Generate simulated data matching the time range
-        const days = getDaysFromIndex(activeIndex);
-        
-        // Format Pyth data for ApexCharts
-        let formattedPythData: Array<{x: number, y: number}> = [];
-        if (pythDataResult && pythDataResult.length > 0) {
-          formattedPythData = pythDataResult.map((item: any) => ({
-            x: new Date(item.timestamp).getTime(),
-            y: parseFloat(item.open_price.toFixed(2))
-          }));
-        } else {
-          formattedPythData = simulateHistoricalData(days);
-        }
-        
-        // Format CoinGecko data for ApexCharts or use simulated data
-        let formattedCoinGeckoData: Array<{x: number, y: number}> = [];
-        if (coinGeckoData && coinGeckoData.length > 0) {
-          // Assuming coinGeckoData is an array of [timestamp, price] arrays
-          formattedCoinGeckoData = coinGeckoData.map((item: [number, number]) => ({
-            x: item[0], // timestamp
-            y: parseFloat(item[1].toFixed(2)) // price
-          }));
-        } else {
-          // Create simulated TradingView data with slight variations from Oracle data
-          formattedCoinGeckoData = formattedPythData.map((point: {x: number, y: number}) => ({
-            x: point.x,
-            y: parseFloat((point.y * (1 + ((Math.random() - 0.4) * 0.05))).toFixed(2)) // ±2.5% variation
-          }));
-        }
-        
-        setPythData(formattedPythData);
-        setTradingViewData(formattedCoinGeckoData);
-        
-        // Set current price from the latest data point
-        if (formattedPythData.length > 0) {
-          const latestPoint = formattedPythData[formattedPythData.length - 1];
-          setCurrentPrice(latestPoint.y.toFixed(2));
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        // If there's an error, ensure we have simulated data
-        const days = getDaysFromIndex(activeIndex);
-        const simulatedOracle = simulateHistoricalData(days);
-        
-        // Create simulated TradingView data with slight variations from Oracle data
-        const simulatedTrading = simulatedOracle.map((point: {x: number, y: number}) => ({
-          x: point.x,
-          y: parseFloat((point.y * (1 + ((Math.random() - 0.4) * 0.05))).toFixed(2)) // ±2.5% variation
-        }));
-        
-        setPythData(simulatedOracle);
-        setTradingViewData(simulatedTrading);
-        
-        // Set current price from the latest simulated data point
-        if (simulatedOracle.length > 0) {
-          const latestPoint = simulatedOracle[simulatedOracle.length - 1];
-          setCurrentPrice(latestPoint.y.toFixed(2));
-        }
-      } finally {
-        setIsLoading(false);
+      try {
+        coinGeckoData = await getCoinGeckoHistoricalPrice(activeIndex);
+      } catch (coinGeckoError) {
+        console.warn("Failed to fetch CoinGecko data:", coinGeckoError);
+        // Continue execution without crashing
       }
+      
+      try {
+        pythDataResult = await getPythHistoricalPrice(activeIndex);
+      } catch (pythError) {
+        console.warn("Failed to fetch Pyth data:", pythError);
+        // Continue execution without crashing
+      }
+      
+      // Generate simulated data matching the time range
+      const days = getDaysFromIndex(activeIndex);
+      
+      // Format Pyth data for ApexCharts
+      let formattedPythData: Array<{x: number, y: number}> = [];
+      if (pythDataResult && pythDataResult.length > 0) {
+        formattedPythData = pythDataResult.map((item: any) => ({
+          x: new Date(item.timestamp).getTime(),
+          y: parseFloat(item.open_price.toFixed(2))
+        }));
+      } else {
+        // Generate primary data
+        formattedPythData = simulateHistoricalData(days);
+      }
+      
+      // Format CoinGecko data for ApexCharts or use simulated data
+      let formattedCoinGeckoData: Array<{x: number, y: number}> = [];
+      if (coinGeckoData && coinGeckoData.length > 0) {
+        // Assuming coinGeckoData is an array of [timestamp, price] arrays
+        formattedCoinGeckoData = coinGeckoData.map((item: [number, number]) => ({
+          x: item[0], // timestamp
+          y: parseFloat(item[1].toFixed(2)) // price
+        }));
+      } else if (formattedPythData.length > 0) {
+        // If we have Pyth data but no CoinGecko data,
+        // Create TradingView data based on Pyth data with slight variations
+        formattedCoinGeckoData = formattedPythData.map((point: {x: number, y: number}) => {
+          // Consistent variation with a slight negative bias (trading view shows lower price)
+          const variationFactor = 0.98 + (Math.random() * 0.04); // 0.98-1.02 range
+          return {
+            x: point.x,
+            y: parseFloat((point.y * variationFactor).toFixed(2))
+          };
+        });
+      } else {
+        // If we have neither, generate similar but slightly different data
+        formattedCoinGeckoData = simulateHistoricalData(days, 3600000, true);
+      }
+      
+      setPythData(formattedPythData);
+      setTradingViewData(formattedCoinGeckoData);
+      
+      // Set current price from the latest data point
+      if (formattedPythData.length > 0) {
+        const latestPoint = formattedPythData[formattedPythData.length - 1];
+        setCurrentPrice(latestPoint.y.toFixed(2));
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      // If there's an error, ensure we have simulated data
+      const days = getDaysFromIndex(activeIndex);
+      
+      // Generate base simulated data
+      const simulatedOracle = simulateHistoricalData(days);
+      
+      // Create simulated TradingView data with consistent variations
+      const simulatedTrading = simulatedOracle.map((point: {x: number, y: number}) => {
+        // Consistent variation with a slight negative bias
+        const variationFactor = 0.98 + (Math.random() * 0.04); // 0.98-1.02 range
+        return {
+          x: point.x,
+          y: parseFloat((point.y * variationFactor).toFixed(2))
+        };
+      });
+      
+      setPythData(simulatedOracle);
+      setTradingViewData(simulatedTrading);
+      
+      // Set current price from the latest simulated data point
+      if (simulatedOracle.length > 0) {
+        const latestPoint = simulatedOracle[simulatedOracle.length - 1];
+        setCurrentPrice(latestPoint.y.toFixed(2));
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-    useEffect(() => {
-      // if not LIVE, skip
-      if (activeIndex !== 0){ return};
+  useEffect(() => {
+    // if not LIVE, skip
+    if (activeIndex !== 0) return;
     
-      setIsLoading(false);
-      setPythData([]);
-      setTradingViewData([]);
+    setIsLoading(false);
+    setPythData([]);
+    setTradingViewData([]);
     
-      // fetch one point immediately, then every 5s
-      const update = async () => {
-        const price = await fetchLivePrice();              // your existing fetchLivePrice util
-        const ts    = Date.now();
+    // Base price for simulating when live price fetch fails
+    let basePrice = 80;
+    
+    // fetch one point immediately, then every 5s
+    const update = async () => {
+      try {
+        const price = await fetchLivePrice();
         if (price !== undefined) {
+          basePrice = price; // Update base price if fetch succeeds
           setCurrentPrice(price.toFixed(2));
-          setPythData(prev =>
-            // keep last 30 points max
-            [...prev, { x: ts, y: price }].slice(-30)
-          );
-          setTradingViewData(prev =>
-          [...prev, {
-            x: ts,
-            y: parseFloat((price * (1 + ((Math.random()-0.4)*0.05))).toFixed(2))
-          }].slice(-30)
-        );
-      }};
+        } else {
+          // If price fetch fails, use last known price with slight variation
+          basePrice = basePrice + ((Math.random() - 0.5) * 2);
+          setCurrentPrice(basePrice.toFixed(2));
+        }
+      } catch (error) {
+        // If fetch errors, use last known price with slight variation
+        basePrice = basePrice + ((Math.random() - 0.5) * 2);
+        setCurrentPrice(basePrice.toFixed(2));
+        console.warn("Error fetching live price:", error);
+      }
+      
+      const ts = Date.now();
+      
+      // Update Oracle data
+      setPythData(prev => {
+        // Add new data point
+        const newData = [...prev, { x: ts, y: parseFloat(basePrice.toFixed(2)) }];
+        // Keep last 30 points max
+        return newData.slice(-30);
+      });
+      
+      // Update TradingView data with consistent correlation
+      setTradingViewData(prev => {
+        // Apply a small consistent bias (slightly lower on average) to maintain correlation
+        const tradingPrice = basePrice * (0.98 + (Math.random() * 0.04)); // 0.98-1.02 range
+        
+        // Add new data point
+        const newData = [...prev, { x: ts, y: parseFloat(tradingPrice.toFixed(2)) }];
+        // Keep last 30 points max
+        return newData.slice(-30);
+      });
+    };
     
-      // initial & interval
-      update();
-      const iv = setInterval(update, 5000);
-      return () => clearInterval(iv);
-    }, [activeIndex]);
+    // initial & interval
+    update();
+    const iv = setInterval(update, 5000);
+    return () => clearInterval(iv);
+  }, [activeIndex]);
 
   useEffect(() => {
-    if (activeIndex === 0) return
+    if (activeIndex === 0) return;
     fetchData();
   }, [activeIndex]);
 
@@ -293,12 +352,11 @@ const LineChart = () => {
     tooltip: {
       enabled: true,
       shared: true,
-      theme:  'light',
+      theme: isDarkMode ? 'dark' : 'light',
       followCursor: true,
       style: {
         fontFamily: 'inherit',
         fontSize: isMobile ? '10px' : '12px',
-        
       },
       x: {
         format: getDaysFromIndex(activeIndex) <= 1 ? 'HH:mm' : 'dd MMM',
@@ -320,7 +378,7 @@ const LineChart = () => {
       },
       y: {
         formatter: function(val: number) {
-          return `${val.toFixed(2)}`;
+          return `$${val.toFixed(2)}`;
         }
       },
       marker: {
@@ -371,7 +429,7 @@ const LineChart = () => {
           fontSize: isMobile ? '9px' : '11px',
         },
         formatter: function(val: number) {
-          return `${val.toFixed(2)}`;
+          return `$${val.toFixed(2)}`;
         }
       },
       axisBorder: {
@@ -481,7 +539,7 @@ const LineChart = () => {
       </div>
 
       {/* Chart container with ApexCharts */}
-      <div className="w-full border border-[#e5e5e5] h-[200px] md:h-[250px] lg:h-[400px] rounded-lg p-2 md:p-4 lg:p-5 relative overflow-hidden">
+      <div className="w-full border border-[#e5e5e5] dark:border-gray-700 h-[200px] md:h-[250px] lg:h-[400px] rounded-lg p-2 md:p-4 lg:p-5 relative overflow-hidden">
         {/* Optional decorative elements */}
         <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-green-500/5 to-red-500/5 rounded-full blur-3xl z-0"></div>
         <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-green-500/5 to-red-500/5 rounded-full blur-3xl z-0"></div>
@@ -527,7 +585,6 @@ const LineChart = () => {
         </div>
       </div>
     </div>
-
   );
 };
 
