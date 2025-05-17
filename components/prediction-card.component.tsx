@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Button from "./button.component";
 import SVG from "./svg.component";
 import Image from "next/image";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import SolanaBg from "@/public/assets/solana_bg.png";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { UserBet } from "@/types/round";
@@ -63,6 +63,7 @@ export default function PredictionCard({
   const [amount, setAmount] = useState<number>(0.1);
   const [maxAmount, setMaxAmount] = useState<number>(10);
   const { connected, publicKey } = useWallet();
+  const { connection }           = useConnection();
 
   // Calculate multipliers
   const calculateMultipliers = () => {
@@ -85,13 +86,21 @@ export default function PredictionCard({
 
   const { bullMultiplier, bearMultiplier } = calculateMultipliers();
 
-  // Wallet balance
   useEffect(() => {
-    if (connected && publicKey) {
-      // TODO: Fetch actual SOL balance
-      setMaxAmount(10);
+    if (!connected || !publicKey) {
+      setMaxAmount(0);
+      return;
     }
-  }, [connected, publicKey]);
+    // fetch on connect (and whenever pubkey changes)
+    (async () => {
+      try {
+        const lamports = await connection.getBalance(publicKey);
+        setMaxAmount(lamports / LAMPORTS_PER_SOL);
+      } catch (err) {
+        console.error("Failed to fetch SOL balance:", err);
+      }
+    })();
+  }, [connected, publicKey, connection]);
 
   // User bet status
   const userBetStatus = userBets?.find((bet) => bet.roundId === roundId) || null;
