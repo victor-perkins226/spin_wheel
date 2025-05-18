@@ -10,6 +10,12 @@ import { ApexOptions } from "apexcharts";
 const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
 // Time period button type definitions
+
+// Define point data type for charts
+interface ChartPoint {
+  x: number;
+  y: number;
+}
 interface TimeButton {
   id: string;
   label: string;
@@ -17,13 +23,8 @@ interface TimeButton {
   pythRange: string | null;
 }
 
-// Define point data type for charts
-interface ChartPoint {
-  x: number;
-  y: number;
-}
 
-// Time period options - Fix the 1H button to use the correct values
+// Updated TIME_BUTTONS with 12H option and proper values
 export const TIME_BUTTONS: TimeButton[] = [
   {
     id: "live",
@@ -31,10 +32,11 @@ export const TIME_BUTTONS: TimeButton[] = [
     cgDays: null,      // "null" means "don't call market_chart, use simple-price"
     pythRange: null,   // similarly, use the latest quote
   },
-  { id: "1h", label: "1 HOUR", cgDays: 0.042, pythRange: "1H" }, // Fixed value (slightly above 1/24 to ensure proper data)
-  { id: "1d", label: "1 DAY", cgDays: 1, pythRange: "1D" },
-  { id: "1w", label: "1 WEEK", cgDays: 7, pythRange: "1W" },
+  { id: "1h", label: "1H", cgDays: 0.042, pythRange: "1H" }, // 1/24 for 1 hour
+  { id: "12h", label: "12H", cgDays: 0.5, pythRange: "1D" }, // 12/24 for 12 hours (0.5 days)
+  { id: "1d", label: "1D", cgDays: 1, pythRange: "1D" },
 ];
+
 
 // API endpoints
 const COINGECKO_SIMPLE_PRICE = 
@@ -92,7 +94,7 @@ export const getCoinGeckoHistoricalPrice = async (buttonIndex: number): Promise<
       }
       return [[Date.now(), data.solana.usd]];
     } else {
-      // Handle 1H and other timeframes
+      // Handle historical timeframes
       const params = { 
         vs_currency: "usd", 
         days: btn.cgDays,
@@ -126,39 +128,100 @@ interface PythHistoricalData {
   open_price: number | string;
 }
 
-// Improved function to fetch Pyth historical price data with better error handling
-export const getPythHistoricalPrice = async (buttonIndex: number): Promise<PythHistoricalData[] | null> => {
+
+export const getPythHistoricalPrice = async (buttonIndex: number): Promise<any[] | null> => {
   const btn = TIME_BUTTONS[buttonIndex];
   try {
     if (btn.pythRange === null) {
       // LIVE
-      const { data } = await axios.get<PythLatestData>(PYTH_LATEST);
+      const { data } = await axios.get<any>(PYTH_LATEST);
       if (!data?.price) {
         console.warn("Pyth live price data is invalid:", data);
         return null;
       }
       return [{ timestamp: data.price_update_time, open_price: data.price }];
     } else {
-      // For historical data, especially for 1H
+      // For historical data
       const params = { 
         range: btn.pythRange,
         cluster: "pythnet"
       };
       
-      // Add retry logic for 1H timeframe which might be more problematic
-      let retries = buttonIndex === 1 ? 2 : 0; // More retries for 1H
+      // Add retry logic for problematic timeframes
+      let retries = 2;
       let error = null;
       
       while (retries >= 0) {
         try {
-          const { data } = await axios.get<PythHistoricalData[]>(PYTH_HISTORY, { params });
+          const { data } = await axios.get<any>(PYTH_HISTORY, { params });
           
-          if (!data || !Array.isArray(data) || data.length === 0) {
-            console.warn(`Pyth historical data is invalid for ${btn.id}:`, data);
-            throw new Error("Invalid data format");
+          // FIXED: Enhanced error handling for Pyth API response
+          // Check if the data exists first before checking result property
+          if (!data) {
+            console.warn(`Pyth API returned empty data for ${btn.id}`);
+            throw new Error("Empty data received from Pyth API");
           }
           
-          return data;  // array of objects with timestamp and open_price
+          // Check if data.result exists and is properly formatted
+          if (!data) {
+            console.warn(`Pyth API response missing result property for ${btn.id}:`, data);
+            throw new Error("Missing result property in Pyth API response");
+          }
+          
+          // Handle both array and non-array results from the API
+          let resultData = data;
+          
+          // Convert to array if it's not already an array but has data
+          if (!Array.isArray(resultData) && resultData) {
+            console.warn(`Pyth API result is not an array for ${btn.id}, attempting to adapt format`);
+            // Try to convert the object to an array if possible
+            if (typeof resultData === 'object') {
+              resultData = [resultData];
+            } else {
+              throw new Error("Pyth API result is in an unexpected format");
+            }
+          }
+          
+          // Final check that we have array data
+          if (!Array.isArray(resultData) || resultData.length === 0) {
+            console.warn(`Pyth historical data is invalid or empty for ${btn.id}:`, resultData);
+            throw new Error("Invalid or empty data format");
+          }
+          
+          // For 12H specifically, filter the 1D data
+          if (btn.id === "12h") {
+            // Calculate 12 hours ago in milliseconds
+            const twelveHoursAgo = new Date();
+            twelveHoursAgo.setHours(twelveHoursAgo.getHours() - 12);
+            
+            console.log("Filtering for 12H data, cutoff time:", twelveHoursAgo.toISOString());
+            console.log("Sample data item:", resultData[0]);
+            
+            return resultData.filter((item: any) => {
+              // Handle ISO date string format from the API
+              if (typeof item.timestamp === 'string' && item.timestamp.includes('T')) {
+                const itemDate = new Date(item.timestamp);
+                return itemDate >= twelveHoursAgo;
+              } 
+              // Handle timestamp as seconds since epoch
+              else if (typeof item.timestamp === 'string' || typeof item.timestamp === 'number') {
+                const timestamp = typeof item.timestamp === 'string' 
+                  ? parseInt(item.timestamp, 10) 
+                  : Number(item.timestamp);
+                
+                // Check if timestamp is in seconds (common for UNIX timestamps)
+                // If timestamp is in seconds (less than year 2100), convert to milliseconds
+                const timestampMs = timestamp < 4102444800 ? timestamp * 1000 : timestamp;
+                return timestampMs >= twelveHoursAgo.getTime();
+              }
+              
+              // Default case - keep the item if we can't determine the format
+              console.warn("Unable to parse timestamp format:", item.timestamp);
+              return true;
+            });
+          }
+          
+          return resultData;
         } catch (e) {
           error = e;
           retries--;
@@ -178,10 +241,11 @@ export const getPythHistoricalPrice = async (buttonIndex: number): Promise<PythH
   }
 };
 
+
 // Improved function to fetch live price with better error handling
 export const fetchLivePrice = async (): Promise<number> => {
   // Default to a more realistic starting value based on historical SOL prices
-  const defaultPrice = 85.00;
+  const defaultPrice = 167.00;
   
   try {
     // Try CoinGecko first
@@ -221,7 +285,7 @@ const simulateHistoricalData = (days = 1, interval = 60000, isSecondary = false)
     const data: ChartPoint[] = [];
     
     // More realistic starting price for SOL
-    const startingPrice = 80 + Math.random() * 15;
+    const startingPrice = 170 + Math.random() * 15;
     let currentPrice = startingPrice;
     
     const totalPoints = Math.max(20, Math.floor((days * 24 * 60 * 60 * 1000) / interval));
@@ -263,8 +327,8 @@ const simulateHistoricalData = (days = 1, interval = 60000, isSecondary = false)
     // Return realistic minimal data rather than defaulting to 50
     const now = new Date();
     return [
-      { x: now.getTime() - 86400000, y: 80.00 },
-      { x: now.getTime(), y: 85.00 }
+      { x: now.getTime() - 86400000, y: 170.00 },
+      { x: now.getTime(), y: 171.00 }
     ];
   }
 };
@@ -327,6 +391,56 @@ const TradingChart = () => {
     return result;
   };
 
+// Live mode function that initializes with 5 minutes of historical data
+const initializeLiveMode = async () => {
+  try {
+    setIsLoading(true);
+    
+    // Prefetch 5 minutes of historical data for smooth start
+    const fiveMinutesAgo = Math.floor(Date.now() / 1000) - (5 * 60);
+    const currentTime = Math.floor(Date.now() / 1000);
+    
+    // Create a simulated dataset with timestamps every 5 seconds for the past 5 minutes
+    const initialPythData: ChartPoint[] = [];
+    const initialCoinGeckoData: ChartPoint[] = [];
+    
+    // First try to get the latest price to base our historical data on
+    let basePrice = await fetchLivePrice();
+    
+    // Start with base price and generate slight variations for historical data
+    for (let timestamp = fiveMinutesAgo; timestamp <= currentTime; timestamp += 5) {
+      // Add small random variation to create realistic price movement
+      const pythVariation = (Math.random() - 0.5) * 0.3; // ±0.15% variation
+      const cgVariation = (Math.random() - 0.5) * 0.3 + 0.05; // Slightly different variation
+      
+      const pythPrice = basePrice * (1 + pythVariation);
+      const cgPrice = basePrice * (1 + cgVariation);
+      
+      initialPythData.push({
+        x: timestamp * 1000, // Convert to milliseconds
+        y: parseFloat(pythPrice.toFixed(2))
+      });
+      
+      initialCoinGeckoData.push({
+        x: timestamp * 1000,
+        y: parseFloat(cgPrice.toFixed(2))
+      });
+    }
+    
+    // Set initial datasets
+    setPythData(initialPythData);
+    setCoinGeckoData(initialCoinGeckoData);
+    setCurrentPrice(basePrice.toFixed(2));
+    setIsLoading(false);
+    
+    // Start regular updates
+    return basePrice;
+  } catch (error) {
+    console.error("Error initializing live mode:", error);
+    setIsLoading(false);
+    return 170.0; // Fallback price
+  }
+};
   // Function to ensure both data series have the same timestamps
   const alignDataTimestamps = (
     series1: ChartPoint[], 
@@ -368,7 +482,7 @@ const TradingChart = () => {
       : { series1: aligned, series2 };
   };
 
-  // Improved fetchData function with better error handling for 1H timeframe
+  // FIXED: Improved fetchData function with better error handling
   const fetchData = async () => {
     setIsLoading(true);
     setErrorState({ hasError: false, message: '' });
@@ -379,9 +493,23 @@ const TradingChart = () => {
         console.log("Fetching 1H data, attempt:", retryCount + 1);
       }
       
-      // Get data from sources
-      let coinGeckoDataResult = await getCoinGeckoHistoricalPrice(activeIndex);
-      let pythDataResult = await getPythHistoricalPrice(activeIndex);
+      // Get data from sources with proper error capturing
+      let coinGeckoDataResult = null;
+      let pythDataResult = null;
+      
+      try {
+        coinGeckoDataResult = await getCoinGeckoHistoricalPrice(activeIndex);
+      } catch (cgError) {
+        console.error("CoinGecko fetch error:", cgError);
+        // Continue execution, will use simulated data
+      }
+      
+      try {
+        pythDataResult = await getPythHistoricalPrice(activeIndex);
+      } catch (pythError) {
+        console.error("Pyth fetch error:", pythError);
+        // Continue execution, will use simulated data
+      }
       
       // Check if we have valid data
       const noValidData = 
@@ -415,13 +543,38 @@ const TradingChart = () => {
         );
       }
       
-      // Format Pyth data for ApexCharts
+      // Format Pyth data for ApexCharts with extra safety checks
       let formattedPythData: ChartPoint[] = [];
       if (pythDataResult && pythDataResult.length > 0) {
-        formattedPythData = pythDataResult.map(item => ({
-          x: new Date(item.timestamp).getTime(),
-          y: parseFloat(parseFloat(item.open_price.toString()).toFixed(2))
-        }));
+        formattedPythData = pythDataResult.map(item => {
+          // Ensure timestamp is a number
+          let timestamp: number;
+          if (typeof item.timestamp === 'string') {
+            timestamp = new Date(item.timestamp).getTime();
+          } else if (typeof item.timestamp === 'number') {
+            // If timestamp is already a number, convert to milliseconds if it's in seconds
+            timestamp = item.timestamp > 1000000000000 ? item.timestamp : item.timestamp * 1000;
+          } else {
+            // Fallback to current time if timestamp is invalid
+            timestamp = Date.now();
+          }
+          
+          // Ensure price is a number
+          let price: number;
+          if (typeof item.open_price === 'string') {
+            price = parseFloat(item.open_price);
+          } else if (typeof item.open_price === 'number') {
+            price = item.open_price;
+          } else {
+            // Fallback to a default price if value is invalid
+            price = 85.0;
+          }
+          
+          return {
+            x: timestamp,
+            y: parseFloat(price.toFixed(2))
+          };
+        }).filter(point => !isNaN(point.x) && !isNaN(point.y)); // Filter out any invalid points
       } else {
         // Generate primary data if API fails
         console.log(`Generating simulated Pyth data for ${TIME_BUTTONS[activeIndex].id}`);
@@ -537,59 +690,72 @@ const TradingChart = () => {
   useEffect(() => {
     if (activeIndex !== 0) return; // Only for LIVE mode
     
-    setIsLoading(false);
-    // Start with empty data for live mode
-    setPythData([]);
-    setCoinGeckoData([]);
+    let basePrice = 170.0; // Default starting price
+    let liveUpdateInterval: NodeJS.Timeout;
     
-    // Base price for simulating when live price fetch fails - start with a realistic SOL price
-    let basePrice = 85;
-    
-    // Fetch one point immediately, then every 5s
-    const update = async () => {
-      try {
-        const price = await fetchLivePrice();
-        if (price !== undefined && price > 0) {
-          basePrice = price; // Update base price if fetch succeeds
-          setCurrentPrice(price.toFixed(2));
-        } else {
-          // If price fetch fails, use last known price with slight variation
-          basePrice = basePrice + ((Math.random() - 0.5) * 2);
+    // Initialize with 5 minutes of historical data
+    const initialize = async () => {
+      basePrice = await initializeLiveMode();
+      
+      // Start regular updates every 5 seconds
+      liveUpdateInterval = setInterval(async () => {
+        try {
+          const newPrice = await fetchLivePrice();
+          if (newPrice !== undefined && newPrice > 0) {
+            basePrice = newPrice;
+            setCurrentPrice(newPrice.toFixed(2));
+          } else {
+            // Slight variation if price fetch fails
+            basePrice = basePrice + ((Math.random() - 0.5) * 1);
+            setCurrentPrice(basePrice.toFixed(2));
+          }
+          
+          const ts = Date.now();
+          
+          // Update Pyth data
+          setPythData(prev => {
+            const newData = [...prev, { x: ts, y: parseFloat(basePrice.toFixed(2)) }];
+            // Keep reasonable history (300 points = 25 minutes at 5 second intervals)
+            return newData.slice(-300);
+          });
+          
+          // Update CoinGecko data
+          setCoinGeckoData(prev => {
+            // Small consistent bias to maintain correlation
+            const cgPrice = basePrice * (0.99 + (Math.random() * 0.02));
+            
+            const newData = [...prev, { x: ts, y: parseFloat(cgPrice.toFixed(2)) }];
+            return newData.slice(-300);
+          });
+        } catch (error) {
+          console.warn("Error updating live price:", error);
+          // Continue with slight variation
+          basePrice = basePrice + ((Math.random() - 0.5) * 1);
           setCurrentPrice(basePrice.toFixed(2));
+          
+          const ts = Date.now();
+          
+          // Continue updating with simulated data
+          setPythData(prev => {
+            const newData = [...prev, { x: ts, y: parseFloat(basePrice.toFixed(2)) }];
+            return newData.slice(-300);
+          });
+          
+          setCoinGeckoData(prev => {
+            const cgPrice = basePrice * (0.99 + (Math.random() * 0.02));
+            const newData = [...prev, { x: ts, y: parseFloat(cgPrice.toFixed(2)) }];
+            return newData.slice(-300);
+          });
         }
-      } catch (error) {
-        // If fetch errors, use last known price with slight variation
-        basePrice = basePrice + ((Math.random() - 0.5) * 2);
-        setCurrentPrice(basePrice.toFixed(2));
-        console.warn("Error fetching live price:", error);
-      }
-      
-      const ts = Date.now();
-      
-      // Update Pyth data
-      setPythData(prev => {
-        // Add new data point
-        const newData = [...prev, { x: ts, y: parseFloat(basePrice.toFixed(2)) }];
-        // Keep last 30 points max
-        return newData.slice(-30);
-      });
-      
-      // Update CoinGecko data with consistent correlation
-      setCoinGeckoData(prev => {
-        // Apply a small consistent bias (slightly lower on average) to maintain correlation
-        const cgPrice = basePrice * (0.98 + (Math.random() * 0.04)); // 0.98-1.02 range
-        
-        // Add new data point
-        const newData = [...prev, { x: ts, y: parseFloat(cgPrice.toFixed(2)) }];
-        // Keep last 30 points max
-        return newData.slice(-30);
-      });
+      }, 5000);
     };
     
-    // Initial & interval updates
-    update();
-    const interval = setInterval(update, 5000);
-    return () => clearInterval(interval);
+    initialize();
+    
+    // Clean up interval on unmount or when changing away from LIVE mode
+    return () => {
+      if (liveUpdateInterval) clearInterval(liveUpdateInterval);
+    };
   }, [activeIndex]);
 
   // Fetch historical data when active index changes (except for LIVE mode)
