@@ -877,10 +877,10 @@ const initializeLiveMode = async () => {
         datetimeUTC: false,
       },
       axisBorder: {
-        show: false
+        show: true
       },
       axisTicks: {
-        show: false
+        show: true
       },
       crosshairs: {
         show: true,
@@ -990,7 +990,7 @@ const initializeLiveMode = async () => {
       </div>
 
       {/* Chart container */}
-      <div className="w-full border border-gray-200 dark:border-gray-700 h-[300px] md:h-[350px] lg:h-[400px] rounded-lg p-2 md:p-4 lg:p-5 relative overflow-hidden">
+      <div className="w-full border border-gray-200 dark:border-gray-700 h-[300px] md:h-[350px] lg:h-[450px] rounded-lg p-2 md:p-4 lg:p-5 relative overflow-hidden">
         {/* Optional decorative elements */}
         <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-green-500/5 to-blue-500/5 rounded-full blur-3xl z-0"></div>
         <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-green-500/5 to-blue-500/5 rounded-full blur-3xl z-0"></div>
