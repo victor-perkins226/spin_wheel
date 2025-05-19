@@ -23,6 +23,10 @@ body {
 .apexcharts-tooltip {
   color: #000 !important;
   background: #1f1f43 !important;
+    opacity: 1 !important;           /* prevent fade-out */ 
+    transition: none !important;     /* disable hide animation */
+    pointer-events: auto !important; /* allow hovering over the tooltip */
+  
 }
 
 
