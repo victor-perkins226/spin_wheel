@@ -392,7 +392,7 @@ export default function PredictionCards() {
                       }}
                       onPlaceBet={handleBet}
                       currentRoundId={Number(config?.currentRound)}
-                      bufferTimeInSeconds={(config?.bufferSeconds! - 30) || 0}
+                      bufferTimeInSeconds={0}
                       liveRoundPrice={liveRoundPrice}
                       userBets={userBets}
                       isLocked={isLocked}
