@@ -1278,33 +1278,17 @@ const TradingChart = () => {
           colors: isDarkMode ? "#94a3b8" : "#475562",
           fontSize: isMobile ? "9px" : "11px",
         },
+        // Ensure we're using the exact timestamp value, not UTC conversion
         datetimeUTC: false,
-        formatter: function(value, timestamp, opts) {
-            // Check if timestamp is defined before creating Date
-            if (timestamp === undefined) {
-              return value;
-            }
-            
-            const date = new Date(timestamp);
-            
-            // For LIVE mode, show minute-based timestamps
-            if (activeIndex === 0) {
-              return date.toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit'
-              });
-            }
-            
-            // Always return a string for other modes instead of undefined
-            return value;
-          }
+        formatter: function (_: string, timestamp: number) {
+          const dt = new Date(timestamp);
+          const hh = dt.getHours().toString().padStart(2, "0");
+          const mm = dt.getMinutes().toString().padStart(2, "0");
+          return `${hh}:${mm}`;
+        },
       },
-      axisBorder: {
-        show: true,
-      },
-      axisTicks: {
-        show: true,
-      },
+      axisBorder: { show: true },
+      axisTicks: { show: true },
       crosshairs: {
         show: true,
         stroke: {
