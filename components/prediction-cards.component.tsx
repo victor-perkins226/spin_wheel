@@ -95,7 +95,7 @@ export default function PredictionCards() {
   useEffect(() => {
     connectionRef.current = new Connection("https://lb.drpc.org/ogrpc?network=solana-devnet&dkey=AqnRwY5nD0C_uEv_hPfBwlLj0fFzMcQR8JKdzoXPVSjK", {
       commitment: "finalized",
-      wsEndpoint: undefined,
+      wsEndpoint: 'wss://lb.drpc.org/ogws?network=solana-devnet&dkey=AqnRwY5nD0C_uEv_hPfBwlLj0fFzMcQR8JKdzoXPVSjK',
     });
 
     const updateScreenWidth = () => {
@@ -181,7 +181,7 @@ export default function PredictionCards() {
 
       // Send and confirm transaction
       const signature = await sendTransaction(transaction, connectionRef.current, {
-        skipPreflight: false, // Run preflight checks
+        skipPreflight: true, // Run preflight checks
       });
       await connectionRef.current.confirmTransaction(signature, "confirmed");
 
