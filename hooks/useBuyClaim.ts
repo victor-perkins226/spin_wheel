@@ -57,98 +57,98 @@ export const useSolPredictor = (): SolPredictorHook => {
             program!.programId
         )[0];
 
-        const fetchUserBets = useCallback(async () => {
-            if (!publicKey || !connected || !program) {
-              console.log('Cannot fetch bets: wallet not connected or program not initialized');
-              setClaimableBets([]);
-              setUserBets([]);
-              return [];
-            }
-          
-            try {
-              console.log('Fetching user bets for:', publicKey.toBase58());
-          
-              // Fetch user_bet accounts for the user
-              const userBetAccounts = await program.account.userBet.all([
+    const fetchUserBets = useCallback(async () => {
+        if (!publicKey || !connected || !program) {
+            console.log('Cannot fetch bets: wallet not connected or program not initialized');
+            setClaimableBets([]);
+            setUserBets([]);
+            return [];
+        }
+
+        try {
+            console.log('Fetching user bets for:', publicKey.toBase58());
+
+            // Fetch user_bet accounts for the user
+            const userBetAccounts = await program.account.userBet.all([
                 {
-                  memcmp: {
-                    offset: 8, // Discriminator offset
-                    bytes: publicKey.toBase58(),
-                  },
+                    memcmp: {
+                        offset: 8, // Discriminator offset
+                        bytes: publicKey.toBase58(),
+                    },
                 },
-              ]) as unknown as { publicKey: PublicKey; account: UserBetAccount }[];
-          
-              console.log('Raw User Bets:', userBetAccounts);
-          
-              const bets: UserBet[] = await Promise.all(
+            ]) as unknown as { publicKey: PublicKey; account: UserBetAccount }[];
+
+            // console.log('Raw User Bets:', userBetAccounts);
+
+            const bets: UserBet[] = await Promise.all(
                 userBetAccounts.map(async (account) => {
-                  const roundNumber = account.account.roundNumber.toNumber();
-                  const predictBull = account.account.predictBull;
-                  const amount = account.account.amount.toNumber() / LAMPORTS_PER_SOL;
-                  const claimed = account.account.claimed;
-          
-                  // Generate id using userBet PDA
-                  const [userBetPda] = PublicKey.findProgramAddressSync(
-                    [Buffer.from('user_bet'), publicKey.toBuffer(), new BN(roundNumber).toArrayLike(Buffer, 'le', 8)],
-                    programId
-                  );
-          
-                  let status: UserBet['status'] = 'PENDING';
-                  let payout = 0;
-          
-                  try {
-                    const [roundPda] = PublicKey.findProgramAddressSync(
-                      [Buffer.from('round'), new BN(roundNumber).toArrayLike(Buffer, 'le', 8)],
-                      programId
+                    const roundNumber = account.account.roundNumber.toNumber();
+                    const predictBull = account.account.predictBull;
+                    const amount = account.account.amount.toNumber() / LAMPORTS_PER_SOL;
+                    const claimed = account.account.claimed;
+
+                    // Generate id using userBet PDA
+                    const [userBetPda] = PublicKey.findProgramAddressSync(
+                        [Buffer.from('user_bet'), publicKey.toBuffer(), new BN(roundNumber).toArrayLike(Buffer, 'le', 8)],
+                        programId
                     );
-                    const round = await program!.account.round.fetch(roundPda);
-          
-                    if (!round.isActive) {
-                      const isCorrect = predictBull
-                        ? Number(round.endPrice) > Number(round.lockPrice)
-                        : Number(round.endPrice) < Number(round.lockPrice);
-                      status = isCorrect ? (claimed ? 'CLAIMED' : 'WON') : 'LOST';
-                      if (isCorrect && Number(round.rewardBaseCalAmount) > 0) {
-                        payout = (amount * Number(round.rewardAmount)) / Number(round.rewardBaseCalAmount);
-                      }
+
+                    let status: UserBet['status'] = 'PENDING';
+                    let payout = 0;
+
+                    try {
+                        const [roundPda] = PublicKey.findProgramAddressSync(
+                            [Buffer.from('round'), new BN(roundNumber).toArrayLike(Buffer, 'le', 8)],
+                            programId
+                        );
+                        const round = await program!.account.round.fetch(roundPda);
+
+                        if (!round.isActive) {
+                            const isCorrect = predictBull
+                                ? Number(round.endPrice) > Number(round.lockPrice)
+                                : Number(round.endPrice) < Number(round.lockPrice);
+                            status = isCorrect ? (claimed ? 'CLAIMED' : 'WON') : 'LOST';
+                            if (isCorrect && Number(round.rewardBaseCalAmount) > 0) {
+                                payout = (amount * Number(round.rewardAmount)) / Number(round.rewardBaseCalAmount);
+                            }
+                        }
+                    } catch (error) {
+                        console.error(`Failed to fetch round ${roundNumber} for status:`, error);
                     }
-                  } catch (error) {
-                    console.error(`Failed to fetch round ${roundNumber} for status:`, error);
-                  }
-          
-                  return {
-                    id: userBetPda.toBase58(),
-                    roundId: roundNumber,
-                    direction: predictBull ? 'up' : 'down',
-                    status,
-                    amount,
-                    payout,
-                  };
+
+                    return {
+                        id: userBetPda.toBase58(),
+                        roundId: roundNumber,
+                        direction: predictBull ? 'up' : 'down',
+                        status,
+                        amount,
+                        payout,
+                    };
                 })
-              );
-          
-              // Calculate claimable bets
-              const claimable: ClaimableBet[] = bets
+            );
+
+            // Calculate claimable bets
+            const claimable: ClaimableBet[] = bets
                 .filter((bet) => bet.status === 'WON')
                 .map((bet) => ({
-                  roundNumber: bet.roundId,
-                  amount: bet.amount,
-                  predictBull: bet.direction === 'up',
-                  payout: bet.payout,
+                    roundNumber: bet.roundId,
+                    amount: bet.amount,
+                    predictBull: bet.direction === 'up',
+                    payout: bet.payout,
                 }));
-          
-              setUserBets(bets);
-              setClaimableBets(claimable);
-              console.log('Fetched User Bets:', bets);
-              console.log('Fetched Claimable Bets:', claimable);
-              return claimable;
-            } catch (error) {
-              console.error('Failed to fetch user bets:', error);
-              setClaimableBets([]);
-              setUserBets([]);
-              return [];
-            }
-          }, [publicKey, connected, program]);
+
+            setUserBets(bets);
+            setClaimableBets(claimable);
+            // console.log('Fetched User Bets:', bets);
+            // console.log('Fetched Claimable Bets:', claimable);
+            return claimable;
+        } catch (error) {
+            console.error('Failed to fetch user bets:', error);
+            setClaimableBets([]);
+            setUserBets([]);
+            return [];
+        }
+    }, [publicKey, connected, program]);
 
     const handlePlaceBet = useCallback(async (roundId: number, isBull: boolean, amount: number) => {
         if (!publicKey) {
@@ -227,7 +227,7 @@ export const useSolPredictor = (): SolPredictorHook => {
             const escrowPda = getEscrowPda(roundId);
             const userBetPda = getUserBetPda(publicKey, roundId);
 
-            const tx = await program!.methods
+            const instruction = await program!.methods
                 .claimPayout(new BN(roundId))
                 .accounts({
                     config: configPda,
@@ -237,19 +237,12 @@ export const useSolPredictor = (): SolPredictorHook => {
                     escrow: escrowPda,
                 })
                 .signers([])
-                .rpc();
+                .instruction(); 
 
-            // const { blockhash } = await connection.getLatestBlockhash();
-            // tx.recentBlockhash = blockhash;
-            // tx.feePayer = publicKey;
-
-            // const signature = await sendTransaction(tx, connection);
-            // await connection.confirmTransaction(signature, "confirmed");
-
-            // Refresh bets after claiming
-            await fetchUserBets();
-
-
+            return instruction;
+        } catch (error: any) {
+            console.error(`Failed to build claim instruction for round ${roundId}:`, error);
+            throw error;
             console.log(`Payout claimed successfully: ${tx}`);
             toast("Payout claimed successfully!");
         } catch (error: any) {

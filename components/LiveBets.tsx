@@ -1,4 +1,4 @@
-// components/LiveBets.jsx
+// components/LiveBets.tsx
 "use client";
 
 import Image from "next/image";
@@ -12,7 +12,8 @@ interface Bet {
   user: string;
   amount: number;
   signature: string;
-  timestamp: number; // Add timestamp for sorting
+  timestamp: number;
+  round_number: number;
 }
 
 // Backend API and WebSocket URLs
@@ -27,28 +28,49 @@ const socket = io(WS_URL, {
   reconnectionDelay: 1000,
 });
 
-function LiveBets() {
+interface LiveBetsProps {
+  currentRound: number | null; // Allow null for loading/undefined states
+}
+
+function LiveBets({ currentRound }: LiveBetsProps) {
   const [liveBets, setLiveBets] = useState<Bet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch initial bets on mount
+  // Fetch bets when currentRound changes
   useEffect(() => {
+    if (currentRound === null) {
+      setLiveBets([]);
+      setIsLoading(false);
+      return;
+    }
+
     const fetchBets = async () => {
       try {
         setIsLoading(true);
         setError(null);
+        setLiveBets([]); // Clear bets on round change
         const response = await axios.get(API_URL);
         const bets: Bet[] = response.data
-          .map((bet: any) => ({
-            user: bet.data.user.slice(0, 8) + "...",
-            amount: bet.data.amount / 1e9,
-            signature: bet.signature,
-            timestamp: new Date(bet.timestamp).getTime(), // Convert ISO string to timestamp
-          }))
-          // Sort by timestamp descending (newest first)
-          .sort((a: { timestamp: number; }, b: { timestamp: number; }) => b.timestamp - a.timestamp);
-        setLiveBets(bets.slice(0, 10)); // Limit to 10 bets
+          .map((bet: any) => {
+            if (!bet.data.round_number) {
+              console.warn("Bet missing round_number:", bet);
+              return null;
+            }
+            return {
+              user: bet.data.user.slice(0, 8) + "...",
+              amount: bet.data.amount / 1e9, // Convert lamports to SOL
+              signature: bet.signature,
+              timestamp: new Date(bet.timestamp).getTime(),
+              round_number: bet.data.round_number,
+            };
+          })
+          .filter((bet): bet is Bet => bet !== null)
+          .filter((bet: Bet) => bet.round_number === currentRound) // Filter by current round
+          .sort((a: Bet, b: Bet) => b.amount - a.amount) // Sort by amount descending
+          .slice(0, 10); // Limit to 10 bets
+        setLiveBets(bets);
+        console.log(`Fetched bets for round ${currentRound}:`, bets);
       } catch (error) {
         console.error("Error fetching bets:", error);
         setError("Failed to load bets");
@@ -58,10 +80,12 @@ function LiveBets() {
     };
 
     fetchBets();
-  }, []);
+  }, [currentRound]);
 
   // Listen for new bets via WebSocket
   useEffect(() => {
+    if (currentRound === null) return;
+
     socket.on("connect", () => {
       console.log("Connected to WebSocket");
     });
@@ -73,13 +97,22 @@ function LiveBets() {
         amount: newBet.data.amount / 1e9,
         signature: newBet.signature,
         timestamp: new Date(newBet.timestamp).getTime(),
+        round_number: newBet.data.round_number,
       };
+
+      // Only add bets for the current round
+      if (formattedBet.round_number !== currentRound) {
+        return;
+      }
+
       setLiveBets((prevBets) => {
         // Prevent duplicates by signature
         if (prevBets.some((bet) => bet.signature === formattedBet.signature)) {
           return prevBets;
         }
-        const updatedBets = [formattedBet, ...prevBets].slice(0, 10);
+        const updatedBets = [formattedBet, ...prevBets]
+          .sort((a, b) => b.amount - a.amount) // Sort by amount descending
+          .slice(0, 10); // Limit to 10 bets
         return updatedBets;
       });
     });
@@ -104,7 +137,7 @@ function LiveBets() {
       socket.off("error");
       socket.off("reconnect_attempt");
     };
-  }, []);
+  }, [currentRound]);
 
   return (
     <div className="hidden xl:flex col-span-3 flex-col gap-[53px] items-end">
@@ -119,19 +152,22 @@ function LiveBets() {
           <div className="text-red-500">{error}</div>
         ) : isLoading ? (
           <div>Loading bets...</div>
+        ) : currentRound === null ? (
+          <div>No active round</div>
         ) : liveBets.length === 0 ? (
-          <div>No bets available</div>
+          <div>No bets available for Round {currentRound}</div>
         ) : (
           <table className="w-full text-left">
             <thead>
               <tr>
                 <th className="pb-[24px]">User</th>
                 <th className="pb-[24px]">Amount</th>
+                {/* <th className="pb-[24px]">Round</th> */}
               </tr>
             </thead>
             <tbody>
-              {liveBets.map((bet,index) => (
-                <tr key={index} className="font-semibold text-[15px]">
+              {liveBets.map((bet) => (
+                <tr key={bet.signature} className="font-semibold text-[15px]">
                   <td className="py-3">
                     <div className="flex gap-[6px] items-center">
                       <SVG width={29} height={29} iconName="avatar" />
@@ -150,6 +186,7 @@ function LiveBets() {
                       {bet.amount.toFixed(2)} SOL
                     </div>
                   </td>
+                  {/* <td className="py-3">#{bet.round_number}</td> */}
                 </tr>
               ))}
             </tbody>

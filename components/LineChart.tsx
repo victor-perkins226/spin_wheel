@@ -1279,6 +1279,25 @@ const TradingChart = () => {
           fontSize: isMobile ? "9px" : "11px",
         },
         datetimeUTC: false,
+        formatter: function(value, timestamp, opts) {
+            // Check if timestamp is defined before creating Date
+            if (timestamp === undefined) {
+              return value;
+            }
+            
+            const date = new Date(timestamp);
+            
+            // For LIVE mode, show minute-based timestamps
+            if (activeIndex === 0) {
+              return date.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+            }
+            
+            // Always return a string for other modes instead of undefined
+            return value;
+          }
       },
       axisBorder: {
         show: true,
