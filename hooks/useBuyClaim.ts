@@ -14,7 +14,7 @@ import toast from "react-hot-toast";
 // Define the return type for the hook
 interface SolPredictorHook {
     handlePlaceBet: (roundId: number, isBull: boolean, amount: number) => Promise<void>;
-    handleClaimPayout: (roundId: number) => Promise<void>;
+    handleClaimPayout: (roundId: number) => Promise<any>; // Updated to accept TransactionInstruction
     fetchUserBets: () => Promise<ClaimableBet[]>;
     claimableBets: ClaimableBet[];
     userBets: UserBet[];
@@ -243,27 +243,26 @@ export const useSolPredictor = (): SolPredictorHook => {
         } catch (error: any) {
             console.error(`Failed to build claim instruction for round ${roundId}:`, error);
             throw error;
-            console.log(`Payout claimed successfully: ${tx}`);
-            toast("Payout claimed successfully!");
-        } catch (error: any) {
-            console.error("Claim payout failed", error);
-            if (error.message.includes("6012")) {
-                toast("Contract is paused.");
-            } else if (error.message.includes("6006")) {
-                toast("Payout already claimed.");
-            } else if (error.message.includes("6003")) {
-                toast("Round has not ended yet.");
-            } else if (error.message.includes("6004")) {
-                toast("Round has not closed yet.");
-            } else if (error.message.includes("6015")) {
-                toast("No rewards available for this round.");
-            } else if (error.message.includes("6007")) {
-                toast("Invalid round number.");
-            } else if (error.message.includes("6010")) {
-                toast("Insufficient funds in escrow.");
-            } else {
-                toast("Failed to claim payout. Please try again.");
-            }
+        // } catch (error: any) {
+        //     console.error("Claim payout failed", error);
+        //     if (error.message.includes("6012")) {
+        //         toast("Contract is paused.");
+        //     } else if (error.message.includes("6006")) {
+        //         toast("Payout already claimed.");
+        //     } else if (error.message.includes("6003")) {
+        //         toast("Round has not ended yet.");
+        //     } else if (error.message.includes("6004")) {
+        //         toast("Round has not closed yet.");
+        //     } else if (error.message.includes("6015")) {
+        //         toast("No rewards available for this round.");
+        //     } else if (error.message.includes("6007")) {
+        //         toast("Invalid round number.");
+        //     } else if (error.message.includes("6010")) {
+        //         toast("Insufficient funds in escrow.");
+        //     } else {
+        //         toast("Failed to claim payout. Please try again.");
+        //     }
+        // }
         }
     }, [publicKey, connected, program, fetchUserBets]);
 

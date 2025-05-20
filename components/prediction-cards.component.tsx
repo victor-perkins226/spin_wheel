@@ -475,13 +475,8 @@ export default function PredictionCards() {
           {connected && userBets.length > 0 && <BetsHistory userBets={userBets} />}
         </div>
 
-<<<<<<< HEAD
-        <LiveBets liveBets={[]} />
-=======
         <LiveBets currentRound={Number(currentRound?.number) ?? null} />
-        <LineChart />
-        {/* <LineChart /> */}
->>>>>>> e68057c965293d289725d85bc7f586f1ded62a10
+      
       </div>
     </div>
 
