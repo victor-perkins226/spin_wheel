@@ -148,7 +148,7 @@ export default function PredictionCards() {
   };
 
 
-
+//handle
   const handleClaimRewards = useCallback(async () => {
     if (!connected || !publicKey || !connectionRef.current || !program) {
       alert("Please connect your wallet");
