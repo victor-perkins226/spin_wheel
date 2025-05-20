@@ -149,10 +149,6 @@ export default function PredictionCards() {
   };
 
 
-
-  const handleClaimRewards = useCallback(async () => {
-    if (!connected || !publicKey || !connectionRef.current || !program) {
-      alert("Please connect your wallet");
   const handleClaimRewards = async (roundId: number) => {
     if (!connected || !publicKey || !connectionRef.current) {
       toast("Please connect your wallet");
