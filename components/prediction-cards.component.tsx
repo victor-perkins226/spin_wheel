@@ -259,6 +259,23 @@ export default function PredictionCards() {
     // }
   };
 
+  // ⬆️ near your other useState declarations
+const [isFetchingRounds, setIsFetchingRounds] = useState(false);
+
+  const safeFetchMoreRounds = useCallback(async () => {
+    if (isFetchingRounds) return;          // debounce
+    try {
+      setIsFetchingRounds(true);           // show loader
+      await fetchMoreRounds?.();           // same hook you already call
+    } finally {
+      setIsFetchingRounds(false);          // hide loader
+    }
+  }, [fetchMoreRounds, isFetchingRounds]);
+  if (timeLeft === 0) {
+    initialSlideJumped.current = false;
+    safeFetchMoreRounds();   // ✅ use the guarded version
+  }
+
   const currentRoundNumber =
     Number(config?.currentRound) || Number(currentRound?.number) || 1000;
 
@@ -384,6 +401,24 @@ export default function PredictionCards() {
                 </p>
               </div>
             </div>
+            {isFetchingRounds && (
+  <div className="fixed inset-0 z-[999] flex flex-col gap-3 items-center justify-center
+                  backdrop-blur-sm bg-black/60">
+    <svg
+      className="animate-spin h-12 w-12 text-white"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="4"
+    >
+      <circle cx="12" cy="12" r="10" opacity="0.25" />
+      <path d="M22 12a10 10 0 00-10-10" />
+    </svg>
+    <p className="text-white text-lg font-semibold mt-4">
+      Fetching new rounds...
+    </p>
+  </div>
+)}
             <div className="relative flex items-center justify-center w-[60px] sm:w-[80px] lg:w-[120px] h-[60px] sm:h-[80px] lg:h-[120px]">
               {/* Circular progress background */}
               <svg className="absolute w-full h-full" viewBox="0 0 100 100">
