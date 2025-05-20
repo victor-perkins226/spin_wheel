@@ -374,7 +374,7 @@
 //       await connection.confirmTransaction(signature, 'confirmed');
 
 //       setError('');
-//       alert(`Bet placed successfully! Signature: ${signature}`);
+//       toast(`Bet placed successfully! Signature: ${signature}`);
 //       setBetAmount(0.1);
 //       await fetchData(); // Refresh data after betting
 //     } catch (err: any) {
@@ -411,7 +411,7 @@
 //       if (!response.ok) throw new Error('Failed to start genesis round');
 //       const data = await response.json();
 //       setError('');
-//       alert(`Genesis round started! Transaction: ${data.transaction}`);
+//       toast(`Genesis round started! Transaction: ${data.transaction}`);
 //       await fetchData(); // Refresh data immediately
 //     } catch (err) {
 //       console.error('Error starting genesis round:', err);
