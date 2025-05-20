@@ -51,6 +51,7 @@ function LiveBets({ currentRound }: LiveBetsProps) {
         setError(null);
         setLiveBets([]); // Clear bets on round change
         const response = await axios.get(API_URL);
+
         const bets: Bet[] = response.data
           .map((bet: any) => {
             if (!bet.data.round_number) {
@@ -147,6 +148,7 @@ function LiveBets({ currentRound }: LiveBetsProps) {
       >
         Leaderboard
       </div>
+
       <div className="glass px-[30px] py-[16px] rounded-[20px] w-full">
         {error ? (
           <div className="text-red-500">{error}</div>
@@ -162,6 +164,7 @@ function LiveBets({ currentRound }: LiveBetsProps) {
               <tr>
                 <th className="pb-[24px]">User</th>
                 <th className="pb-[24px]">Amount</th>
+
                 {/* <th className="pb-[24px]">Round</th> */}
               </tr>
             </thead>
@@ -186,7 +189,6 @@ function LiveBets({ currentRound }: LiveBetsProps) {
                       {bet.amount.toFixed(2)} SOL
                     </div>
                   </td>
-                  {/* <td className="py-3">#{bet.round_number}</td> */}
                 </tr>
               ))}
             </tbody>

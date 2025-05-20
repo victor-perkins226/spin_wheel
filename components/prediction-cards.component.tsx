@@ -37,10 +37,10 @@ export default function PredictionCards() {
   // const [userBets, setUserBets] = useState<UserBet[]>([]);
   const [liveRoundPrice, setLiveRoundPrice] = useState(50.5);
   const [claimableRewards, setClaimableRewards] = useState(0);
+
   const { handlePlaceBet, handleClaimPayout, claimableBets, userBets, fetchUserBets } = useSolPredictor();
   const claimableAmountRef = useRef<number>(0); // Store claimableAmount in useRef
   const { program } = useProgram();
-
 
   const {
     config,
@@ -125,6 +125,7 @@ export default function PredictionCards() {
         console.error("Failed to fetch balance:", error);
       }
     };
+    
     fetchBalance();
     // fetchClaimableRewards();
   }, [connected, publicKey, currentRound?.number]);
@@ -294,6 +295,13 @@ export default function PredictionCards() {
     return `${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
 
+  const [previousPrice, setPreviousPrice] = useState(liveRoundPrice);
+  useEffect(() => {
+    if (liveRoundPrice !== previousPrice) {
+      setPreviousPrice(liveRoundPrice);
+    }
+  }, [liveRoundPrice]);
+
 
   // if (isLoading) {
   //   return (
@@ -308,7 +316,7 @@ export default function PredictionCards() {
     <div className="container px-3 sm:px-4 md:px-6 lg:px-8 mt-5 md:mt-6 lg:mt-[70px] flex flex-col gap-4 md:gap-6 lg:gap-[40px]">
       <div className="grid grid-cols-12 gap-4 lg:gap-6 xl:gap-[40px]">
         <div className="flex flex-col gap-6 md:gap-8 lg:gap-[40px] col-span-12 xl:col-span-9">
-          <div className="flex justify-between items-center flex-wrap gap-2 md:gap-4">
+          <div className="flex justify-between items-center flex-wrap gap-4 md:gap-4">
             <div className="relative">
               <Image
                 className="w-[24px] sm:w-[32px] lg:w-[64px] h-auto object-contain absolute left-0 top-0 z-10"
@@ -317,20 +325,80 @@ export default function PredictionCards() {
                 width={64}
                 height={64}
               />
-              <div className="glass flex gap-2 sm:gap-[9px] lg:gap-[26px] relative top-0 left-[8px] sm:left-[10px] lg:left:[20px] items-center font-semibold px-3 sm:px-[20px] lg:px-[44px] py-1 sm:py-[6px] lg:py-[15px] rounded-full">
+              <div className="glass flex gap-2 sm:gap-[9px] lg:gap-[26px] relative top-0 left-[10px] sm:left-[12px] lg:left-[20px] items-center font-semibold px-3 sm:px-[20px] lg:px-[44px] py-1 sm:py-[6px] lg:py-[15px] rounded-full">
                 <p className="text-[10px] sm:text-[12px] lg:text-[20px]">SOL/USDT</p>
-                <p className="text-[10px] sm:text-[12px]">${liveRoundPrice.toFixed(2)}</p>
+                <p
+                  className="text-[10px] sm:text-[12px] transition-all duration-300 ease-in-out"
+                  key={liveRoundPrice}
+                  style={{
+                    animation: `priceUpdate 0.5s ease-out, numberRoll 0.5s ease-out`,
+                    color: liveRoundPrice > previousPrice
+                      ? '#06C729' // Green for price increase
+                      : liveRoundPrice < previousPrice
+                        ? '#FD6152' // Red for price decrease
+                        : '#FEFEFE' // White when unchanged
+                  }}
+                >
+                  ${liveRoundPrice.toFixed(4)}
+                </p>
               </div>
             </div>
-            <div className="glass py-1 sm:py-[6px] lg:py-[15px] px-3 sm:px-[24px] rounded-full w-[90px] sm:w-[104px] lg:w-[210px] relative">
-              <p className="flex items-center font-semibold text-[10px] sm:text-[12px] lg:text-[20px] gap-1 sm:gap-[7px]">
-                <span>Time</span>
-                <span className="text-[6px] sm:text-[8px] lg:text-[12px]">
+            <div className="relative flex items-center justify-center w-[60px] sm:w-[80px] lg:w-[120px] h-[60px] sm:h-[80px] lg:h-[120px]">
+              {/* Circular progress background */}
+              <svg className="absolute w-full h-full" viewBox="0 0 100 100">
+                {/* Background circle */}
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  fill="none"
+                  stroke="#374151" // grey-700
+                  strokeWidth="5"
+                />
+
+                {/* Grey progress circle */}
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  fill="none"
+                  stroke="#6B7280" // grey-500
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  strokeDasharray="283" // 2πr ≈ 283 (for r=45)
+                  strokeDashoffset={283 - (283 * (1 - (timeLeft / 120)))} // Adjusted calculation
+                  transform="rotate(-90 50 50)"
+                />
+
+                {/* 12 hour markers */}
+                {Array.from({ length: 20 }).map((_, i) => {
+                  const angle = 15 + (i * 18); // Starts at 15°, 18° increments (covers 15°-345°)
+                  if (angle < 165 || angle > 195) { // Skip small bottom portion (165°-195°)
+                    return (
+                      <line
+                        key={i}
+                        x1="50"
+                        y1="8"
+                        x2="50"
+                        y2="12"
+                        stroke="#4B5563" // grey-600
+                        strokeWidth="1.5"
+                        transform={`rotate(${angle} 50 50)`}
+                      />
+                    );
+                  }
+                  return null;
+                })}
+              </svg>
+
+              {/* Time display in center */}
+              <div className="absolute flex flex-col items-center justify-center z-10">
+                <span className="font-semibold text-white text-[12px] sm:text-[16px] lg:text-[24px]">
                   {formatTimeLeft(timeLeft)}
                 </span>
-              </p>
-              <div className="hidden w-[64px] h-[64px] glass absolute rounded-full right-[24px] top-[-2px] lg:flex items-center justify-center backdrop-blur-2xl">
-                <SVG width={40} height={40} iconName="clock" />
+                <span className="text-[#D1D5DB] text-[8px] sm:text-[10px] lg:text-[12px]">
+                  2m
+                </span>
               </div>
             </div>
           </div>
@@ -462,14 +530,14 @@ export default function PredictionCards() {
             </Swiper>
             <div className="swiper-pagination !relative !mt-4" />
           </div>
-              
+
           <div className="xl:hidden">
             <MobileLiveBets liveBets={[]} />
           </div>
-          
-           {/* Line Chart Component */}
+
+          {/* Line Chart Component */}
           <div className="mt-10">
-            <LineChart/>
+            <LineChart />
           </div>
 
           {connected && userBets.length > 0 && <BetsHistory userBets={userBets} />}
