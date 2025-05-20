@@ -16,7 +16,6 @@ import { MobileLiveBets } from "./MobileBets";
 import LiveBets from "./LiveBets";
 import { useRoundManager } from "@/hooks/roundManager";
 import { Round } from "@/types/round";
-
 import { useSolPredictor } from "@/hooks/useBuyClaim"
 import { BetsHistory } from "./BetsHistory";
 import LineChart from "./LineChart";
@@ -36,7 +35,7 @@ export default function PredictionCards() {
   // const [userBets, setUserBets] = useState<UserBet[]>([]);
   const [liveRoundPrice, setLiveRoundPrice] = useState(50.5);
   const [claimableRewards, setClaimableRewards] = useState(0);
-  const { handlePlaceBet, handleClaimPayout, claimableBets,userBets } = useSolPredictor();
+  const { handlePlaceBet, handleClaimPayout, claimableBets,userBets,fetchUserBet } = useSolPredictor();
 
   const {
     config,
@@ -112,9 +111,6 @@ export default function PredictionCards() {
         console.error("Failed to fetch balance:", error);
       }
     };
-
- 
-
     fetchBalance();
     // fetchClaimableRewards();
   }, [connected, publicKey, currentRound?.number]);

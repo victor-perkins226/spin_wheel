@@ -47,7 +47,7 @@ function LiveBets() {
             timestamp: new Date(bet.timestamp).getTime(), // Convert ISO string to timestamp
           }))
           // Sort by timestamp descending (newest first)
-          .sort((a, b) => b.timestamp - a.timestamp);
+          .sort((a: { timestamp: number; }, b: { timestamp: number; }) => b.timestamp - a.timestamp);
         setLiveBets(bets.slice(0, 10)); // Limit to 10 bets
       } catch (error) {
         console.error("Error fetching bets:", error);
