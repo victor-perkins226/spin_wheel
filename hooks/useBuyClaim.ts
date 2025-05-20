@@ -14,7 +14,8 @@ import toast from "react-hot-toast";
 // Define the return type for the hook
 interface SolPredictorHook {
     handlePlaceBet: (roundId: number, isBull: boolean, amount: number) => Promise<void>;
-    handleClaimPayout: (roundId: number) => Promise<void>;
+    handleClaimPayout: (roundId: number) => Promise<any>; // Updated to accept TransactionInstruction
+    fetchUserBets: () => Promise<ClaimableBet[]>;
     claimableBets: ClaimableBet[];
     userBets: UserBet[];
 
@@ -67,13 +68,6 @@ export const useSolPredictor = (): SolPredictorHook => {
         try {
             console.log('Fetching user bets for:', publicKey.toBase58());
 
-            const [configPda] = PublicKey.findProgramAddressSync(
-                [Buffer.from('config')],
-                programId
-            );
-
-            const config = await program.account.config.fetch(configPda);
-            const treasuryFee = config.treasuryFee.toNumber();
             // Fetch user_bet accounts for the user
             const userBetAccounts = await program.account.userBet.all([
                 {
@@ -84,7 +78,7 @@ export const useSolPredictor = (): SolPredictorHook => {
                 },
             ]) as unknown as { publicKey: PublicKey; account: UserBetAccount }[];
 
-            console.log('Raw User Bets:', userBetAccounts);
+            // console.log('Raw User Bets:', userBetAccounts);
 
             const bets: UserBet[] = await Promise.all(
                 userBetAccounts.map(async (account) => {
@@ -99,33 +93,27 @@ export const useSolPredictor = (): SolPredictorHook => {
                         programId
                     );
 
-
-
                     let status: UserBet['status'] = 'PENDING';
                     let payout = 0;
 
-                    if (claimed) {
-                        status = 'CLAIMED';
-                    } else {
-                        try {
-                            const [roundPda] = PublicKey.findProgramAddressSync(
-                                [Buffer.from('round'), new BN(roundNumber).toArrayLike(Buffer, 'le', 8)],
-                                programId
-                            );
-                            const round = await program!.account.round.fetch(roundPda);
+                    try {
+                        const [roundPda] = PublicKey.findProgramAddressSync(
+                            [Buffer.from('round'), new BN(roundNumber).toArrayLike(Buffer, 'le', 8)],
+                            programId
+                        );
+                        const round = await program!.account.round.fetch(roundPda);
 
-                            if (!round.isActive) {
-                                const isCorrect = predictBull
-                                    ? Number(round.endPrice) > Number(round.lockPrice)
-                                    : Number(round.endPrice) < Number(round.lockPrice);
-                                status = isCorrect ? 'WON' : 'LOST';
-                                if (isCorrect && Number(round.rewardBaseCalAmount) > 0) {
-                                    payout = (amount * Number(round.rewardAmount)) / Number(round.rewardBaseCalAmount);
-                                }
+                        if (!round.isActive) {
+                            const isCorrect = predictBull
+                                ? Number(round.endPrice) > Number(round.lockPrice)
+                                : Number(round.endPrice) < Number(round.lockPrice);
+                            status = isCorrect ? (claimed ? 'CLAIMED' : 'WON') : 'LOST';
+                            if (isCorrect && Number(round.rewardBaseCalAmount) > 0) {
+                                payout = (amount * Number(round.rewardAmount)) / Number(round.rewardBaseCalAmount);
                             }
-                        } catch (error) {
-                            console.error(`Failed to fetch round ${roundNumber} for status:`, error);
                         }
+                    } catch (error) {
+                        console.error(`Failed to fetch round ${roundNumber} for status:`, error);
                     }
 
                     return {
@@ -151,11 +139,9 @@ export const useSolPredictor = (): SolPredictorHook => {
 
             setUserBets(bets);
             setClaimableBets(claimable);
-            console.log('Fetched User Bets:', bets);
-            console.log('Fetched Claimable Bets:', claimable);
+            // console.log('Fetched User Bets:', bets);
+            // console.log('Fetched Claimable Bets:', claimable);
             return claimable;
-
-
         } catch (error) {
             console.error('Failed to fetch user bets:', error);
             setClaimableBets([]);
@@ -241,7 +227,7 @@ export const useSolPredictor = (): SolPredictorHook => {
             const escrowPda = getEscrowPda(roundId);
             const userBetPda = getUserBetPda(publicKey, roundId);
 
-            const tx = await program!.methods
+            const instruction = await program!.methods
                 .claimPayout(new BN(roundId))
                 .accounts({
                     config: configPda,
@@ -251,40 +237,32 @@ export const useSolPredictor = (): SolPredictorHook => {
                     escrow: escrowPda,
                 })
                 .signers([])
-                .rpc();
+                .instruction(); 
 
-            // const { blockhash } = await connection.getLatestBlockhash();
-            // tx.recentBlockhash = blockhash;
-            // tx.feePayer = publicKey;
-
-            // const signature = await sendTransaction(tx, connection);
-            // await connection.confirmTransaction(signature, "confirmed");
-
-            // Refresh bets after claiming
-            await fetchUserBets();
-
-
-            console.log(`Payout claimed successfully: ${tx}`);
-            toast("Payout claimed successfully!");
+            return instruction;
         } catch (error: any) {
-            console.error("Claim payout failed", error);
-            if (error.message.includes("6012")) {
-                toast("Contract is paused.");
-            } else if (error.message.includes("6006")) {
-                toast("Payout already claimed.");
-            } else if (error.message.includes("6003")) {
-                toast("Round has not ended yet.");
-            } else if (error.message.includes("6004")) {
-                toast("Round has not closed yet.");
-            } else if (error.message.includes("6015")) {
-                toast("No rewards available for this round.");
-            } else if (error.message.includes("6007")) {
-                toast("Invalid round number.");
-            } else if (error.message.includes("6010")) {
-                toast("Insufficient funds in escrow.");
-            } else {
-                toast("Failed to claim payout. Please try again.");
-            }
+            console.error(`Failed to build claim instruction for round ${roundId}:`, error);
+            throw error;
+        // } catch (error: any) {
+        //     console.error("Claim payout failed", error);
+        //     if (error.message.includes("6012")) {
+        //         toast("Contract is paused.");
+        //     } else if (error.message.includes("6006")) {
+        //         toast("Payout already claimed.");
+        //     } else if (error.message.includes("6003")) {
+        //         toast("Round has not ended yet.");
+        //     } else if (error.message.includes("6004")) {
+        //         toast("Round has not closed yet.");
+        //     } else if (error.message.includes("6015")) {
+        //         toast("No rewards available for this round.");
+        //     } else if (error.message.includes("6007")) {
+        //         toast("Invalid round number.");
+        //     } else if (error.message.includes("6010")) {
+        //         toast("Insufficient funds in escrow.");
+        //     } else {
+        //         toast("Failed to claim payout. Please try again.");
+        //     }
+        // }
         }
     }, [publicKey, connected, program, fetchUserBets]);
 
@@ -299,5 +277,5 @@ export const useSolPredictor = (): SolPredictorHook => {
     }, [publicKey, connected, program, fetchUserBets]);
 
 
-    return { handlePlaceBet, handleClaimPayout, claimableBets, userBets };
+    return { handlePlaceBet, handleClaimPayout, claimableBets, userBets, fetchUserBets };
 };

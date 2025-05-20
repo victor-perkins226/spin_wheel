@@ -6,6 +6,9 @@ interface BetsHistoryProps {
 }
 
 export function BetsHistory({ userBets }: BetsHistoryProps) {
+  // Sort userBets by roundId in descending order (most recent first)
+  const sortedBets = [...userBets].sort((a, b) => b.roundId - a.roundId);
+
   return (
     <div>
       <div className="glass p-4 rounded-xl">
@@ -22,7 +25,7 @@ export function BetsHistory({ userBets }: BetsHistoryProps) {
               </tr>
             </thead>
             <tbody>
-              {userBets.map((bet) => (
+              {sortedBets.map((bet) => (
                 <tr key={bet.id} className="border-t border-gray-700">
                   <td className="py-3">#{bet.roundId}</td>
                   <td
