@@ -149,9 +149,10 @@ export default function PredictionCards() {
   };
 
 
-  const handleClaimRewards = async (roundId: number) => {
-    if (!connected || !publicKey || !connectionRef.current) {
-      toast("Please connect your wallet");
+//handle
+  const handleClaimRewards = useCallback(async () => {
+    if (!connected || !publicKey || !connectionRef.current || !program) {
+      alert("Please connect your wallet");
       return;
     }
 
@@ -187,10 +188,6 @@ export default function PredictionCards() {
       await fetchUserBets();
 
       // Reset claimable rewards
-      await handleClaimPayout(roundId)
-      alert(`Rewards claimed for round ${roundId}`);
-      await fetchUserBets(); // Refresh userBets and claimableBets
-      toast(`Rewards claimed for round ${roundId}`);
       setClaimableRewards(0);
 
       console.log(`Batched payout claimed successfully: ${signature}`);
@@ -216,9 +213,9 @@ export default function PredictionCards() {
         errorMessage = "Transaction was not signed.";
       }
       alert(errorMessage);
-      toast("Failed to claim rewards");
     }
   }, [connected, publicKey, program, claimableBets, sendTransaction, fetchUserBets, handleClaimPayout]);
+
 
   const getSlidesPerView = () => {
     if (!mounted) return 1;
