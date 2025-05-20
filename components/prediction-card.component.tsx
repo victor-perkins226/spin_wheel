@@ -4,11 +4,12 @@ import { useState, useEffect } from "react";
 import Button from "./button.component";
 import SVG from "./svg.component";
 import Image from "next/image";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import SolanaBg from "@/public/assets/solana_bg.png";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { UserBet } from "@/types/round";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import toast from "react-hot-toast";
 
 interface IProps {
   variant?: "live" | "expired" | "next" | "later" | "locked";
@@ -62,6 +63,7 @@ export default function PredictionCard({
   const [amount, setAmount] = useState<number>(0.1);
   const [maxAmount, setMaxAmount] = useState<number>(10);
   const { connected, publicKey } = useWallet();
+  const { connection } = useConnection();
 
   // Calculate multipliers
   const calculateMultipliers = () => {
@@ -84,13 +86,21 @@ export default function PredictionCard({
 
   const { bullMultiplier, bearMultiplier } = calculateMultipliers();
 
-  // Wallet balance
   useEffect(() => {
-    if (connected && publicKey) {
-      // TODO: Fetch actual SOL balance
-      setMaxAmount(10);
+    if (!connected || !publicKey) {
+      setMaxAmount(0);
+      return;
     }
-  }, [connected, publicKey]);
+    // fetch on connect (and whenever pubkey changes)
+    (async () => {
+      try {
+        const lamports = await connection.getBalance(publicKey);
+        setMaxAmount(lamports / LAMPORTS_PER_SOL);
+      } catch (err) {
+        console.error("Failed to fetch SOL balance:", err);
+      }
+    })();
+  }, [connected, publicKey, connection]);
 
   // User bet status
   const userBetStatus = userBets?.find((bet) => bet.roundId === roundId) || null;
@@ -162,11 +172,11 @@ export default function PredictionCard({
 
   const handleEnterPrediction = (mode: "up" | "down") => {
     if (!connected) {
-      alert("Please connect your wallet first");
+      toast("Please connect your wallet first");
       return;
     }
     if (!canBet) {
-      alert("Betting is not available for this round");
+      toast("Betting is not available for this round");
       return;
     }
     setIsFlipped(true);
@@ -175,15 +185,15 @@ export default function PredictionCard({
 
   const handlePlaceBet = () => {
     if (!connected) {
-      alert("Please connect your wallet first");
+      toast("Please connect your wallet first");
       return;
     }
     if (amount <= 0) {
-      alert("Please enter a valid amount");
+      toast("Please enter a valid amount");
       return;
     }
     if (!canBet) {
-      alert("Betting is not available for this round");
+      toast("Betting is not available for this round");
       return;
     }
     if (onPlaceBet && mode && roundId) {
@@ -376,12 +386,27 @@ export default function PredictionCard({
         }`}
     >
       <div className={`${isFlipped ? "hidden" : "flex"} flex-col justify-between gap-[10px]`}>
-        <div className={`${variant === "expired" ? "opacity-80" : ""} flex justify-between font-semibold text-[20px]`}>
-          <div className="flex items-center gap-[10px]">
-            <SVG width={12} height={12} iconName="play-fill" />
-            <p className="capitalize">{variant}</p>
+        <div className={`${variant === "expired" ? "opacity-80" : ""} flex flex-col`}>
+          <div className="flex justify-between items-center font-semibold text-[20px]">
+            <div className="flex items-center gap-[10px]">
+              <SVG width={12} height={12} iconName="play-fill" />
+              <p className="capitalize">{variant}</p>
+            </div>
+            <p>#{roundId}</p>
           </div>
-          <p>#{roundId}</p>
+          {variant === "live" && (
+            <div className="mt-1 w-full h-[6px] rounded-full overflow-hidden flex gap-[4px]">
+              {[...Array(7)].map((_, i) => (
+                <div
+                  key={i}
+                  className="h-full flex-1 rounded-[1px]"
+                  style={{
+                    backgroundColor: i < Math.floor(((120 - (timeLeft || 0)) / 120) * 7) ? '#E5E7EB' : '#6B7280'
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </div>
         <Button
           style={{ background: getButtonStyle("up") }}

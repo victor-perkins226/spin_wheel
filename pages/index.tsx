@@ -9,7 +9,7 @@ export default function Home() {
       <Head>
         <title>Prediction | FORTUVA</title>
       </Head>
-
+      
       <Hero />
       <PredictionCards />
 
