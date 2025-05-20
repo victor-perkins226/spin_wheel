@@ -168,6 +168,7 @@ export default function PredictionCard({
       status: "ENDED" as const,
     };
 
+    console.log("Formatted Round Data:", formattedRoundData);
   const isLockPhase = roundData && Date.now() / 1000 >= roundData.lockTime && Date.now() / 1000 < roundData.closeTime;
 
   const handleEnterPrediction = (mode: "up" | "down") => {
@@ -271,7 +272,7 @@ export default function PredictionCard({
     if (variant !== "later") return null;
   const baseRemaining = timeLeft || 0;
 
-  const totalSeconds = baseRemaining > 0 ? baseRemaining + 240 : 0;
+  const totalSeconds = baseRemaining > 0 ? baseRemaining + 120 : 0;
 
   const display =
     totalSeconds > 0
@@ -332,7 +333,7 @@ export default function PredictionCard({
               <p>Prize Pool</p>
               <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
             </div>
-            {isLockPhase && <div className="text-center text-yellow-400 font-bold">LOCKED</div>}
+            {/* {isLockPhase && <div className="text-center text-yellow-400 font-bold">LOCKED</div>} */}
           </div>
         </div>
       </div>
