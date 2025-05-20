@@ -269,6 +269,18 @@ export default function PredictionCard({
 
   const renderLaterRoundContent = () => {
     if (variant !== "later") return null;
+  const baseRemaining = timeLeft || 0;
+
+  const totalSeconds = baseRemaining > 0 ? baseRemaining + 240 : 0;
+
+  const display =
+    totalSeconds > 0
+      ? `${Math.floor(totalSeconds / 60)
+          .toString()
+          .padStart(2, "0")}:${Math.floor(totalSeconds % 60)
+          .toString()
+          .padStart(2, "0")}`
+      : "Waiting";
     return (
       <div className="glass flex-1 rounded-[20px] flex flex-col gap-[12px] items-center justify-center">
         <Image
@@ -283,9 +295,7 @@ export default function PredictionCard({
           <p className="font-semibold text-[20px]">Next Play</p>
         </div>
         <p className="font-semibold text-[35px]">
-          {formattedRoundData.timeRemaining > 0
-            ? new Date(formattedRoundData.timeRemaining * 1000).toISOString().substr(11, 8)
-            : "Waiting..."}
+          {display}
         </p>
       </div>
     );

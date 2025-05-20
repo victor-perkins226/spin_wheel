@@ -262,21 +262,40 @@ export default function PredictionCards() {
   const currentRoundNumber =
     Number(config?.currentRound) || Number(currentRound?.number) || 1000;
 
-  const rounds = [
-    ...(currentRound &&
-    !isNaN(Number(currentRound.number)) &&
-    Number(currentRound.number) > 0
-      ? [currentRound]
-      : []),
-    ...(previousRounds && Array.isArray(previousRounds)
-      ? previousRounds.filter(
-          (round) =>
-            !isNaN(Number(round.number)) &&
-            Number(round.number) > 0 &&
-            Number(round.number) <= currentRoundNumber - 1
-        )
-      : []),
-  ];
+    const nextRoundNumber = currentRoundNumber + 1;
+    const nextRound =
+      // if your back end actually returns it in previousRounds use that,
+      previousRounds.find((r: Round) => Number(r.number) === nextRoundNumber) ??
+      {
+        number: nextRoundNumber.toString(),
+        // schedule it to start immediately after the currentRound.closeTime:
+        startTime:
+          typeof currentRound?.closeTime === "number"
+            ? currentRound.closeTime + 1
+            : Math.floor(Date.now() / 1000) + 1,
+        lockTime:
+          (typeof currentRound?.closeTime === "number"
+            ? currentRound.closeTime
+            : Math.floor(Date.now() / 1000)) + 120,
+        closeTime:
+          (typeof currentRound?.closeTime === "number"
+            ? currentRound.closeTime
+            : Math.floor(Date.now() / 1000)) + 240,
+        totalAmount: 0,
+        totalBullAmount: 0,
+        totalBearAmount: 0,
+        isActive: false,
+      };
+    
+    const rounds = [
+      ...(currentRound ? [currentRound] : []),
+      nextRound,
+      ...previousRounds.filter(
+        (r: Round) =>
+          Number(r.number) > 0 &&
+          Number(r.number) <= currentRoundNumber - 1
+      ),
+    ];
 
   // Deduplicate rounds
   const roundMap = new Map<number, Round>();
@@ -311,8 +330,29 @@ export default function PredictionCards() {
       swiper.slideTo(liveIndex, 0);
       initialSlideJumped.current = true;
     }
-  }, [liveIndex]);
+    // reset the synthetic-round inclusion whenever the round rolls over:
+    if (timeLeft === 0) {
+      initialSlideJumped.current = false;
+      // if your hook provides a refetch, call it here:
+      fetchMoreRounds?.();
+    }
+  }, [liveIndex, timeLeft, fetchMoreRounds]);
 
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        // force a timer/rounds re-sync:
+        fetchMoreRounds?.();
+        fetchUserBets?.();
+      }
+    };
+  
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
+  }, [fetchMoreRounds, fetchUserBets]);
+
+  console.log(sortedRounds)
   const formatTimeLeft = (seconds: number | null) => {
     if (seconds === null || seconds <= 0) return "Locked";
     const minutes = Math.floor(seconds / 60);
