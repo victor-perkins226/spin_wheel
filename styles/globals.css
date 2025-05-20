@@ -10,6 +10,37 @@ body {
   color: var(--foreground);
 }
 
+/* Add this to your globals.css file */
+@keyframes priceUpdate {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.price-update-animation {
+  animation: priceUpdate 0.5s ease-out;
+}
+
+.price-up {
+  color: #06C729; /* Green for price increase */
+}
+
+.price-down {
+  color: #FD6152; /* Red for price decrease */
+}
+
+.price-neutral {
+  color: #FEFEFE; /* White when unchanged */
+}
+
 .container {
   /* max-width: 1355px; */
   @apply mx-auto max-w-[1355px] px-4;

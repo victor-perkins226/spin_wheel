@@ -33,7 +33,7 @@ function LiveBets() {
             amount: bet.data.amount / 1e9, // Convert lamports to SOL
           }))
           .reverse(); // Show newest bets first
-        setLiveBets(bets.slice(0, 10)); // Limit to 10 bets
+        setLiveBets(bets.slice(0, 15)); // Limit to 10 bets
       } catch (error) {
         console.error("Error fetching bets:", error);
       }
@@ -85,39 +85,41 @@ function LiveBets() {
       >
         Leaderboard
       </div>
-      <div className="glass px-[30px] py-[16px] rounded-[20px] w-full">
-        <table className="w-full text-left">
-          <thead>
-            <tr>
-              <th className="pb-[24px]">User</th>
-              <th className="pb-[24px]">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {liveBets.map((bet, index) => (
-              <tr key={index} className="font-semibold text-[15px]">
-                <td className="py-3">
-                  <div className="flex gap-[6px] items-center">
-                    <SVG width={29} height={29} iconName="avatar" />
-                    {bet.user}
-                  </div>
-                </td>
-                <td className="py-3">
-                  <div className="flex items-center gap-1">
-                    <Image
-                      className="w-[30px] h-auto object-contain"
-                      src="/assets/solana_logo.png"
-                      alt="Solana"
-                      width={30}
-                      height={30}
-                    />
-                    {bet.amount.toFixed(2)} SOL
-                  </div>
-                </td>
+      <div className="glass px-[30px] rounded-[20px] w-full min-h-[895px] relative"> {/* Fixed height container */}
+        <div className="absolute top-12 left-0 right-0 px-[30px]"> {/* This wrapper moves the whole table down */}
+          <table className="w-full text-left">
+            <thead>
+              <tr>
+                <th className="pb-[24px]">User</th>
+                <th className="pb-[24px]">Amount</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {liveBets.map((bet, index) => (
+                <tr key={index} className="font-semibold text-[15px]">
+                  <td className="py-3">
+                    <div className="flex gap-[6px] items-center">
+                      <SVG width={29} height={29} iconName="avatar" />
+                      {bet.user}
+                    </div>
+                  </td>
+                  <td className="py-3">
+                    <div className="flex items-center gap-1">
+                      <Image
+                        className="w-[30px] h-auto object-contain"
+                        src="/assets/solana_logo.png"
+                        alt="Solana"
+                        width={30}
+                        height={30}
+                      />
+                      {bet.amount.toFixed(2)} SOL
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
