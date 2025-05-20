@@ -398,14 +398,14 @@ export const fetchLivePrice = async (): Promise<number> => {
     }
 
     // Return simulated price if both fail
-    const simulatedPrice = defaultPrice + (Math.random() * 0.8 - 0.4); // ±0.4 variation
+    const simulatedPrice = defaultPrice + (Math.random() * 0.08 - 0.04); // ±0.4 variation
     // Update cache with simulated price
     priceCache.price = simulatedPrice;
     priceCache.timestamp = Date.now();
     return simulatedPrice;
   } catch (error) {
     console.error("Live price fetch error:", error);
-    return defaultPrice + (Math.random() * 0.6 - 0.3); // ±0.3 variation
+    return defaultPrice + (Math.random() * 0.06 - 0.03); // ±0.3 variation
   }
 };
 
@@ -478,8 +478,8 @@ const simulateHistoricalData = (
     // Return realistic minimal data rather than defaulting to 50
     const now = new Date();
     return [
-      { x: now.getTime() - 86400000, y: 170.0 },
-      { x: now.getTime(), y: 170.5 },
+      { x: now.getTime() - 86400000, y: 164.0 },
+      { x: now.getTime(), y: 164.5 },
     ];
   }
 };
@@ -611,7 +611,7 @@ const TradingChart = () => {
     } catch (error) {
       console.error("Error initializing live mode:", error);
       setIsLoading(false);
-      return 170.0; // Fallback price
+      return 164.0; // Fallback price
     }
   };
 
@@ -1060,7 +1060,7 @@ const TradingChart = () => {
   useEffect(() => {
     if (activeIndex !== 0) return; // Only for LIVE mode
 
-    let basePrice = 170.0; // Default starting price
+    let basePrice = 165.0; // Default starting price
     let liveUpdateInterval: NodeJS.Timeout;
 
     // Initialize with 5 minutes of historical data

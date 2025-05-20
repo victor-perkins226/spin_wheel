@@ -419,7 +419,6 @@ export default function PredictionCards() {
         </div>
 
         <LiveBets liveBets={[]} />
-        {/* <LineChart /> */}
       </div>
     </div>
 

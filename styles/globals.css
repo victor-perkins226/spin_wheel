@@ -30,7 +30,9 @@ body {
 }
 
 
-
+.apexcharts-tooltip * {
+  pointer-events: auto !important;
+}
 
  .apexcharts-tooltip .apexcharts-tooltip-series-group.active {
   background: #1f1f43 !important;
