@@ -21,6 +21,7 @@ import { BetsHistory } from "./BetsHistory";
 import LineChart from "./LineChart";
 import { fetchLivePrice } from '@/lib/price-utils';
 import { useProgram } from "@/hooks/useProgram";
+import toast from "react-hot-toast";
 
 
 
@@ -133,17 +134,17 @@ export default function PredictionCards() {
 
   const handleBet = async (direction: "up" | "down", amount: number, roundId: number) => {
     if (!connected || !publicKey || !connectionRef.current) {
-      alert("Please connect your wallet");
+      toast("Please connect your wallet");
       return;
     }
 
     try {
 
       await handlePlaceBet(roundId, direction === "up", amount)
-      alert(`Bet placed: ${amount} SOL ${direction} on round ${roundId}`);
+      toast(`Bet placed: ${amount} SOL ${direction} on round ${roundId}`);
     } catch (error) {
       console.error("Failed to place bet:", error);
-      alert("Failed to place bet");
+      toast("Failed to place bet");
     }
   };
 
@@ -152,6 +153,9 @@ export default function PredictionCards() {
   const handleClaimRewards = useCallback(async () => {
     if (!connected || !publicKey || !connectionRef.current || !program) {
       alert("Please connect your wallet");
+  const handleClaimRewards = async (roundId: number) => {
+    if (!connected || !publicKey || !connectionRef.current) {
+      toast("Please connect your wallet");
       return;
     }
 
@@ -187,6 +191,10 @@ export default function PredictionCards() {
       await fetchUserBets();
 
       // Reset claimable rewards
+      await handleClaimPayout(roundId)
+      alert(`Rewards claimed for round ${roundId}`);
+      await fetchUserBets(); // Refresh userBets and claimableBets
+      toast(`Rewards claimed for round ${roundId}`);
       setClaimableRewards(0);
 
       console.log(`Batched payout claimed successfully: ${signature}`);
@@ -212,6 +220,7 @@ export default function PredictionCards() {
         errorMessage = "Transaction was not signed.";
       }
       alert(errorMessage);
+      toast("Failed to claim rewards");
     }
   }, [connected, publicKey, program, claimableBets, sendTransaction, fetchUserBets, handleClaimPayout]);
 
@@ -403,7 +412,7 @@ export default function PredictionCards() {
                 dynamicBullets: mounted && screenWidth < 640,
                 el: ".swiper-pagination",
               }}
-              modules={[Pagination,]}
+              modules={[Pagination, EffectCoverflow]}
               className="w-full px-4 sm:px-0"
             >
               {uniqueRounds.map((round, index) => {
@@ -460,9 +469,14 @@ export default function PredictionCards() {
             </Swiper>
             <div className="swiper-pagination !relative !mt-4" />
           </div>
-
+              
           <div className="xl:hidden">
             <MobileLiveBets liveBets={[]} />
+          </div>
+          
+           {/* Line Chart Component */}
+          <div className="mt-10">
+            <LineChart/>
           </div>
 
           {connected && userBets.length > 0 && <BetsHistory userBets={userBets} />}
@@ -470,6 +484,7 @@ export default function PredictionCards() {
 
         <LiveBets currentRound={Number(currentRound?.number) ?? null} />
         <LineChart />
+        {/* <LineChart /> */}
       </div>
     </div>
 

@@ -15,6 +15,27 @@ body {
   @apply mx-auto max-w-[1355px] px-4;
 }
 
+.apexcharts-tooltip.apexcharts-theme-light, .apexcharts-tooltip-title {
+  background: #1f1f43 !important;
+  color: #ffffff !important;
+}
+
+.apexcharts-tooltip {
+  color: #000 !important;
+  background: #1f1f43 !important;
+    opacity: 1 !important;           /* prevent fade-out */ 
+    transition: none !important;     /* disable hide animation */
+    pointer-events: auto !important; /* allow hovering over the tooltip */
+  
+}
+
+
+
+
+ .apexcharts-tooltip .apexcharts-tooltip-series-group.active {
+  background: #1f1f43 !important;
+}
+
 .wallet-adapter-dropdown-list {
   top: -50% !important;
   right: 110% !important;
@@ -78,4 +99,5 @@ input::-webkit-inner-spin-button {
 /* Firefox */
 input[type="number"] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
