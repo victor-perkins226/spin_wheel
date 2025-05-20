@@ -63,7 +63,7 @@ export default function PredictionCard({
   const [amount, setAmount] = useState<number>(0.1);
   const [maxAmount, setMaxAmount] = useState<number>(10);
   const { connected, publicKey } = useWallet();
-  const { connection }           = useConnection();
+  const { connection } = useConnection();
 
   // Calculate multipliers
   const calculateMultipliers = () => {
@@ -386,12 +386,27 @@ export default function PredictionCard({
         }`}
     >
       <div className={`${isFlipped ? "hidden" : "flex"} flex-col justify-between gap-[10px]`}>
-        <div className={`${variant === "expired" ? "opacity-80" : ""} flex justify-between font-semibold text-[20px]`}>
-          <div className="flex items-center gap-[10px]">
-            <SVG width={12} height={12} iconName="play-fill" />
-            <p className="capitalize">{variant}</p>
+        <div className={`${variant === "expired" ? "opacity-80" : ""} flex flex-col`}>
+          <div className="flex justify-between items-center font-semibold text-[20px]">
+            <div className="flex items-center gap-[10px]">
+              <SVG width={12} height={12} iconName="play-fill" />
+              <p className="capitalize">{variant}</p>
+            </div>
+            <p>#{roundId}</p>
           </div>
-          <p>#{roundId}</p>
+          {variant === "live" && (
+            <div className="mt-1 w-full h-[6px] rounded-full overflow-hidden flex gap-[4px]">
+              {[...Array(7)].map((_, i) => (
+                <div
+                  key={i}
+                  className="h-full flex-1 rounded-[1px]"
+                  style={{
+                    backgroundColor: i < Math.floor(((120 - (timeLeft || 0)) / 120) * 7) ? '#E5E7EB' : '#6B7280'
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </div>
         <Button
           style={{ background: getButtonStyle("up") }}

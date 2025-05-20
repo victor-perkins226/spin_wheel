@@ -3,6 +3,7 @@ import { useConfig,  useRound,  getRoundOutcome,usePreviousRoundsByIds, } from "
 import { useQueryClient } from "@tanstack/react-query";
 import { Config, Round } from "@/types/round";
 import axios from "axios";
+import { useSolPredictor } from "./useBuyClaim";
 
 
 
@@ -14,6 +15,7 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [isLocked, setIsLocked] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null); // Store interval
+   const {fetchUserBets } = useSolPredictor();
 
 
   const { data: config, isLoading: isConfigLoading } = useConfig();
@@ -127,6 +129,7 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
           setTimeLeft(config?.lockDuration || 300);
           setOffset(initialOffset); // Reset offset for new round
           setAllPreviousRounds([]); // Clear previous rounds
+          await fetchUserBets();
         } else if (isLocked) {
           // Try fetching next round after lock
           await queryClient.invalidateQueries({ queryKey: ["round", nextRoundNumber], refetchType: "all" });
@@ -138,7 +141,7 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
 
     const interval = setInterval(checkNewRound, 2000); // Check every 5 seconds
     return () => clearInterval(interval);
-  }, [currentRoundNumber, isLocked, queryClient, config?.lockDuration]);
+  }, [currentRoundNumber, isLocked, fetchUserBets, queryClient, config?.lockDuration, initialOffset]);
 
   const fetchConfig = async (): Promise<Config> => {
     const response = await axios.get("https://sol-prediction-backend.onrender.com/round/config");

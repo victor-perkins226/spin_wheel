@@ -16,7 +16,6 @@ import { MobileLiveBets } from "./MobileBets";
 import LiveBets from "./LiveBets";
 import { useRoundManager } from "@/hooks/roundManager";
 import { Round } from "@/types/round";
-
 import { useSolPredictor } from "@/hooks/useBuyClaim"
 import { BetsHistory } from "./BetsHistory";
 import LineChart from "./LineChart";
@@ -37,7 +36,9 @@ export default function PredictionCards() {
   // const [userBets, setUserBets] = useState<UserBet[]>([]);
   const [liveRoundPrice, setLiveRoundPrice] = useState(50.5);
   const [claimableRewards, setClaimableRewards] = useState(0);
-  const { handlePlaceBet, handleClaimPayout, claimableBets,userBets } = useSolPredictor();
+  const { handlePlaceBet, handleClaimPayout, claimableBets, userBets, fetchUserBets } = useSolPredictor();
+  const claimableAmountRef = useRef<number>(0); // Store claimableAmount in useRef
+
 
   const {
     config,
@@ -53,17 +54,26 @@ export default function PredictionCards() {
     isLocked,
   } = useRoundManager(5, 0);
 
-  // Calculate total claimable amount
-  const claimableAmount = claimableBets.reduce((sum, bet) => sum + bet.payout, 0);
-  //  console.log(claimableAmount);
-  
+  // Update claimableAmountRef when claimableBets changes
+  useEffect(() => {
+    const newClaimableAmount = claimableBets.reduce((sum, bet) => sum + bet.payout, 0);
+    claimableAmountRef.current = newClaimableAmount;
+    console.log('Updated claimableAmount:', claimableAmountRef.current);
+  }, [claimableBets]);
 
-   // Fetch live price periodically
-   useEffect(() => {
+  useEffect(() => {
+    if (connected && publicKey) {
+      fetchUserBets();
+    }
+  }, [connected, publicKey, fetchUserBets]);
+
+  // Fetch live price periodically
+  useEffect(() => {
     const updateLivePrice = async () => {
       const price = await fetchLivePrice();
       setLiveRoundPrice(price!);
     };
+    
 
     updateLivePrice(); // Initial fetch
     const interval = setInterval(updateLivePrice, 10000); // Update every 5 seconds
@@ -113,9 +123,6 @@ export default function PredictionCards() {
         console.error("Failed to fetch balance:", error);
       }
     };
-
- 
-
     fetchBalance();
     // fetchClaimableRewards();
   }, [connected, publicKey, currentRound?.number]);
@@ -150,6 +157,8 @@ export default function PredictionCards() {
     try {
 
       await handleClaimPayout(roundId)
+      alert(`Rewards claimed for round ${roundId}`);
+      await fetchUserBets(); // Refresh userBets and claimableBets
       toast(`Rewards claimed for round ${roundId}`);
       setClaimableRewards(0);
     } catch (error) {
@@ -291,7 +300,7 @@ export default function PredictionCards() {
                   <span>{userBalance.toFixed(4)} SOL</span>
                 </div>
               </div>
-              {claimableAmount > 0 && (
+              {claimableAmountRef.current > 0 && (
                 <div className="flex items-center gap-3">
                   <div>
                     <p className="text-sm opacity-70">Unclaimed Rewards</p>
@@ -303,7 +312,7 @@ export default function PredictionCards() {
                         width={20}
                         height={20}
                       />
-                      <span>{claimableAmount.toFixed(4)} SOL</span>
+                      <span>{claimableAmountRef.current.toFixed(4)} SOL</span>
                     </div>
                   </div>
                   <button
@@ -311,7 +320,7 @@ export default function PredictionCards() {
                     onClick={() => {
                       claimableBets.forEach((bet: { roundNumber: number; }) => handleClaimRewards(bet.roundNumber));
                     }}
-                    disabled={claimableAmount === 0}
+                    disabled={claimableAmountRef.current === 0}
                   >
                     Claim
                   </button>
@@ -351,7 +360,7 @@ export default function PredictionCards() {
               modules={[Pagination, EffectCoverflow]}
               className="w-full px-4 sm:px-0"
             >
-              {uniqueRounds.map((round) => {
+              {uniqueRounds.map((round,index) => {
                 const roundNumber = Number(round.number);
                 const startTimeMs =
                   typeof round.startTime === 'number' && !isNaN(round.startTime)
@@ -373,7 +382,7 @@ export default function PredictionCards() {
                       : lockTime + 120;
                 //const claimableForRound = claimableBets.find((bet) => bet.roundNumber === roundNumber);
                 return (
-                  <SwiperSlide key={Number(round.number)} className="flex justify-center items-center">
+                  <SwiperSlide key={index} className="flex justify-center items-center">
                     <PredictionCard
                       variant={formatCardVariant(round, currentRoundNumber)}
                       roundId={Number(round.number)}
@@ -389,11 +398,11 @@ export default function PredictionCards() {
                         lockTime: timeLeft !== null && roundNumber === Number(config?.currentRound) ? Date.now() / 1000 + timeLeft : lockTime,
                         closeTime,
                         isActive: round.isActive ? true : false,
-                        treasuryFee : config ? treasuryFee! : 5 
+                        treasuryFee: config ? treasuryFee! : 5
                       }}
                       onPlaceBet={handleBet}
                       currentRoundId={Number(config?.currentRound)}
-                      bufferTimeInSeconds={(config?.bufferSeconds! - 10) || 30}
+                      bufferTimeInSeconds={0}
                       liveRoundPrice={liveRoundPrice}
                       userBets={userBets}
                       isLocked={isLocked}
