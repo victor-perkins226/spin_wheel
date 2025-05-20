@@ -130,8 +130,8 @@ function LiveBets() {
               </tr>
             </thead>
             <tbody>
-              {liveBets.map((bet) => (
-                <tr key={bet.signature} className="font-semibold text-[15px]">
+              {liveBets.map((bet,index) => (
+                <tr key={index} className="font-semibold text-[15px]">
                   <td className="py-3">
                     <div className="flex gap-[6px] items-center">
                       <SVG width={29} height={29} iconName="avatar" />
