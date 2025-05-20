@@ -476,8 +476,7 @@ export default function PredictionCards() {
         </div>
 
         <LiveBets currentRound={Number(currentRound?.number) ?? null} />
-        <LineChart />
-        {/* <LineChart /> */}
+      
       </div>
     </div>
 
