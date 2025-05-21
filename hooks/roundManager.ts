@@ -1,12 +1,10 @@
 import { useEffect, useState, useRef } from "react";
-import { useConfig,  useRound,  getRoundOutcome,usePreviousRoundsByIds, } from "./useConfig";
+import { useConfig, useRound, getRoundOutcome, usePreviousRoundsByIds, fetchConfig } from "./useConfig";
 import { useQueryClient } from "@tanstack/react-query";
-import { Config, Round } from "@/types/round";
-import axios from "axios";
+import {  Round } from "@/types/round";
+// import axios from "axios";
 import { useSolPredictor } from "./useBuyClaim";
-
-
-
+import { useProgram } from "./useProgram"; // Import useProgram here to get the program instance
 
 export const useRoundManager = (initialLimit: number = 5, initialOffset: number = 0) => {
   const queryClient = useQueryClient();
@@ -15,24 +13,32 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [isLocked, setIsLocked] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null); // Store interval
-   const {fetchUserBets } = useSolPredictor();
+  const { fetchUserBets } = useSolPredictor();
 
-
-  const { data: config, isLoading: isConfigLoading } = useConfig();
+  const { program, error: programError } = useProgram(); // Get program instance from useProgram
+  const { data: config, isLoading: isConfigLoading, error: configError } = useConfig();
   const currentRoundNumber = config?.currentRound ? Number(config.currentRound) : undefined;
-  const { data: currentRound, isLoading: isCurrentRoundLoading } = useRound(currentRoundNumber);
+  const { data: currentRound, isLoading: isCurrentRoundLoading, error: roundError } = useRound(currentRoundNumber);
   const { data: previousRoundsData, isLoading: isPreviousRoundsLoading } = usePreviousRoundsByIds(
     currentRoundNumber,
     initialLimit,
     offset
   );
 
+  // Log errors for debugging
+  useEffect(() => {
+    if (programError) console.error("useProgram Error:", programError);
+    if (configError) console.error("useConfig Error:", configError);
+    if (roundError) console.error("useRound Error:", roundError);
+  }, [programError, configError, roundError]);
+
+
   // Merge new previous rounds with existing ones
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const previousRounds = previousRoundsData?.rounds || [];
   const totalPreviousRounds = currentRoundNumber ? currentRoundNumber - 1 : 0; // Estimate total
 
-  const treasuryFee = config?.treasuryFee
+  const treasuryFee = config?.treasuryFee;
 
   useEffect(() => {
     // Update allPreviousRounds when new previousRounds are fetched
@@ -42,7 +48,7 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
         // Add existing rounds
         prev.forEach((round) => roundMap.set(Number(round.number), round));
         // Add new rounds, overwriting duplicates
-        previousRounds.forEach((round) => roundMap.set(Number(round.number), round));
+        previousRounds.forEach((round: Round) => roundMap.set(Number(round.number), round));
         return Array.from(roundMap.values()).sort((a, b) => Number(b.number) - Number(a.number));
       });
     }
@@ -50,6 +56,7 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
 
   // Calculate time left for lock duration
   useEffect(() => {
+    // Add a check here for config and currentRound being defined
     if (!currentRound || !config?.lockDuration || isCurrentRoundLoading) {
       setTimeLeft(null);
       setIsLocked(false);
@@ -89,7 +96,8 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
     };
 
     // Initialize timeLeft for new round
-    if (!isLocked && currentRound.number === currentRoundNumber) {
+    // Only set initial timeLeft if config.lockDuration is available
+    if (!isLocked && currentRound.number === currentRoundNumber && config.lockDuration !== undefined) {
       setTimeLeft(config.lockDuration);
     }
 
@@ -105,18 +113,19 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
         intervalRef.current = null;
       }
     };
-
-  }, [currentRound, config?.lockDuration, isCurrentRoundLoading, isLocked,currentRoundNumber]);
+  }, [currentRound, config?.lockDuration, isCurrentRoundLoading, isLocked, currentRoundNumber]);
 
   // Detect new round and reset timer
   useEffect(() => {
-    if (!currentRoundNumber) return;
+    // Ensure config and program are loaded before proceeding
+    if (!currentRoundNumber || !config || !program) return; 
 
     const checkNewRound = async () => {
       try {
+        // Pass the actual program instance to fetchConfig
         const newConfig = await queryClient.fetchQuery({
           queryKey: ["config"],
-          queryFn: fetchConfig,
+          queryFn: () => fetchConfig(program), 
         });
         const nextRoundNumber = currentRoundNumber + 1;
         if (newConfig.currentRound > currentRoundNumber) {
@@ -126,7 +135,7 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
           await queryClient.invalidateQueries({ queryKey: ["round", nextRoundNumber], refetchType: "all" });
           await queryClient.invalidateQueries({ queryKey: ['previousRounds', currentRoundNumber], refetchType: 'all' });
           setIsLocked(false);
-          setTimeLeft(config?.lockDuration || 300);
+          setTimeLeft(config?.lockDuration || 300); // Use config?.lockDuration for safety
           setOffset(initialOffset); // Reset offset for new round
           setAllPreviousRounds([]); // Clear previous rounds
           await fetchUserBets();
@@ -139,22 +148,16 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
       }
     };
 
-    const interval = setInterval(checkNewRound, 2000); // Check every 5 seconds
+    const interval = setInterval(checkNewRound, 2000); // Check every 2 seconds
     return () => clearInterval(interval);
-  }, [currentRoundNumber, isLocked, fetchUserBets, queryClient, config?.lockDuration, initialOffset]);
-
-  const fetchConfig = async (): Promise<Config> => {
-    const response = await axios.get("https://sol-prediction-backend.onrender.com/round/config");
-    return response.data;
-  };
-
+  }, [currentRoundNumber, isLocked, fetchUserBets, queryClient, config, initialOffset, program]); // Add program to dependencies
 
   const fetchMoreRounds = async () => {
     if (!currentRoundNumber) return;
     const newOffset = offset + initialLimit;
     setOffset(newOffset);
     // The usePreviousRoundsByIds hook will automatically fetch new rounds due to the updated queryKey
-    console.log(`Fetching more rounds with offset ${newOffset}`);
+    console.log(`Workspaceing more rounds with offset ${newOffset}`);
   };
 
   return {

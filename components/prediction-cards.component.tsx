@@ -300,7 +300,7 @@ export default function PredictionCards() {
     if (liveRoundPrice !== previousPrice) {
       setPreviousPrice(liveRoundPrice);
     }
-  }, [liveRoundPrice]);
+  }, [liveRoundPrice, previousPrice]);
 
 
   // if (isLoading) {
@@ -366,7 +366,7 @@ export default function PredictionCards() {
                   strokeWidth="5"
                   strokeLinecap="round"
                   strokeDasharray="283" // 2πr ≈ 283 (for r=45)
-                  strokeDashoffset={283 - (283 * (1 - (timeLeft / 120)))} // Adjusted calculation
+                  strokeDashoffset={283 - (283 * (1 - (timeLeft! / 120)))} // Adjusted calculation
                   transform="rotate(-90 50 50)"
                 />
 
@@ -478,24 +478,9 @@ export default function PredictionCards() {
             >
               {uniqueRounds.map((round, index) => {
                 const roundNumber = Number(round.number);
-                const startTimeMs =
-                  typeof round.startTime === 'number' && !isNaN(round.startTime)
-                    ? round.startTime * 1000
-                    : round.startTime instanceof Date
-                      ? round.startTime.getTime()
-                      : 0;
-                const lockTime =
-                  (round.lockTime) instanceof Date
-                    ? round.lockTime.getTime() / 1000
-                    : typeof round.lockTime === 'string' && !isNaN(Number(round.lockTime))
-                      ? Number(round.lockTime)
-                      : startTimeMs / 1000 + 120;
-                const closeTime =
-                  round.closeTime instanceof Date
-                    ? round.closeTime.getTime() / 1000
-                    : typeof round.closeTime === 'string' && !isNaN(Number(round.closeTime))
-                      ? Number(round.closeTime)
-                      : lockTime + 120;
+                const startTimeMs = Number(round.startTime) * 1000;
+                const lockTime = round.lockTime > 0 ? round.lockTime : startTimeMs / 1000 + 120;
+                const closeTime = round.closeTime > 0 ? round.closeTime : lockTime + 120;
                 //const claimableForRound = claimableBets.find((bet) => bet.roundNumber === roundNumber);
                 return (
                   <SwiperSlide key={index} className="flex justify-center items-center">
@@ -503,12 +488,12 @@ export default function PredictionCards() {
                       variant={formatCardVariant(round, currentRoundNumber)}
                       roundId={Number(round.number)}
                       roundData={{
-                        lockPrice: (round.lockPrice!) / 1e8,
-                        closePrice: round.endPrice ? round.endPrice / 1e8 : liveRoundPrice,
-                        currentPrice: liveRoundPrice || (round.lockPrice || 50 * 1e8) / 1e8,
-                        prizePool: (round.totalAmount || 0) / LAMPORTS_PER_SOL,
-                        upBets: (round.totalBullAmount || 0) / LAMPORTS_PER_SOL,
-                        downBets: (round.totalBearAmount || 0) / LAMPORTS_PER_SOL,
+                        lockPrice: Number(round.lockPrice!) / 1e8,
+                        closePrice: round.endPrice ? Number(round.endPrice) / 1e8 : liveRoundPrice,
+                        currentPrice: liveRoundPrice || Number(round.lockPrice || 50 * 1e8) / 1e8,
+                        prizePool: Number(round.totalAmount || 0) / LAMPORTS_PER_SOL,
+                        upBets: (Number(round.totalBullAmount) || 0) / LAMPORTS_PER_SOL,
+                        downBets: (Number(round.totalBearAmount) || 0) / LAMPORTS_PER_SOL,
                         timeRemaining: Math.max(0, closeTime - Date.now() / 1000),
                         lockTimeRemaining: timeLeft !== null && roundNumber === Number(config?.currentRound) ? timeLeft : Math.max(0, lockTime - Date.now() / 1000),
                         lockTime: timeLeft !== null && roundNumber === Number(config?.currentRound) ? Date.now() / 1000 + timeLeft : lockTime,
