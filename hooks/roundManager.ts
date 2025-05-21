@@ -29,7 +29,7 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
 
   // Merge new previous rounds with existing ones
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const previousRounds = previousRoundsData?.rounds || [];
+  const previousRounds = previousRoundsData && 'rounds' in previousRoundsData ? previousRoundsData.rounds : [];
   const totalPreviousRounds = currentRoundNumber ? currentRoundNumber - 1 : 0; // Estimate total
 
   const treasuryFee = config?.treasuryFee
@@ -62,17 +62,30 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
 
     const calculateTimeLeft = () => {
       const now = Date.now() / 1000;
+      
+      // Fix conversion of startTime to ensure it's always a number
       const startTimeMs = typeof currentRound.startTime === "string" && !isNaN(Number(currentRound.startTime))
         ? Number(currentRound.startTime) * 1000
-        : new Date(currentRound.startTime).getTime();
-      let lockTime = currentRound.lockTime || startTimeMs / 1000 + config.lockDuration;
-
+        : (currentRound.startTime instanceof Date 
+          ? currentRound.startTime.getTime() 
+          : Number(currentRound.startTime) * 1000);
+      
+      // Ensure lockTime is always a number
+      const lockTimeValue = currentRound.lockTime !== undefined && currentRound.lockTime !== null
+        ? Number(currentRound.lockTime)
+        : startTimeMs / 1000 + config.lockDuration;
+ 
       // Override invalid lockTime
-      if (lockTime <= now) {
-        console.warn("Invalid lockTime:", lockTime, "Current Time:", now, "Using fallback");
-        lockTime = now + config.lockDuration; // Set lockTime to now + lockDuration
+      if (lockTimeValue <= now) {
+        console.warn("Invalid lockTime:", lockTimeValue, "Current Time:", now, "Using fallback");
+        const newLockTime = now + config.lockDuration; // Set lockTime to now + lockDuration
+        const timeRemaining = newLockTime - now;
+        setTimeLeft(Math.floor(timeRemaining));
+        setIsLocked(false);
+        return;
       }
-      const timeRemaining = lockTime - now;
+      
+      const timeRemaining = lockTimeValue - now;
 
       if (timeRemaining <= 0) {
         setTimeLeft(0);
