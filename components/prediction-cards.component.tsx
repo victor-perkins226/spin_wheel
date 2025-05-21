@@ -450,10 +450,10 @@ export default function PredictionCards() {
   };
 
   return (
-    <div className="container px-3 sm:px-4 md:px-6 lg:px-8 mt-5 md:mt-6 lg:mt-[70px] flex flex-col gap-4 md:gap-6 lg:gap-[40px]">
+    <div className="container items-start px-3 sm:px-4 md:px-6 lg:px-8 mt-5 md:mt-6 lg:mt-[70px] flex gap-4 md:gap-6 lg:gap-[40px]">
       <div className="grid grid-cols-12 gap-4 lg:gap-6 xl:gap-[40px]">
         <div className="flex flex-col gap-6 md:gap-8 lg:gap-[40px] col-span-12 xl:col-span-9">
-          <div className="flex justify-between items-center flex-wrap gap-4 md:gap-4">
+          <div className="flex justify-between items-start flex-wrap gap-4 md:gap-4">
             <div className="relative">
               <Image
                 className="w-[24px] sm:w-[32px] lg:w-[64px] h-auto object-contain absolute left-0 top-0 z-10"
@@ -704,6 +704,7 @@ export default function PredictionCards() {
 
         <LiveBets currentRound={Number(currentRound?.number) ?? null} />
       
+        
     </div>
   );
 }
