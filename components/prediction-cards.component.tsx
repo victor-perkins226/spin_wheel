@@ -56,6 +56,8 @@ export default function PredictionCards() {
     isLocked,
   } = useRoundManager(5, 0);
 
+  const [isFetchingRounds, setIsFetchingRounds] = useState(false);
+
   // Update claimableAmountRef when claimableBets changes
   useEffect(() => {
     const newClaimableAmount = claimableBets.reduce(
@@ -121,7 +123,7 @@ export default function PredictionCards() {
         console.error("Failed to fetch balance:", error);
       }
     };
-    
+
     fetchBalance();
   }, [connected, publicKey, currentRound?.number]);
 
@@ -251,68 +253,75 @@ export default function PredictionCards() {
   const handleSlideChange = () => {
     if (!swiperRef.current) return;
     const swiper = swiperRef.current;
-    // if (
-    //   swiper.activeIndex >= rounds.length - 2 &&
-    //   rounds.length < totalPreviousRounds
-    // ) {
-    //   fetchMoreRounds();
-    // }
   };
 
-  // ⬆️ near your other useState declarations
-const [isFetchingRounds, setIsFetchingRounds] = useState(false);
-
+  // Add a more robust version of safeFetchMoreRounds that handles API errors
   const safeFetchMoreRounds = useCallback(async () => {
-    if (isFetchingRounds) return;          // debounce
+    if (isFetchingRounds) return; // debounce
     try {
-      setIsFetchingRounds(true);           // show loader
-      await fetchMoreRounds?.();           // same hook you already call
-    } finally {
-      setIsFetchingRounds(false);          // hide loader
+      setIsFetchingRounds(true); // show loader
+      await fetchMoreRounds?.(); // same hook you already call
+    } catch (error: any) {
+      // Handle axios errors
+      if (error?.name === "AxiosError") {
+        console.error("API error when fetching rounds:", error.message);
+        // Don't crash the app, just show a toast message
+        toast.error(
+          "Server error when fetching new rounds. Please try again later."
+        );
+      } else {
+        console.error("Error fetching rounds:", error);
+      }
+      // Give the server a moment to recover before trying again
+      setTimeout(() => {
+        setIsFetchingRounds(false);
+      }, 10000); // Wait 10 seconds before allowing another attempt
+      return;
     }
+    setIsFetchingRounds(false); // hide loader
   }, [fetchMoreRounds, isFetchingRounds]);
-  if (timeLeft === 0) {
-    initialSlideJumped.current = false;
-    safeFetchMoreRounds();   // ✅ use the guarded version
-  }
+
+  useEffect(() => {
+    if (timeLeft === 0) {
+      initialSlideJumped.current = false;
+      safeFetchMoreRounds(); // Use the guarded version
+    }
+  }, [timeLeft, safeFetchMoreRounds]);
 
   const currentRoundNumber =
     Number(config?.currentRound) || Number(currentRound?.number) || 1000;
 
-    const nextRoundNumber = currentRoundNumber + 1;
-    const nextRound =
-      // if your back end actually returns it in previousRounds use that,
-      previousRounds.find((r: Round) => Number(r.number) === nextRoundNumber) ??
-      {
-        number: nextRoundNumber.toString(),
-        // schedule it to start immediately after the currentRound.closeTime:
-        startTime:
-          typeof currentRound?.closeTime === "number"
-            ? currentRound.closeTime + 1
-            : Math.floor(Date.now() / 1000) + 1,
-        lockTime:
-          (typeof currentRound?.closeTime === "number"
-            ? currentRound.closeTime
-            : Math.floor(Date.now() / 1000)) + 120,
-        closeTime:
-          (typeof currentRound?.closeTime === "number"
-            ? currentRound.closeTime
-            : Math.floor(Date.now() / 1000)) + 240,
-        totalAmount: 0,
-        totalBullAmount: 0,
-        totalBearAmount: 0,
-        isActive: false,
-      };
-    
-    const rounds = [
-      ...(currentRound ? [currentRound] : []),
-      nextRound,
-      ...previousRounds.filter(
-        (r: Round) =>
-          Number(r.number) > 0 &&
-          Number(r.number) <= currentRoundNumber - 1
-      ),
-    ];
+  const nextRoundNumber = currentRoundNumber + 1;
+  const nextRound =
+    previousRounds.find((r: Round) => Number(r.number) === nextRoundNumber) ?? {
+      number: nextRoundNumber.toString(),
+      startTime:
+        typeof currentRound?.closeTime === "number"
+          ? currentRound.closeTime + 1
+          : Math.floor(Date.now() / 1000) + 1,
+      lockTime:
+        (typeof currentRound?.closeTime === "number"
+          ? currentRound.closeTime
+          : Math.floor(Date.now() / 1000)) + 120,
+      closeTime:
+        (typeof currentRound?.closeTime === "number"
+          ? currentRound.closeTime
+          : Math.floor(Date.now() / 1000)) + 240,
+      totalAmount: 0,
+      totalBullAmount: 0,
+      totalBearAmount: 0,
+      isActive: false,
+      status: "started", // Changed from "later" to "started" which is a valid value
+    } as Round; // Type assertion to Round
+
+  const rounds = [
+    ...(currentRound ? [currentRound] : []),
+    nextRound,
+    ...previousRounds.filter(
+      (r: Round) =>
+        Number(r.number) > 0 && Number(r.number) <= currentRoundNumber - 1
+    ),
+  ];
 
   // Deduplicate rounds
   const roundMap = new Map<number, Round>();
@@ -329,47 +338,108 @@ const [isFetchingRounds, setIsFetchingRounds] = useState(false);
   const uniqueRounds = Array.from(roundMap.values());
 
   const sortedRounds = useMemo(() => {
-    // build your unique list
-    const list = Array.from(roundMap.values());
-    // clone+sort
-    return [...list].sort((a, b) => Number(a.number) - Number(b.number));
+    try {
+      // build your unique list
+      const list = Array.from(roundMap.values());
+      // clone+sort
+      return [...list].sort((a, b) => Number(a.number) - Number(b.number));
+    } catch (error) {
+      console.error("Error sorting rounds:", error);
+      // Return empty array as fallback to prevent crashes
+      return [];
+    }
   }, [roundMap]);
 
-  // 2️⃣ Compute the index of the “live” slide:
-  const liveIndex = useMemo(() => 
-    sortedRounds.findIndex(r => formatCardVariant(r, currentRoundNumber) === "live"),
-    [sortedRounds, currentRoundNumber]
-  );
-  
+  // Add error handling for liveIndex calculation
+  const liveIndex = useMemo(() => {
+    try {
+      return sortedRounds.findIndex(
+        (r) => formatCardVariant(r, currentRoundNumber) === "live"
+      );
+    } catch (error) {
+      console.error("Error finding live index:", error);
+      return -1; // Return -1 if there's an error
+    }
+  }, [sortedRounds, currentRoundNumber, formatCardVariant]);
+
   useEffect(() => {
     const swiper = swiperRef.current;
     if (swiper && liveIndex >= 0 && !initialSlideJumped.current) {
-      swiper.slideTo(liveIndex, 0);
-      initialSlideJumped.current = true;
+      try {
+        swiper.slideTo(liveIndex, 0);
+        initialSlideJumped.current = true;
+      } catch (error) {
+        console.error("Error sliding to live index:", error);
+      }
     }
-    // reset the synthetic-round inclusion whenever the round rolls over:
+
     if (timeLeft === 0) {
       initialSlideJumped.current = false;
-      // if your hook provides a refetch, call it here:
-      fetchMoreRounds?.();
+      // Protect with try/catch to prevent crashes
+      try {
+        safeFetchMoreRounds();
+      } catch (error) {
+        console.error("Error refreshing rounds:", error);
+      }
     }
-  }, [liveIndex, timeLeft, fetchMoreRounds]);
+  }, [liveIndex, timeLeft, safeFetchMoreRounds]);
 
+  // Improve visibility change handler with better API error handling
   useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") {
-        // force a timer/rounds re-sync:
-        fetchMoreRounds?.();
-        fetchUserBets?.();
+    let isRefreshing = false;
+
+    const handleVisibility = async () => {
+      if (document.visibilityState === "visible" && !isRefreshing) {
+        isRefreshing = true;
+
+        try {
+          // Run these in parallel but handle errors independently
+          const tasks = [];
+
+          // fetchMoreRounds is always defined from the hook
+          tasks.push(
+            safeFetchMoreRounds().catch((err) => {
+              console.error(
+                "Error refreshing rounds on visibility change:",
+                err
+              );
+            })
+          );
+
+          if (fetchUserBets) {
+            tasks.push(
+              fetchUserBets().catch((err) => {
+                console.error(
+                  "Error fetching user bets on visibility change:",
+                  err
+                );
+                if (err?.name === "AxiosError" && err?.response?.status === 500) {
+                  console.log(
+                    "Server error when fetching user bets, will retry later"
+                  );
+                }
+              })
+            );
+          }
+
+          // Use Promise.allSettled to ensure all promises complete regardless of success/failure
+          await Promise.allSettled(tasks);
+        } catch (error) {
+          console.error("Error during visibility change refresh:", error);
+        } finally {
+          // Add a small delay before allowing refreshes again to prevent hammering the server
+          setTimeout(() => {
+            isRefreshing = false;
+          }, 2000);
+        }
       }
     };
-  
+
     document.addEventListener("visibilitychange", handleVisibility);
     return () =>
       document.removeEventListener("visibilitychange", handleVisibility);
-  }, [fetchMoreRounds, fetchUserBets]);
+  }, [fetchMoreRounds, fetchUserBets, safeFetchMoreRounds]);
 
-  console.log(sortedRounds)
   const formatTimeLeft = (seconds: number | null) => {
     if (seconds === null || seconds <= 0) return "Locked";
     const minutes = Math.floor(seconds / 60);
@@ -401,24 +471,7 @@ const [isFetchingRounds, setIsFetchingRounds] = useState(false);
                 </p>
               </div>
             </div>
-            {isFetchingRounds && (
-  <div className="fixed inset-0 z-[999] flex flex-col gap-3 items-center justify-center
-                  backdrop-blur-sm bg-black/60">
-    <svg
-      className="animate-spin h-12 w-12 text-white"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="4"
-    >
-      <circle cx="12" cy="12" r="10" opacity="0.25" />
-      <path d="M22 12a10 10 0 00-10-10" />
-    </svg>
-    <p className="text-white text-lg font-semibold mt-4">
-      Fetching new rounds...
-    </p>
-  </div>
-)}
+
             <div className="relative flex items-center justify-center w-[60px] sm:w-[80px] lg:w-[120px] h-[60px] sm:h-[80px] lg:h-[120px]">
               {/* Circular progress background */}
               <svg className="absolute w-full h-full" viewBox="0 0 100 100">
@@ -442,14 +495,15 @@ const [isFetchingRounds, setIsFetchingRounds] = useState(false);
                   strokeWidth="5"
                   strokeLinecap="round"
                   strokeDasharray="283" // 2πr ≈ 283 (for r=45)
-                  strokeDashoffset={283 - (283 * (1 - ((timeLeft ?? 0) / 120)))} // Adjusted calculation with null check
+                  strokeDashoffset={283 - 283 * (1 - (timeLeft ?? 0) / 120)} // Adjusted calculation with null check
                   transform="rotate(-90 50 50)"
                 />
 
                 {/* 12 hour markers */}
                 {Array.from({ length: 20 }).map((_, i) => {
-                  const angle = 15 + (i * 18); // Starts at 15°, 18° increments (covers 15°-345°)
-                  if (angle < 165 || angle > 195) { // Skip small bottom portion (165°-195°)
+                  const angle = 15 + i * 18; // Starts at 15°, 18° increments (covers 15°-345°)
+                  if (angle < 165 || angle > 195) {
+                    // Skip small bottom portion (165°-195°)
                     return (
                       <line
                         key={i}
@@ -536,7 +590,6 @@ const [isFetchingRounds, setIsFetchingRounds] = useState(false);
               effect="coverflow"
               grabCursor={true}
               centeredSlides={true}
-              
               slidesPerView={getSlidesPerView()}
               spaceBetween={mounted && screenWidth < 640 ? 10 : 20}
               coverflowEffect={{
@@ -640,7 +693,7 @@ const [isFetchingRounds, setIsFetchingRounds] = useState(false);
           </div>
 
           {/* Line Chart Component */}
-          <div className="mt-10">
+          <div className="mt-10"></div>
             <LineChart />
           </div>
 
@@ -650,7 +703,7 @@ const [isFetchingRounds, setIsFetchingRounds] = useState(false);
         </div>
 
         <LiveBets currentRound={Number(currentRound?.number) ?? null} />
-      </div>
+      
     </div>
   );
 }
