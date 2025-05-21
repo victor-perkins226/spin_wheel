@@ -74,7 +74,7 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
       const lockTimeValue = currentRound.lockTime !== undefined && currentRound.lockTime !== null
         ? Number(currentRound.lockTime)
         : startTimeMs / 1000 + config.lockDuration;
-
+ 
       // Override invalid lockTime
       if (lockTimeValue <= now) {
         console.warn("Invalid lockTime:", lockTimeValue, "Current Time:", now, "Using fallback");
