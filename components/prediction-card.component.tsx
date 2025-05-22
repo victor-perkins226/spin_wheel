@@ -29,7 +29,11 @@ interface IProps {
     isActive: boolean;
     treasuryFee: number; // Added
   };
-  onPlaceBet?: (direction: "up" | "down", amount: number, roundId: number) => void;
+  onPlaceBet?: (
+    direction: "up" | "down",
+    amount: number,
+    roundId: number
+  ) => void;
   currentRoundId?: number;
   bufferTimeInSeconds?: number;
   isRoundBettable?: (roundId: number) => boolean;
@@ -68,7 +72,6 @@ export default function PredictionCard({
 
   // Calculate multipliers
   const calculateMultipliers = () => {
-    //const { prizePool, upBets, downBets, treasuryFee } = roundData;
     const totalAmount = roundData!.prizePool * LAMPORTS_PER_SOL;
     const totalBullAmount = roundData!.upBets * LAMPORTS_PER_SOL;
     const totalBearAmount = roundData!.downBets * LAMPORTS_PER_SOL;
@@ -76,8 +79,10 @@ export default function PredictionCard({
     const treasuryAmt = (totalAmount * roundData!.treasuryFee) / 10000;
     const rewardAmount = totalAmount - treasuryAmt;
 
-    const bullMultiplier = totalBullAmount > 0 ? rewardAmount / totalBullAmount : 0;
-    const bearMultiplier = totalBearAmount > 0 ? rewardAmount / totalBearAmount : 0;
+    const bullMultiplier =
+      totalBullAmount > 0 ? rewardAmount / totalBullAmount : 0;
+    const bearMultiplier =
+      totalBearAmount > 0 ? rewardAmount / totalBearAmount : 0;
 
     return {
       bullMultiplier: bullMultiplier.toFixed(2),
@@ -104,20 +109,24 @@ export default function PredictionCard({
   }, [connected, publicKey, connection]);
 
   // User bet status
-  const userBetStatus = userBets?.find((bet) => bet.roundId === roundId) || null;
+  const userBetStatus =
+    userBets?.find((bet) => bet.roundId === roundId) || null;
 
   // Calculate price movement and direction
   const getPriceMovement = () => {
     if (!roundData) return { difference: 0, direction: "up" as "up" | "down" };
     const currentPrice =
-      variant === "expired" && roundData.closePrice > 0 ? roundData.closePrice : liveRoundPrice || roundData.lockPrice;
+      variant === "expired" && roundData.closePrice > 0
+        ? roundData.closePrice
+        : liveRoundPrice || roundData.lockPrice;
     const lockPrice = roundData.lockPrice;
     const difference = Math.abs(currentPrice - lockPrice);
     const direction = currentPrice >= lockPrice ? "up" : "down";
     return { difference, direction };
   };
 
-  const { difference: priceDifference, direction: priceDirection } = getPriceMovement();
+  const { difference: priceDifference, direction: priceDirection } =
+    getPriceMovement();
 
   // Determine if round is bettable
   const canBet =
@@ -131,46 +140,51 @@ export default function PredictionCard({
     if (seconds === null || seconds <= 0) return "Locked";
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`;
+    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
+      .toString()
+      .padStart(2, "0")}`;
   };
-
-  // // Debug canBet conditions
-  // useEffect(() => {
-  //   console.log("PredictionCard Props:", {
-  //     roundId,
-  //     variant,
-  //     isActive: roundData?.isActive,
-  //     canBet,
-  //   });
-  // }, [roundId, variant, roundData?.isActive, isLocked, timeLeft, roundData?.lockTime, roundData?.lockTimeRemaining, bufferTimeInSeconds, canBet]);
 
   // Map roundData to component's expected format
   const formattedRoundData = roundData
     ? {
-      lockPrice: roundData.lockPrice,
-      closePrice: roundData.closePrice > 0 ? roundData.closePrice : liveRoundPrice || roundData.lockPrice,
-      currentPrice: liveRoundPrice || roundData.lockPrice,
-      prizePool: roundData.prizePool,
-      upBets: roundData.upBets,
-      downBets: roundData.downBets,
-      lockTimeRemaining: timeLeft !== null ? timeLeft : Math.max(0, roundData.lockTime - Date.now() / 1000),
-      timeRemaining: Math.max(0, roundData.timeRemaining),
-      status: roundData.isActive ? "LIVE" : roundData.timeRemaining > 0 ? "LOCKED" : "ENDED",
-    }
+        lockPrice: roundData.lockPrice,
+        closePrice:
+          roundData.closePrice > 0
+            ? roundData.closePrice
+            : liveRoundPrice || roundData.lockPrice,
+        currentPrice: liveRoundPrice || roundData.lockPrice,
+        prizePool: roundData.prizePool,
+        upBets: roundData.upBets,
+        downBets: roundData.downBets,
+        lockTimeRemaining:
+          timeLeft !== null
+            ? timeLeft
+            : Math.max(0, roundData.lockTime - Date.now() / 1000),
+        timeRemaining: Math.max(0, roundData.timeRemaining),
+        status: roundData.isActive
+          ? "LIVE"
+          : roundData.timeRemaining > 0
+          ? "LOCKED"
+          : "ENDED",
+      }
     : {
-      lockPrice: 0,
-      closePrice: liveRoundPrice || 0,
-      currentPrice: liveRoundPrice || 0,
-      prizePool: 0,
-      upBets: 0,
-      downBets: 0,
-      lockTimeRemaining: 0,
-      timeRemaining: 0,
-      status: "ENDED" as const,
-    };
+        lockPrice: 0,
+        closePrice: liveRoundPrice || 0,
+        currentPrice: liveRoundPrice || 0,
+        prizePool: 0,
+        upBets: 0,
+        downBets: 0,
+        lockTimeRemaining: 0,
+        timeRemaining: 0,
+        status: "ENDED" as const,
+      };
 
-    console.log("Formatted Round Data:", formattedRoundData);
-  const isLockPhase = roundData && Date.now() / 1000 >= roundData.lockTime && Date.now() / 1000 < roundData.closeTime;
+  console.log("Formatted Round Data:", formattedRoundData);
+  const isLockPhase =
+    roundData &&
+    Date.now() / 1000 >= roundData.lockTime &&
+    Date.now() / 1000 < roundData.closeTime;
 
   const handleEnterPrediction = (mode: "up" | "down") => {
     if (!connected) {
@@ -226,60 +240,84 @@ export default function PredictionCard({
 
   const renderNextRoundContent = () => {
     if (variant !== "next") return null;
+
+    if (!roundData) {
+      return (
+        <div className="flex-1 glass h-[300px] flex flex-col items-center justify-center rounded-[20px] px-[19px] py-[8.5px]">
+          <h2 className="text-xl font-semibold text-center">
+            Waiting for next round...
+          </h2>
+          <DotLoader color="#06C729" size={30} className="mt-3" />
+        </div>
+      );
+    }
+
     return (
       <div className="flex-1 glass h-[300px] flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
-        {
-          isLocked ? (
-            <div className="flex flex-col items-center justify-center h-full">
-              <DotLoader
-                color="#06C729"
-                size={40}
-                aria-label="Loading Spinner"
-                data-testid="loader"
-              />
-              <h2 className="text-2xl font-semibold mt-4 text-center">Calculating...</h2>
-            </div>
-          ):
-          (
-            <div className="flex flex-col items-center gap-[7px]">
-            <Image
-              alt="Solana Background"
-              src={SolanaBg || "/placeholder.svg"}
-              className="rounded-[10px] w-[215px] h-[142px] object-cover"
-              width={215}
-              height={142}
+        {isLocked ? (
+          <div className="flex flex-col items-center gap-3 justify-center h-[250px] ">
+            <DotLoader
+              color="#ffffff"
+              size={40}
+              aria-label="Loading Spinner"
+              data-testid="loader"
             />
-            <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
-              <p>Prize Pool</p>
-              <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
-            </div>
-            <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
-              <p>Time Left</p>
-              <p>{formatTimeLeft(timeLeft)}</p>
-            </div>
+            <h2 className="text-2xl font-semibold mt-4 text-center">
+              Calculating...
+            </h2>
           </div>
-          )
-        }
-      
-        {canBet ? (
-          <>
-            <Button
-              style={{ background: "linear-gradient(90deg, #06C729 0%, #04801B 100%)" }}
-              onClick={() => handleEnterPrediction("up")}
-              className="cursor-pointer"
-            >
-              Enter UP
-            </Button>
-            <Button
-              style={{ background: "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)" }}
-              onClick={() => handleEnterPrediction("down")}
-              className="cursor-pointer"
-            >
-              Enter DOWN
-            </Button>
-          </>
         ) : (
-          <div className="text-center py-3 font-semibold">Betting closed for this round</div>
+          <>
+            <div className="flex flex-col items-center gap-[7px]">
+              <Image
+                alt="Solana Background"
+                src={SolanaBg || "/placeholder.svg"}
+                className="rounded-[10px] w-[215px] h-[142px] object-cover"
+                width={215}
+                height={142}
+              />
+              <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
+                <p>Prize Pool</p>
+                <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
+              </div>
+              {/* <div className="flex-1 glass py-4 flex flex-col items-center justify-center rounded-[20px] px-[19px] py-[8.5px]">
+          <h2 className="text-xl font-semibold text-center">Calculating...</h2>
+          <DotLoader color="#06C729" size={30} className="mt-3" />
+        </div> */}
+              <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
+                <p>Time Left</p>
+                <p>{formatTimeLeft(timeLeft)}</p>
+              </div>
+            </div>
+            {canBet ? (
+              <>
+                <Button
+                  style={{
+                    background:
+                      "linear-gradient(90deg, #06C729 0%, #04801B 100%)",
+                  }}
+                  onClick={() => handleEnterPrediction("up")}
+                  className="cursor-pointer"
+                >
+                  Enter UP
+                </Button>
+                <Button
+                  style={{
+                    background:
+                      "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)",
+                  }}
+                  onClick={() => handleEnterPrediction("down")}
+                  className="cursor-pointer"
+                >
+                  Enter DOWN
+                </Button>
+              </>
+            ) : (
+              <div className="text-center py-3 font-semibold">
+                Betting closed for this round
+              </div>
+            )}
+          </>
         )}
       </div>
     );
@@ -287,34 +325,25 @@ export default function PredictionCard({
 
   const renderLaterRoundContent = () => {
     if (variant !== "later") return null;
-  const baseRemaining = timeLeft || 0;
+    const baseRemaining = timeLeft || 0;
 
-  const totalSeconds = baseRemaining > 0 ? baseRemaining + 120 : 0;
+    const totalSeconds = baseRemaining > 0 ? baseRemaining + 120 : 0;
 
-  const display =
-    totalSeconds > 0
-      ? `${Math.floor(totalSeconds / 60)
-          .toString()
-          .padStart(2, "0")}:${Math.floor(totalSeconds % 60)
-          .toString()
-          .padStart(2, "0")}`
-      : "Waiting";
+    const display =
+      totalSeconds > 0
+        ? `${Math.floor(totalSeconds / 60)
+            .toString()
+            .padStart(2, "0")}:${Math.floor(totalSeconds % 60)
+            .toString()
+            .padStart(2, "0")}`
+        : "Waiting";
     return (
       <div className="glass h-[300px]  rounded-[20px] flex flex-col gap-[12px] items-center justify-center">
-        {/* <Image
-          alt="Solana Background"
-          src={SolanaBg || "/placeholder.svg"}
-          className="rounded-[10px] w-[215px] h-[142px] object-cover mt-2"
-          width={215}
-          height={142}
-        /> */}
         <div className="flex items-center gap-[12px]">
           <SVG iconName="play-fill" />
           <p className="font-semibold text-[20px]">Next Play</p>
         </div>
-        <p className="font-semibold text-[35px]">
-          {display}
-        </p>
+        <p className="font-semibold text-[35px]">{display}</p>
       </div>
     );
   };
@@ -333,12 +362,19 @@ export default function PredictionCard({
           />
           <div className="flex flex-col gap-[22px] font-semibold text-[#FEFEFE]">
             <div className="flex justify-between">
-              <p className="text-[20px]">${formattedRoundData.closePrice.toFixed(4)}</p>
+              <p className="text-[20px]">
+                ${formattedRoundData.closePrice.toFixed(4)}
+              </p>
               <div
-                className={`bg-white flex items-center gap-[4px] ${priceDirection === "up" ? "text-green-500" : "text-red-500"
-                  } px-[10px] py-[5px] rounded-[5px]`}
+                className={`bg-white flex items-center gap-[4px] ${
+                  priceDirection === "up" ? "text-green-500" : "text-red-500"
+                } px-[10px] py-[5px] rounded-[5px]`}
               >
-                {priceDirection === "up" ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
+                {priceDirection === "up" ? (
+                  <ArrowUp size={12} />
+                ) : (
+                  <ArrowDown size={12} />
+                )}
                 <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
               </div>
             </div>
@@ -350,7 +386,6 @@ export default function PredictionCard({
               <p>Prize Pool</p>
               <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
             </div>
-            {/* {isLockPhase && <div className="text-center text-yellow-400 font-bold">LOCKED</div>} */}
           </div>
         </div>
       </div>
@@ -371,12 +406,19 @@ export default function PredictionCard({
           />
           <div className="flex flex-col gap-[22px] font-semibold text-[#FEFEFE]">
             <div className="flex justify-between">
-              <p className="text-[20px]">${formattedRoundData.closePrice.toFixed(4)}</p>
+              <p className="text-[20px]">
+                ${formattedRoundData.closePrice.toFixed(4)}
+              </p>
               <div
-                className={`bg-white flex items-center gap-[4px] ${priceDirection === "up" ? "text-green-500" : "text-red-500"
-                  } px-[10px] py-[5px] rounded-[5px]`}
+                className={`bg-white flex items-center gap-[4px] ${
+                  priceDirection === "up" ? "text-green-500" : "text-red-500"
+                } px-[10px] py-[5px] rounded-[5px]`}
               >
-                {priceDirection === "up" ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
+                {priceDirection === "up" ? (
+                  <ArrowUp size={12} />
+                ) : (
+                  <ArrowDown size={12} />
+                )}
                 <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
               </div>
             </div>
@@ -388,33 +430,33 @@ export default function PredictionCard({
               <p>Prize Pool</p>
               <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
             </div>
-            {/* {userBetStatus && (
-              <div
-                className={`flex justify-center text-[16px] font-bold ${userBetStatus.status === "WON"
-                  ? "text-green-500"
-                  : userBetStatus.status === "LOST"
-                    ? "text-red-500"
-                    : "text-white"
-                  }`}
-              >
-                <p>{userBetStatus.status}</p>
-              </div>
-            )} */}
           </div>
         </div>
       </div>
     );
   };
 
-  if (!roundData && variant !== "later") return <div>No round data available</div>;
+  if (!roundData && variant !== "later" && variant !== "next")
+    return <div>No round data available</div>;
 
   return (
     <div
-      className={`card_container glass rounded-[20px] p-[15px] sm:p-[25px] ${variant === "live" ? "min-w-[280px] sm:min-w-[320px] md:min-w-[380px]" : "min-w-[240px] sm:min-w-[273px] w-full"
-        }`}
+      className={`card_container glass rounded-[20px] p-[15px] sm:p-[25px] ${
+        variant === "live"
+          ? "min-w-[280px] sm:min-w-[320px] md:min-w-[380px]"
+          : "min-w-[240px] sm:min-w-[273px] w-full"
+      }`}
     >
-      <div className={`${isFlipped ? "hidden" : "flex"} flex-col justify-between gap-[10px]`}>
-        <div className={`${variant === "expired" ? "opacity-80" : ""} flex flex-col`}>
+      <div
+        className={`${
+          isFlipped ? "hidden" : "flex"
+        } flex-col justify-between gap-[10px]`}
+      >
+        <div
+          className={`${
+            variant === "expired" ? "opacity-80" : ""
+          } flex flex-col`}
+        >
           <div className="flex justify-between items-center font-semibold text-[20px]">
             <div className="flex items-center gap-[10px]">
               <SVG width={12} height={12} iconName="play-fill" />
@@ -429,7 +471,10 @@ export default function PredictionCard({
                   key={i}
                   className="h-full flex-1 rounded-[1px]"
                   style={{
-                    backgroundColor: i < Math.floor(((120 - (timeLeft || 0)) / 120) * 7) ? '#E5E7EB' : '#6B7280'
+                    backgroundColor:
+                      i < Math.floor(((120 - (timeLeft || 0)) / 120) * 7)
+                        ? "#E5E7EB"
+                        : "#6B7280",
                   }}
                 />
               ))}
@@ -438,61 +483,53 @@ export default function PredictionCard({
         </div>
         <Button
           style={{ background: getButtonStyle("up") }}
-          className={`glass flex flex-col gap-4 py-[16px] ${variant === "expired" || (variant === "live" && priceDirection === "up") ? "border-2 border-green-500" : ""
-            } `}
+          className={`glass flex flex-col gap-4 py-[16px] ${
+            variant === "expired" ||
+            (variant === "live" && priceDirection === "up")
+              ? "border-2 border-green-500"
+              : ""
+          } `}
         >
           <div className="flex justify-center items-center gap-2">
             <p className="text-[20px] font-[600] leading-0">UP</p>
-            {/* {userBetStatus && userBetStatus.direction === "up" && (
-              <span
-                className={`text-[12px] font-bold ml-2 ${userBetStatus.status === "WON"
-                  ? "text-green-500"
-                  : userBetStatus.status === "LOST"
-                    ? "text-red-500"
-                    : "text-yellow-400"
-                  }`}
-              >
-                {userBetStatus.status}
-              </span>
-            )} */}
           </div>
-          <p className="text-[10px] font-[600] leading-0">{bullMultiplier}x payout</p>
+          <p className="text-[10px] font-[600] leading-0">
+            {bullMultiplier}x payout
+          </p>
         </Button>
         {variant === "later"
           ? renderLaterRoundContent()
           : variant === "next"
-            ? renderNextRoundContent()
-            : variant === "expired"
-              ? renderExpiredRoundContent()
-              : variant === "locked"
-                ? renderExpiredRoundContent()
-                : renderLiveRoundContent()}
+          ? renderNextRoundContent()
+          : variant === "expired"
+          ? renderExpiredRoundContent()
+          : variant === "locked"
+          ? renderExpiredRoundContent()
+          : renderLiveRoundContent()}
         <Button
           style={{ background: getButtonStyle("down") }}
-          className={`glass flex flex-col gap-4 py-[16px] ${variant === "expired" || (variant === "live" && priceDirection === "down") ? "border-2 border-red-500" : ""
-            }`}
+          className={`glass flex flex-col gap-4 py-[16px] ${
+            variant === "expired" ||
+            (variant === "live" && priceDirection === "down")
+              ? "border-2 border-red-500"
+              : ""
+          }`}
         >
           <div className="flex justify-center items-center gap-2">
             <p className="text-[20px] font-[600] leading-0">DOWN</p>
-            {/* {userBetStatus && userBetStatus.direction === "down" && (
-              <span
-                className={`text-[12px] font-bold ml-2 ${userBetStatus.status === "WON"
-                  ? "text-green-500"
-                  : userBetStatus.status === "LOST"
-                    ? "text-red-500"
-                    : "text-yellow-400"
-                  }`}
-              >
-                {userBetStatus.status}
-              </span>
-            )} */}
           </div>
-          <p className="text-[10px] font-[600] leading-0">{bearMultiplier}x payout</p>
+          <p className="text-[10px] font-[600] leading-0">
+            {bearMultiplier}x payout
+          </p>
         </Button>
       </div>
       <div className={`${isFlipped ? "flex" : "hidden"} flex-col gap-[26px]`}>
         <div className="flex gap-2 items-center font-semibold text-[16px]">
-          <SVG className="cursor-pointer" iconName="arrow-left" onClick={() => setIsFlipped(false)} />
+          <SVG
+            className="cursor-pointer"
+            iconName="arrow-left"
+            onClick={() => setIsFlipped(false)}
+          />
           <p>Place Order</p>
         </div>
         <div className="flex justify-between items-center">
