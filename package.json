@@ -36,6 +36,8 @@
     "react-apexcharts": "^1.7.0",
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.5.2",
+    "react-loaders": "^3.0.1",
+    "react-spinners": "^0.17.0",
     "react-toastify": "^11.0.5",
     "recharts": "^2.15.3",
     "swiper": "^11.2.6",

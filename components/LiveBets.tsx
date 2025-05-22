@@ -141,7 +141,7 @@ function LiveBets({ currentRound }: LiveBetsProps) {
   }, [currentRound]);
 
   return (
-    <div className="hidden xl:flex col-span-3 flex-col gap-[53px] items-end">
+    <div className="hidden xl:flex col-span-3 flex-col gap-[93px] items-end">
       <div
         className="glass py-[15px] px-[24px] rounded-[20px] font-semibold text-[20px] cursor-pointer"
         onClick={() => (window.location.href = "/leaderboard")}

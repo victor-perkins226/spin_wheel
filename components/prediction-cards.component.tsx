@@ -231,6 +231,26 @@ export default function PredictionCards() {
     return 3;
   };
 
+  // Create dummy later rounds
+  const createDummyLaterRound = (baseRound: Round, offsetNumber: number): Round => {
+    const roundNumber = Number(baseRound.number) + offsetNumber;
+    const baseStartTime = typeof baseRound.closeTime === 'number' 
+      ? baseRound.closeTime + (offsetNumber * 240) 
+      : Math.floor(Date.now() / 1000) + (offsetNumber * 240);
+    
+    return {
+      number: roundNumber.toString(),
+      startTime: baseStartTime,
+      lockTime: baseStartTime + 120,
+      closeTime: baseStartTime + 240,
+      totalAmount: 0,
+      totalBullAmount: 0,
+      totalBearAmount: 0,
+      isActive: false,
+      status: "later",
+    } as Round;
+  };
+
   const formatCardVariant = (
     round: Round,
     currentRoundNumber: number
@@ -351,17 +371,80 @@ export default function PredictionCards() {
     }
   }, [roundMap]);
 
+  // Filter rounds to display limited number
+  const displayRounds = useMemo(() => {
+    try {
+      const list = [...sortedRounds];
+      const currentTime = Math.floor(Date.now() / 1000);
+      
+      // Find live round (the round before current)
+      const liveRoundIndex = list.findIndex(
+        (r) => formatCardVariant(r, currentRoundNumber) === "live"
+      );
+      
+      // If no live round found, return empty array
+      if (liveRoundIndex === -1) return [];
+      
+      const liveRound = list[liveRoundIndex];
+      
+      // Find next round (current round in our context)
+      const nextRoundIndex = list.findIndex(
+        (r) => formatCardVariant(r, currentRoundNumber) === "next"
+      );
+      const nextRound = nextRoundIndex !== -1 ? list[nextRoundIndex] : null;
+      
+      // Get expired rounds (up to 3)
+      const expiredRounds = list
+        .filter((r) => formatCardVariant(r, currentRoundNumber) === "expired")
+        .sort((a, b) => Number(b.number) - Number(a.number)) // Sort in descending order
+        .slice(0, 3); // Take the 3 most recent expired rounds
+      
+      // Get real later rounds, but only if they're actual future rounds
+      const laterRounds = list
+        .filter((r) => {
+          const variant = formatCardVariant(r, currentRoundNumber);
+          // Only include later rounds where closeTime is in the future
+          return variant === "later" && 
+                 typeof r.closeTime === "number" && 
+                 r.closeTime > currentTime;
+        })
+        .slice(0, 1); // Take only 1 real later round
+      
+      // Add only one dummy later round if we have a next round to base it on
+      // and only if we don't already have a real later round
+      const dummyLaterRounds: Round[] = [];
+      if (nextRound && laterRounds.length === 0) {
+        dummyLaterRounds.push(createDummyLaterRound(nextRound, 1));
+      }
+      
+      // Create the final array in the correct order
+      // We'll manage the order explicitly rather than sorting at the end
+      const result = [
+        ...expiredRounds.sort((a, b) => Number(a.number) - Number(b.number)), // Expired rounds come first, sorted by round number
+        liveRound, // Then the live round
+        ...(nextRound ? [nextRound] : []), // Then the next round (if any)
+        ...laterRounds, // Then any real later rounds
+        ...dummyLaterRounds, // Finally any dummy later rounds
+      ];
+      
+      return result;
+    } catch (error) {
+      console.error("Error filtering rounds to display:", error);
+      return [];
+    }
+  }, [sortedRounds, currentRoundNumber]);
+
   // Add error handling for liveIndex calculation
   const liveIndex = useMemo(() => {
     try {
-      return sortedRounds.findIndex(
+      return displayRounds.findIndex(
         (r) => formatCardVariant(r, currentRoundNumber) === "live"
       );
     } catch (error) {
       console.error("Error finding live index:", error);
       return -1; // Return -1 if there's an error
     }
-  }, [sortedRounds, currentRoundNumber, formatCardVariant]);
+  }, [displayRounds, currentRoundNumber]);
 
   useEffect(() => {
     const swiper = swiperRef.current;
@@ -467,7 +550,7 @@ export default function PredictionCards() {
                 height={64}
               />
               <div className="glass flex gap-2 sm:gap-[9px] lg:gap-[26px] relative top-0 left-[8px] sm:left-[10px] lg:left:[20px] items-center font-semibold px-3 sm:px-[20px] lg:px-[44px] py-1 sm:py-[6px] lg:py-[15px] rounded-full">
-                <p className="text-[10px] sm:text-[12px] lg:text-[20px]">
+                <p className="text-[10px] pl-4 sm:text-[12px] lg:text-[20px]">
                   SOL/USDT
                 </p>
                 <p className="text-[10px] sm:text-[12px]">
@@ -611,7 +694,7 @@ export default function PredictionCards() {
               modules={[Pagination, EffectCoverflow]}
               className="w-full px-4 sm:px-0"
             >
-              {sortedRounds.map((round, index) => {
+              {displayRounds.map((round, index) => {
                 const roundNumber = Number(round.number);
                 const startTimeMs =
                   typeof round.startTime === "number" && !isNaN(round.startTime)

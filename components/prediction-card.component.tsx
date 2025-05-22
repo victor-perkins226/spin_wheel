@@ -10,6 +10,7 @@ import { ArrowDown, ArrowUp } from "lucide-react";
 import { UserBet } from "@/types/round";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import toast from "react-hot-toast";
+import { DotLoader } from "react-spinners";
 
 interface IProps {
   variant?: "live" | "expired" | "next" | "later" | "locked";
@@ -226,24 +227,40 @@ export default function PredictionCard({
   const renderNextRoundContent = () => {
     if (variant !== "next") return null;
     return (
-      <div className="flex-1 glass flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
-        <div className="flex flex-col items-center gap-[7px]">
-          <Image
-            alt="Solana Background"
-            src={SolanaBg || "/placeholder.svg"}
-            className="rounded-[10px] w-[215px] h-[142px] object-cover"
-            width={215}
-            height={142}
-          />
-          <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
-            <p>Prize Pool</p>
-            <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
+      <div className="flex-1 glass h-[300px] flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
+        {
+          timeLeft == null ? (
+            <div className="flex flex-col items-center justify-center h-full">
+              <DotLoader
+                color="#06C729"
+                size={40}
+                aria-label="Loading Spinner"
+                data-testid="loader"
+              />
+              <h2 className="text-2xl font-semibold mt-4 text-center">Calculating...</h2>
+            </div>
+          ):
+          (
+            <div className="flex flex-col items-center gap-[7px]">
+            <Image
+              alt="Solana Background"
+              src={SolanaBg || "/placeholder.svg"}
+              className="rounded-[10px] w-[215px] h-[142px] object-cover"
+              width={215}
+              height={142}
+            />
+            <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
+              <p>Prize Pool</p>
+              <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
+            </div>
+            <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
+              <p>Time Left</p>
+              <p>{formatTimeLeft(timeLeft)}</p>
+            </div>
           </div>
-          <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
-            <p>Time Left</p>
-            <p>{formatTimeLeft(timeLeft)}</p>
-          </div>
-        </div>
+          )
+        }
+      
         {canBet ? (
           <>
             <Button
@@ -283,14 +300,14 @@ export default function PredictionCard({
           .padStart(2, "0")}`
       : "Waiting";
     return (
-      <div className="glass flex-1 rounded-[20px] flex flex-col gap-[12px] items-center justify-center">
-        <Image
+      <div className="glass h-[300px]  rounded-[20px] flex flex-col gap-[12px] items-center justify-center">
+        {/* <Image
           alt="Solana Background"
           src={SolanaBg || "/placeholder.svg"}
           className="rounded-[10px] w-[215px] h-[142px] object-cover mt-2"
           width={215}
           height={142}
-        />
+        /> */}
         <div className="flex items-center gap-[12px]">
           <SVG iconName="play-fill" />
           <p className="font-semibold text-[20px]">Next Play</p>
@@ -305,7 +322,7 @@ export default function PredictionCard({
   const renderLiveRoundContent = () => {
     if (variant !== "live") return null;
     return (
-      <div className="flex-1 flex flex-col glass p-[10px] rounded-[20px] items-center">
+      <div className=" flex flex-col h-[300px] glass p-[10px] rounded-[20px] items-center">
         <div className="max-w-[215px] flex flex-col gap-[33px] justify-between flex-1">
           <Image
             alt="Solana Background"
@@ -371,7 +388,7 @@ export default function PredictionCard({
               <p>Prize Pool</p>
               <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
             </div>
-            {userBetStatus && (
+            {/* {userBetStatus && (
               <div
                 className={`flex justify-center text-[16px] font-bold ${userBetStatus.status === "WON"
                   ? "text-green-500"
@@ -382,7 +399,7 @@ export default function PredictionCard({
               >
                 <p>{userBetStatus.status}</p>
               </div>
-            )}
+            )} */}
           </div>
         </div>
       </div>
