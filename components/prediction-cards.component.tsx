@@ -48,7 +48,7 @@ export default function PredictionCards() {
     treasuryFee,
     previousRounds,
     totalPreviousRounds,
-    isLoading,
+    isLoading, // <-- Used from useRoundManager
     isPaused,
     getRoundOutcome,
     fetchMoreRounds,
@@ -57,6 +57,7 @@ export default function PredictionCards() {
   } = useRoundManager(5, 0);
 
   const [isFetchingRounds, setIsFetchingRounds] = useState(false);
+  const previousComputedRoundsRef = useRef<Round[]>([]); // Ref to store last valid computed rounds
 
   // Update claimableAmountRef when claimableBets changes
   useEffect(() => {
@@ -371,8 +372,8 @@ export default function PredictionCards() {
     }
   }, [roundMap]);
 
-  // Filter rounds to display limited number
-  const displayRounds = useMemo(() => {
+  // Renamed original displayRounds to computedDisplayRounds
+  const computedDisplayRounds = useMemo(() => {
     try {
       const list = [...sortedRounds];
       const currentTime = Math.floor(Date.now() / 1000);
@@ -427,24 +428,45 @@ export default function PredictionCards() {
         ...dummyLaterRounds, // Finally any dummy later rounds
       ];
       
-      return result;
+      return result.filter(Boolean); // Ensure no null/undefined items if liveRound or nextRound is null
     } catch (error) {
       console.error("Error filtering rounds to display:", error);
       return [];
     }
-  }, [sortedRounds, currentRoundNumber]);
+  }, [sortedRounds, currentRoundNumber, createDummyLaterRound, formatCardVariant]); // Added dependencies from createDummyLaterRound and formatCardVariant
+
+  // Update the ref with the latest non-empty computed rounds
+  useEffect(() => {
+    if (computedDisplayRounds.length > 0) {
+      previousComputedRoundsRef.current = computedDisplayRounds;
+    }
+  }, [computedDisplayRounds]);
+
+  // Determine if the system is in a state of loading/preparing the next round
+  const isSystemLoadingNextRound = isLoading || (isLocked && currentRound?.number !== config?.currentRound);
+
+  // Determine the final set of rounds to display in the Swiper
+  const finalDisplayRoundsForSwiper = useMemo(() => {
+    if (isSystemLoadingNextRound && computedDisplayRounds.length === 0 && previousComputedRoundsRef.current.length > 0) {
+      // If loading, current computation is empty, but we have previous rounds: use them.
+      // These stale cards will show "Waiting..." messages via the isSystemLoadingNextRound prop.
+      return previousComputedRoundsRef.current;
+    }
+    return computedDisplayRounds; // Otherwise, use the freshly computed rounds.
+  }, [computedDisplayRounds, isSystemLoadingNextRound]);
 
   // Add error handling for liveIndex calculation
   const liveIndex = useMemo(() => {
     try {
-      return displayRounds.findIndex(
+      // Use finalDisplayRoundsForSwiper for calculating liveIndex
+      return finalDisplayRoundsForSwiper.findIndex(
         (r) => formatCardVariant(r, currentRoundNumber) === "live"
       );
     } catch (error) {
       console.error("Error finding live index:", error);
       return -1; // Return -1 if there's an error
     }
-  }, [displayRounds, currentRoundNumber]);
+  }, [finalDisplayRoundsForSwiper, currentRoundNumber, formatCardVariant]); // Added formatCardVariant dependency
 
   useEffect(() => {
     const swiper = swiperRef.current;
@@ -662,12 +684,7 @@ export default function PredictionCards() {
             </div>
           )}
 
-          {isLocked && currentRound?.number !== config?.currentRound && (
-            <div className="text-center py-3 font-semibold">
-              Waiting for new round...
-            </div>
-          )}
-
+    
           <div className="relative">
             <Swiper
               onSwiper={(swiper) => {
@@ -694,7 +711,11 @@ export default function PredictionCards() {
               modules={[Pagination, EffectCoverflow]}
               className="w-full px-4 sm:px-0"
             >
-              {displayRounds.map((round, index) => {
+              {finalDisplayRoundsForSwiper.map((round, index) => {
+                if (!round || !round.number) { // Add a check for valid round object
+                  console.warn("Skipping invalid round object in Swiper map:", round);
+                  return null;
+                }
                 const roundNumber = Number(round.number);
                 const startTimeMs =
                   typeof round.startTime === "number" && !isNaN(round.startTime)
@@ -725,7 +746,7 @@ export default function PredictionCards() {
 
                 return (
                   <SwiperSlide
-                    key={round.number}
+                    key={round.number} // Ensure key is stable and unique
                     className="flex justify-center items-center"
                   >
                     <PredictionCard
@@ -767,6 +788,10 @@ export default function PredictionCards() {
                       userBets={userBets}
                       isLocked={isLocked}
                       timeLeft={timeLeft}
+                      // Pass the new prop to PredictionCard
+                      // PredictionCard will need to be updated to use this prop
+                      // to show "Waiting for next round..." on 'next'/'later' cards when true.
+                      // isSystemLoadingNextRound={isSystemLoadingNextRound}
                     />
                   </SwiperSlide>
                 );
