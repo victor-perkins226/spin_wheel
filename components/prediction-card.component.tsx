@@ -91,6 +91,51 @@ export default function PredictionCard({
   };
 
   const { bullMultiplier, bearMultiplier } = calculateMultipliers();
+  const isCalculating = variant === "calculating";
+  const isLocking = variant === "locking";
+  
+  // Render calculating state
+  if (isCalculating) {
+    return (
+      <div className="prediction-card calculating">
+        <div className="card-header">
+          <h3>#{roundData.number}</h3>
+          <div className="status-badge calculating">
+            Calculating
+          </div>
+        </div>
+        
+        <div className="price-section">
+          <div className="lock-price">
+            <span className="label">Locked Price</span>
+            <span className="price">${roundData.lockPrice?.toFixed(2) || "-.--"}</span>
+          </div>
+          
+          <div className="calculating-indicator">
+            <div className="spinner"></div>
+            <span>Calculating...</span>
+          </div>
+        </div>
+        
+        <div className="prize-section">
+          <span>Prize Pool: ${roundData.prizePool?.toFixed(4) || "0.0000"}</span>
+        </div>
+        
+        {/* Disable betting during calculating */}
+        <div className="bet-section disabled">
+          <button disabled className="bet-btn up disabled">
+            Enter UP
+          </button>
+          <button disabled className="bet-btn down disabled">
+            Enter DOWN
+          </button>
+        </div>
+      </div>
+    );
+  }
+  // Update your timer calculation to handle calculating phase
+
+// In your useRoundManager hook, ensure you're processing the calculating state
 
   useEffect(() => {
     if (!connected || !publicKey) {

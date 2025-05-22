@@ -54,6 +54,8 @@ export default function PredictionCards() {
     fetchMoreRounds,
     timeLeft,
     isLocked,
+    getRoundStatus,
+    getTimerDisplay
   } = useRoundManager(5, 0);
 
   const [isFetchingRounds, setIsFetchingRounds] = useState(false);
@@ -134,27 +136,27 @@ export default function PredictionCards() {
     roundId: number
   ) => {
     if (!connected || !publicKey || !connectionRef.current) {
-      toast("Please connect your wallet");
+      toast.error("Please connect your wallet to place a bet");
       return;
     }
 
     try {
       await handlePlaceBet(roundId, direction === "up", amount);
-      toast(`Bet placed: ${amount} SOL ${direction} on round ${roundId}`);
+      toast.success(`Bet placed: ${amount} SOL ${direction} on round ${roundId}`);
     } catch (error) {
       console.error("Failed to place bet:", error);
-      toast("Failed to place bet");
+      toast.error("Failed to place bet");
     }
   };
 
   const handleClaimRewards = useCallback(async () => {
     if (!connected || !publicKey || !connectionRef.current || !program) {
-      alert("Please connect your wallet");
+      toast.error("Please connect your wallet to claim rewards");
       return;
     }
 
     if (claimableBets.length === 0) {
-      alert("No claimable bets available");
+      toast.error("No claimable bets available");
       return;
     }
 
@@ -252,25 +254,39 @@ export default function PredictionCards() {
     } as Round;
   };
 
-  const formatCardVariant = (
-    round: Round,
-    currentRoundNumber: number
-  ): "next" | "expired" | "later" | "locked" | "live" => {
-    const roundNumber = Number(round.number);
-    if (roundNumber === currentRoundNumber) {
-      return round.isActive && timeLeft !== null && timeLeft > 0 && !isLocked
-        ? "next"
-        : "locked";
+// Update your card rendering logic
+const formatCardVariant = (round: Round, currentRoundNumber?: number) => {
+  if (!currentRoundNumber) return "expired";
+  
+  const roundNum = Number(round.number);
+  const currentNum = Number(currentRoundNumber);
+  
+  // Determine the display status
+  const displayStatus = getRoundStatus(round);
+  
+  if (roundNum === currentNum - 1) {
+    // This is the "live" round (current active round)
+    switch (displayStatus) {
+      case "CALCULATING":
+        return "calculating";
+      case "LOCKING":
+        return "locking";
+      case "ENDED":
+      case "EXPIRED":
+        return "expired";
+      default:
+        return "live";
     }
-    if (roundNumber === currentRoundNumber - 1) {
-      return isLocked ? "live" : "live";
-    }
-    if (roundNumber === currentRoundNumber + 1) {
-      return "later";
-    }
-    return "expired";
-  };
-
+  } else if (roundNum === currentNum) {
+    return "next"; // Next round for betting
+  } else if (roundNum === currentNum + 1) {
+    return "later"; // Later round
+  } else if (roundNum < currentNum - 1) {
+    return "expired"; // Past rounds
+  }
+  
+  return "expired";
+};
   const handleSlideChange = () => {
     if (!swiperRef.current) return;
     const swiper = swiperRef.current;
@@ -310,7 +326,10 @@ export default function PredictionCards() {
   }, [timeLeft, safeFetchMoreRounds]);
 
   const currentRoundNumber =
-    Number(config?.currentRound) || Number(currentRound?.number) || 1000;
+    Number(config?.currentRound) ||
+    Number(currentRound?.number) ||
+    Math.max(...previousRounds.map(r => Number(r.number)), 0) ||
+    1000;
 
   const nextRoundNumber = currentRoundNumber + 1;
   const nextRound =
@@ -333,8 +352,8 @@ export default function PredictionCards() {
       totalBullAmount: 0,
       totalBearAmount: 0,
       isActive: false,
-      status: "started", // Changed from "later" to "started" which is a valid value
-    } as Round); // Type assertion to Round
+      status: "started",
+    } as Round);
 
   const rounds = [
     ...(currentRound ? [currentRound] : []),
@@ -384,7 +403,7 @@ export default function PredictionCards() {
       );
       
       // If no live round found, return empty array
-      if (liveRoundIndex === -1) return [];
+      // if (liveRoundIndex === -1) return [];
       
       const liveRound = list[liveRoundIndex];
       
@@ -447,13 +466,39 @@ export default function PredictionCards() {
 
   // Determine the final set of rounds to display in the Swiper
   const finalDisplayRoundsForSwiper = useMemo(() => {
-    if (isSystemLoadingNextRound && computedDisplayRounds.length === 0 && previousComputedRoundsRef.current.length > 0) {
-      // If loading, current computation is empty, but we have previous rounds: use them.
-      // These stale cards will show "Waiting..." messages via the isSystemLoadingNextRound prop.
+    // Always show computed rounds if available, regardless of loading state
+    if (computedDisplayRounds.length > 0) {
+      return computedDisplayRounds;
+    }
+    
+    // If no computed rounds but we have previous rounds cached, use them
+    if (previousComputedRoundsRef.current.length > 0) {
       return previousComputedRoundsRef.current;
     }
-    return computedDisplayRounds; // Otherwise, use the freshly computed rounds.
-  }, [computedDisplayRounds, isSystemLoadingNextRound]);
+    
+    // Fallback: create minimal dummy rounds if no data is available
+    const fallbackCurrentTime = Math.floor(Date.now() / 1000);
+    const fallbackRounds: Round[] = [];
+    
+    for (let i = 0; i < 3; i++) {
+      const roundNumber = currentRoundNumber - 1 + i;
+      const baseTime = fallbackCurrentTime + (i * 240);
+      
+      fallbackRounds.push({
+        number: roundNumber.toString(),
+        startTime: baseTime - 240,
+        lockTime: baseTime - 120,
+        closeTime: baseTime,
+        totalAmount: 0,
+        totalBullAmount: 0,
+        totalBearAmount: 0,
+        isActive: i === 1, // Make the middle one active
+        status: i === 0 ? "expired" : i === 1 ? "next" : "later",
+      } as Round);
+    }
+    
+    return fallbackRounds;
+  }, [computedDisplayRounds, currentRoundNumber]);
 
   // Add error handling for liveIndex calculation
   const liveIndex = useMemo(() => {
@@ -684,7 +729,12 @@ export default function PredictionCards() {
             </div>
           )}
 
-    
+          {!connected && (
+            <div className="glass rounded-xl p-4 flex justify-center items-center">
+              <p className="text-sm opacity-70">Connect your wallet to place bets and view your balance</p>
+            </div>
+          )}
+
           <div className="relative">
             <Swiper
               onSwiper={(swiper) => {
@@ -785,13 +835,11 @@ export default function PredictionCards() {
                       currentRoundId={Number(config?.currentRound)}
                       bufferTimeInSeconds={0}
                       liveRoundPrice={liveRoundPrice}
-                      userBets={userBets}
+                      userBets={connected ? userBets : []} // Only show user bets if connected
                       isLocked={isLocked}
                       timeLeft={timeLeft}
-                      // Pass the new prop to PredictionCard
-                      // PredictionCard will need to be updated to use this prop
-                      // to show "Waiting for next round..." on 'next'/'later' cards when true.
-                      // isSystemLoadingNextRound={isSystemLoadingNextRound}
+                      // Pass wallet connection status to the card
+                      isWalletConnected={connected}
                     />
                   </SwiperSlide>
                 );
@@ -804,11 +852,12 @@ export default function PredictionCards() {
             <MobileLiveBets liveBets={[]} />
           </div>
 
-          {/* Line Chart Component */}
+          {/* Line Chart Component - always visible */}
           <div className="mt-10">
             <LineChart />
           </div>
 
+          {/* Only show bet history if wallet is connected and has bets */}
           {connected && userBets.length > 0 && (
             <BetsHistory userBets={userBets} />
           )}

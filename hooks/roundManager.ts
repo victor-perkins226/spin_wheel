@@ -24,6 +24,92 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
     offset
   );
 
+  // Add this helper function to determine round status
+const getRoundStatus = (roundData: any) => {
+  const { timeRemaining, lockTimeRemaining, status } = roundData;
+  
+  // If round has ended, show the actual status
+  if (status === "ENDED" || status === "EXPIRED") {
+    return status;
+  }
+  
+  // If lock time has started (lockTimeRemaining <= 0) but round hasn't ended
+  if (lockTimeRemaining <= 0 && timeRemaining > 0) {
+    return "CALCULATING";
+  }
+  
+  // If in lock phase (very close to lock time)
+  if (lockTimeRemaining <= 5 && lockTimeRemaining > 0) {
+    return "LOCKING";
+  }
+  
+  // Otherwise, it's live/active
+  return "LIVE";
+};
+const getTimerDisplay = (roundData: any) => {
+  const { timeRemaining, lockTimeRemaining, status } = roundData;
+  
+  if (status === "ENDED" || status === "EXPIRED") {
+    return "Ended";
+  }
+  
+  if (lockTimeRemaining <= 0 && timeRemaining > 0) {
+    return "Calculating...";
+  }
+  
+  if (lockTimeRemaining <= 5 && lockTimeRemaining > 0) {
+    return `Locking in ${lockTimeRemaining}s`;
+  }
+  
+  // Show lock time if available, otherwise show remaining time
+  const displayTime = lockTimeRemaining > 0 ? lockTimeRemaining : timeRemaining;
+  const minutes = Math.floor(displayTime / 60);
+  const seconds = displayTime % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+};
+// In your useRoundManager hook, ensure you're processing the calculating state
+useEffect(() => {
+  if (!currentRound || !config?.lockDuration || isCurrentRoundLoading) {
+    setTimeLeft(null);
+    setIsLocked(false);
+    return;
+  }
+
+  const calculateTimeLeft = () => {
+    const now = Date.now() / 1000;
+    
+    // Get lock time properly
+    let lockTimeValue = currentRound.lockTime 
+      ? Number(currentRound.lockTime)
+      : (Number(currentRound.startTime) + Number(config.lockDuration));
+    
+    const timeRemaining = lockTimeValue - now;
+    
+    if (timeRemaining <= 0) {
+      // Round is in calculating phase
+      setTimeLeft(0);
+      setIsLocked(true);
+      
+      // Check if round has actually ended
+      const roundEndTime = Number(currentRound.startTime) + Number(config.roundDuration);
+      const roundTimeRemaining = roundEndTime - now;
+      
+      if (roundTimeRemaining <= 0) {
+        // Round has completely ended
+        setIsLocked(true);
+      }
+    } else {
+      setTimeLeft(Math.floor(timeRemaining));
+      setIsLocked(false);
+    }
+  };
+  
+  // Calculate immediately and set up interval
+  calculateTimeLeft();
+  const interval = setInterval(calculateTimeLeft, 1000);
+  
+  return () => clearInterval(interval);
+}, [currentRound, config, currentRoundNumber]);
   // Log errors for debugging
   useEffect(() => {
     if (programError) console.error("useProgram Error:", programError);
@@ -192,5 +278,7 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
     fetchMoreRounds,
     timeLeft,
     isLocked,
+    getRoundStatus,
+    getTimerDisplay,
   };
 };
