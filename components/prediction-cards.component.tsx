@@ -293,7 +293,8 @@ export default function PredictionCards() {
 
   const nextRoundNumber = currentRoundNumber + 1;
   const nextRound =
-    previousRounds.find((r: Round) => Number(r.number) === nextRoundNumber) ?? {
+    previousRounds.find((r: Round) => Number(r.number) === nextRoundNumber) ??
+    ({
       number: nextRoundNumber.toString(),
       startTime:
         typeof currentRound?.closeTime === "number"
@@ -312,7 +313,7 @@ export default function PredictionCards() {
       totalBearAmount: 0,
       isActive: false,
       status: "started", // Changed from "later" to "started" which is a valid value
-    } as Round; // Type assertion to Round
+    } as Round); // Type assertion to Round
 
   const rounds = [
     ...(currentRound ? [currentRound] : []),
@@ -413,7 +414,10 @@ export default function PredictionCards() {
                   "Error fetching user bets on visibility change:",
                   err
                 );
-                if (err?.name === "AxiosError" && err?.response?.status === 500) {
+                if (
+                  err?.name === "AxiosError" &&
+                  err?.response?.status === 500
+                ) {
                   console.log(
                     "Server error when fetching user bets, will retry later"
                   );
@@ -471,7 +475,7 @@ export default function PredictionCards() {
                 </p>
               </div>
             </div>
-
+           
             <div className="relative flex items-center justify-center w-[60px] sm:w-[80px] lg:w-[120px] h-[60px] sm:h-[80px] lg:h-[120px]">
               {/* Circular progress background */}
               <svg className="absolute w-full h-full" viewBox="0 0 100 100">
@@ -693,7 +697,7 @@ export default function PredictionCards() {
           </div>
 
           {/* Line Chart Component */}
-          <div className="mt-10"></div>
+          <div className="mt-10">
             <LineChart />
           </div>
 
@@ -703,7 +707,7 @@ export default function PredictionCards() {
         </div>
 
         <LiveBets currentRound={Number(currentRound?.number) ?? null} />
-      
+      </div>
     </div>
   );
 }
