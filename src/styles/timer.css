@@ -1,0 +1,18 @@
+.timer {
+  display: inline-block;
+  padding: 5px 10px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.timer.locked {
+  background-color: #f44336;
+  color: white;
+}
+
+.minutes, .seconds {
+  display: inline-block;
+  min-width: 20px;
+  text-align: center;
+}

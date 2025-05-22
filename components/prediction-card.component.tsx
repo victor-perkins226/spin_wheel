@@ -443,7 +443,7 @@ export default function PredictionCard({
         >
           <div className="flex justify-center items-center gap-2">
             <p className="text-[20px] font-[600] leading-0">UP</p>
-            {userBetStatus && userBetStatus.direction === "up" && (
+            {/* {userBetStatus && userBetStatus.direction === "up" && (
               <span
                 className={`text-[12px] font-bold ml-2 ${userBetStatus.status === "WON"
                   ? "text-green-500"
@@ -454,7 +454,7 @@ export default function PredictionCard({
               >
                 {userBetStatus.status}
               </span>
-            )}
+            )} */}
           </div>
           <p className="text-[10px] font-[600] leading-0">{bullMultiplier}x payout</p>
         </Button>
@@ -474,7 +474,7 @@ export default function PredictionCard({
         >
           <div className="flex justify-center items-center gap-2">
             <p className="text-[20px] font-[600] leading-0">DOWN</p>
-            {userBetStatus && userBetStatus.direction === "down" && (
+            {/* {userBetStatus && userBetStatus.direction === "down" && (
               <span
                 className={`text-[12px] font-bold ml-2 ${userBetStatus.status === "WON"
                   ? "text-green-500"
@@ -485,7 +485,7 @@ export default function PredictionCard({
               >
                 {userBetStatus.status}
               </span>
-            )}
+            )} */}
           </div>
           <p className="text-[10px] font-[600] leading-0">{bearMultiplier}x payout</p>
         </Button>
