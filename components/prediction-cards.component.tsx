@@ -651,7 +651,7 @@ export default function PredictionCards() {
                     </div>
                   </div>
                   <button
-                    className="glass bg-green-500 py-2 px-4 rounded-lg font-semibold hover:bg-green-600 transition-colors"
+                    className="glass bg-green-500 py-2 px-4  cursor-pointer rounded-lg font-semibold hover:bg-green-600 transition-colors"
                     onClick={handleClaimRewards}
                     disabled={claimableAmountRef.current === 0}
                   >

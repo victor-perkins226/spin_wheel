@@ -149,7 +149,7 @@ function LiveBets({ currentRound }: LiveBetsProps) {
         Leaderboard
       </div>
 
-      <div className="glass px-[30px] py-[16px] rounded-[20px] w-full">
+      <div className="glass px-[30px] h-full max-h-[700px] py-[16px] rounded-[20px] w-full">
         {error ? (
           <div className="text-red-500">{error}</div>
         ) : isLoading ? (

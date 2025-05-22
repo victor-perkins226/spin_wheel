@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserBet } from '@/types/round';
 
 interface BetsHistoryProps {
@@ -6,8 +6,15 @@ interface BetsHistoryProps {
 }
 
 export function BetsHistory({ userBets }: BetsHistoryProps) {
-  // Sort userBets by roundId in descending order (most recent first)
-  const sortedBets = [...userBets].sort((a, b) => b.roundId - a.roundId);
+  // Use state to store sorted bets
+  const [sortedBets, setSortedBets] = useState<UserBet[]>([]);
+  
+  // Update sorted bets whenever userBets changes
+  useEffect(() => {
+    // Sort userBets by roundId in descending order (most recent first)
+    const newSortedBets = [...userBets].sort((a, b) => b.roundId - a.roundId);
+    setSortedBets(newSortedBets);
+  }, [userBets]); // Dependency array ensures this runs when userBets changes
 
   return (
     <div>
