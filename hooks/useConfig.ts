@@ -12,10 +12,9 @@ const programId = new PublicKey("AKui3UEpyUEhtnqsDChTL76DFncYx6rRqp6CSShnUm9r");
 
 
 
-// New hook for fetching previous rounds
 interface PreviousRoundsResponse {
     rounds: Round[];
-    total: number; // Total number of rounds for pagination
+    total: number; 
 }
 
 export const fetchConfig = async (program: any): Promise<Config> => {

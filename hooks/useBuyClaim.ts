@@ -184,12 +184,6 @@ export const useSolPredictor = (): SolPredictorHook => {
             // Refresh bets after placing a bet
             await fetchUserBets();
 
-            //   const { blockhash } = await connection.getLatestBlockhash();
-            //   tx.recentBlockhash = blockhash;
-            //   tx.feePayer = publicKey;
-
-            //   const signature = await sendTransaction(tx, connection);
-            //   await connection.confirmTransaction(signature, "confirmed");
 
             console.log(`Bet placed successfully: ${tx}`);
             toast("Bet placed successfully!");

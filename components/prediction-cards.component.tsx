@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-non-null-asserted-optional-chain */
 "use client";
 
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import SVG from "./svg.component";
 import PredictionCard from "./prediction-card.component";
 import Image from "next/image";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { EffectCoverflow, Pagination, } from "swiper/modules";
+import { EffectCoverflow, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-coverflow";
 import "swiper/css/pagination";
@@ -16,16 +16,12 @@ import { MobileLiveBets } from "./MobileBets";
 import LiveBets from "./LiveBets";
 import { useRoundManager } from "@/hooks/roundManager";
 import { Round } from "@/types/round";
-import { useSolPredictor } from "@/hooks/useBuyClaim"
+import { useSolPredictor } from "@/hooks/useBuyClaim";
 import { BetsHistory } from "./BetsHistory";
 import LineChart from "./LineChart";
-import { fetchLivePrice } from '@/lib/price-utils';
+import { fetchLivePrice } from "@/lib/price-utils";
 import { useProgram } from "@/hooks/useProgram";
 import toast from "react-hot-toast";
-
-
-
-
 
 export default function PredictionCards() {
   const [screenWidth, setScreenWidth] = useState(0);
@@ -34,14 +30,18 @@ export default function PredictionCards() {
   const { publicKey, connected, sendTransaction } = useWallet();
   const connectionRef = useRef<Connection | null>(null);
   const [userBalance, setUserBalance] = useState(0);
-  // const [userBets, setUserBets] = useState<UserBet[]>([]);
   const [liveRoundPrice, setLiveRoundPrice] = useState(50.5);
   const [claimableRewards, setClaimableRewards] = useState(0);
-
-  const { handlePlaceBet, handleClaimPayout, claimableBets, userBets, fetchUserBets } = useSolPredictor();
+  const {
+    handlePlaceBet,
+    handleClaimPayout,
+    claimableBets,
+    userBets,
+    fetchUserBets,
+  } = useSolPredictor();
   const claimableAmountRef = useRef<number>(0); // Store claimableAmount in useRef
   const { program } = useProgram();
-
+  const initialSlideJumped = useRef(false);
   const {
     config,
     currentRound,
@@ -56,11 +56,16 @@ export default function PredictionCards() {
     isLocked,
   } = useRoundManager(5, 0);
 
+  const [isFetchingRounds, setIsFetchingRounds] = useState(false);
+
   // Update claimableAmountRef when claimableBets changes
   useEffect(() => {
-    const newClaimableAmount = claimableBets.reduce((sum, bet) => sum + bet.payout, 0);
+    const newClaimableAmount = claimableBets.reduce(
+      (sum, bet) => sum + bet.payout,
+      0
+    );
     claimableAmountRef.current = newClaimableAmount;
-    console.log('Updated claimableAmount:', claimableAmountRef.current);
+    console.log("Updated claimableAmount:", claimableAmountRef.current);
   }, [claimableBets]);
 
   useEffect(() => {
@@ -76,27 +81,20 @@ export default function PredictionCards() {
       setLiveRoundPrice(price!);
     };
 
-
     updateLivePrice(); // Initial fetch
-    const interval = setInterval(updateLivePrice, 10000); // Update every 5 seconds
+    const interval = setInterval(updateLivePrice, 10000); // Update every 10 seconds
 
     return () => clearInterval(interval); // Cleanup on unmount
   }, []);
 
-
-  // // Fetch next round
-  // const nextRoundNumber = currentRound ? Number(currentRound.number) + 1 : undefined;
-  // const { data: nextRound, isLoading: isNextRoundLoading } = useRound(nextRoundNumber);
-
-  // console.log('previous rounds : ',previousRounds.length);
-
-
-
   useEffect(() => {
-    connectionRef.current = new Connection("https://lb.drpc.org/ogrpc?network=solana-devnet&dkey=AqnRwY5nD0C_uEv_hPfBwlLj0fFzMcQR8JKdzoXPVSjK", {
-      commitment: "finalized",
-      wsEndpoint: undefined,
-    });
+    connectionRef.current = new Connection(
+      "https://lb.drpc.org/ogrpc?network=solana-devnet&dkey=AqnRwY5nD0C_uEv_hPfBwlLj0fFzMcQR8JKdzoXPVSjK",
+      {
+        commitment: "finalized",
+        wsEndpoint: undefined,
+      }
+    );
 
     const updateScreenWidth = () => {
       setScreenWidth(window.innerWidth);
@@ -125,23 +123,22 @@ export default function PredictionCards() {
         console.error("Failed to fetch balance:", error);
       }
     };
-    
+
     fetchBalance();
-    // fetchClaimableRewards();
   }, [connected, publicKey, currentRound?.number]);
 
-
-
-
-  const handleBet = async (direction: "up" | "down", amount: number, roundId: number) => {
+  const handleBet = async (
+    direction: "up" | "down",
+    amount: number,
+    roundId: number
+  ) => {
     if (!connected || !publicKey || !connectionRef.current) {
       toast("Please connect your wallet");
       return;
     }
 
     try {
-
-      await handlePlaceBet(roundId, direction === "up", amount)
+      await handlePlaceBet(roundId, direction === "up", amount);
       toast(`Bet placed: ${amount} SOL ${direction} on round ${roundId}`);
     } catch (error) {
       console.error("Failed to place bet:", error);
@@ -149,8 +146,6 @@ export default function PredictionCards() {
     }
   };
 
-
-//handle
   const handleClaimRewards = useCallback(async () => {
     if (!connected || !publicKey || !connectionRef.current || !program) {
       alert("Please connect your wallet");
@@ -180,9 +175,13 @@ export default function PredictionCards() {
       transaction.feePayer = publicKey;
 
       // Send and confirm transaction
-      const signature = await sendTransaction(transaction, connectionRef.current, {
-        skipPreflight: false, // Run preflight checks
-      });
+      const signature = await sendTransaction(
+        transaction,
+        connectionRef.current,
+        {
+          skipPreflight: false, // Run preflight checks
+        }
+      );
       await connectionRef.current.confirmTransaction(signature, "confirmed");
 
       // Refresh bets after claiming
@@ -215,8 +214,15 @@ export default function PredictionCards() {
       }
       alert(errorMessage);
     }
-  }, [connected, publicKey, program, claimableBets, sendTransaction, fetchUserBets, handleClaimPayout]);
-
+  }, [
+    connected,
+    publicKey,
+    program,
+    claimableBets,
+    sendTransaction,
+    fetchUserBets,
+    handleClaimPayout,
+  ]);
 
   const getSlidesPerView = () => {
     if (!mounted) return 1;
@@ -225,10 +231,15 @@ export default function PredictionCards() {
     return 3;
   };
 
-  const formatCardVariant = (round: Round, currentRoundNumber: number): "next" | "expired" | "later" | "locked" | "live" => {
+  const formatCardVariant = (
+    round: Round,
+    currentRoundNumber: number
+  ): "next" | "expired" | "later" | "locked" | "live" => {
     const roundNumber = Number(round.number);
     if (roundNumber === currentRoundNumber) {
-      return round.isActive && timeLeft !== null && timeLeft > 0 && !isLocked ? "next" : "locked";
+      return round.isActive && timeLeft !== null && timeLeft > 0 && !isLocked
+        ? "next"
+        : "locked";
     }
     if (roundNumber === currentRoundNumber - 1) {
       return isLocked ? "live" : "live";
@@ -239,30 +250,79 @@ export default function PredictionCards() {
     return "expired";
   };
 
-
   const handleSlideChange = () => {
     if (!swiperRef.current) return;
     const swiper = swiperRef.current;
-    if (swiper.activeIndex >= rounds.length - 2 && rounds.length < totalPreviousRounds) {
-      fetchMoreRounds();
-    }
   };
 
-  const currentRoundNumber = Number(config?.currentRound) || Number(currentRound?.number) || 1000;
+  // Add a more robust version of safeFetchMoreRounds that handles API errors
+  const safeFetchMoreRounds = useCallback(async () => {
+    if (isFetchingRounds) return; // debounce
+    try {
+      setIsFetchingRounds(true); // show loader
+      await fetchMoreRounds?.(); // same hook you already call
+    } catch (error: any) {
+      // Handle axios errors
+      if (error?.name === "AxiosError") {
+        console.error("API error when fetching rounds:", error.message);
+        // Don't crash the app, just show a toast message
+        toast.error(
+          "Server error when fetching new rounds. Please try again later."
+        );
+      } else {
+        console.error("Error fetching rounds:", error);
+      }
+      // Give the server a moment to recover before trying again
+      setTimeout(() => {
+        setIsFetchingRounds(false);
+      }, 10000); // Wait 10 seconds before allowing another attempt
+      return;
+    }
+    setIsFetchingRounds(false); // hide loader
+  }, [fetchMoreRounds, isFetchingRounds]);
+
+  useEffect(() => {
+    if (timeLeft === 0) {
+      initialSlideJumped.current = false;
+      safeFetchMoreRounds(); // Use the guarded version
+    }
+  }, [timeLeft, safeFetchMoreRounds]);
+
+  const currentRoundNumber =
+    Number(config?.currentRound) || Number(currentRound?.number) || 1000;
+
+  const nextRoundNumber = currentRoundNumber + 1;
+  const nextRound =
+    previousRounds.find((r: Round) => Number(r.number) === nextRoundNumber) ??
+    ({
+      number: nextRoundNumber.toString(),
+      startTime:
+        typeof currentRound?.closeTime === "number"
+          ? currentRound.closeTime + 1
+          : Math.floor(Date.now() / 1000) + 1,
+      lockTime:
+        (typeof currentRound?.closeTime === "number"
+          ? currentRound.closeTime
+          : Math.floor(Date.now() / 1000)) + 120,
+      closeTime:
+        (typeof currentRound?.closeTime === "number"
+          ? currentRound.closeTime
+          : Math.floor(Date.now() / 1000)) + 240,
+      totalAmount: 0,
+      totalBullAmount: 0,
+      totalBearAmount: 0,
+      isActive: false,
+      status: "started", // Changed from "later" to "started" which is a valid value
+    } as Round); // Type assertion to Round
 
   const rounds = [
-    ...(currentRound && !isNaN(Number(currentRound.number)) && Number(currentRound.number) > 0 ? [currentRound] : []),
-    ...(previousRounds && Array.isArray(previousRounds)
-      ? previousRounds.filter(
-        (round) => !isNaN(Number(round.number)) && Number(round.number) > 0 && Number(round.number) <= currentRoundNumber - 1
-      )
-      : []),
+    ...(currentRound ? [currentRound] : []),
+    nextRound,
+    ...previousRounds.filter(
+      (r: Round) =>
+        Number(r.number) > 0 && Number(r.number) <= currentRoundNumber - 1
+    ),
   ];
-
-
-
-
-  // console.log(rounds.length);
 
   // Deduplicate rounds
   const roundMap = new Map<number, Round>();
@@ -275,44 +335,125 @@ export default function PredictionCards() {
     }
   });
 
+  // Get unique rounds and sort them based on the desired order
+  const uniqueRounds = Array.from(roundMap.values());
 
+  const sortedRounds = useMemo(() => {
+    try {
+      // build your unique list
+      const list = Array.from(roundMap.values());
+      // clone+sort
+      return [...list].sort((a, b) => Number(a.number) - Number(b.number));
+    } catch (error) {
+      console.error("Error sorting rounds:", error);
+      // Return empty array as fallback to prevent crashes
+      return [];
+    }
+  }, [roundMap]);
 
-  const uniqueRounds = Array.from(roundMap.values()).sort((a, b) => Number(b.number) - Number(a.number));
-  // console.log(uniqueRounds.length);
+  // Add error handling for liveIndex calculation
+  const liveIndex = useMemo(() => {
+    try {
+      return sortedRounds.findIndex(
+        (r) => formatCardVariant(r, currentRoundNumber) === "live"
+      );
+    } catch (error) {
+      console.error("Error finding live index:", error);
+      return -1; // Return -1 if there's an error
+    }
+  }, [sortedRounds, currentRoundNumber, formatCardVariant]);
 
+  useEffect(() => {
+    const swiper = swiperRef.current;
+    if (swiper && liveIndex >= 0 && !initialSlideJumped.current) {
+      try {
+        swiper.slideTo(liveIndex, 0);
+        initialSlideJumped.current = true;
+      } catch (error) {
+        console.error("Error sliding to live index:", error);
+      }
+    }
 
-  // // Log rounds for debugging
-  // useEffect(() => {
-  //   console.log("Rounds:", rounds.map(r => Number(r.number)));
-  //   console.log("Unique Rounds:", uniqueRounds.map(r => Number(r.number)));
-  // }, [rounds, uniqueRounds]);
+    if (timeLeft === 0) {
+      initialSlideJumped.current = false;
+      // Protect with try/catch to prevent crashes
+      try {
+        safeFetchMoreRounds();
+      } catch (error) {
+        console.error("Error refreshing rounds:", error);
+      }
+    }
+  }, [liveIndex, timeLeft, safeFetchMoreRounds]);
 
-  // Format timeLeft as MM:SS
+  // Improve visibility change handler with better API error handling
+  useEffect(() => {
+    let isRefreshing = false;
+
+    const handleVisibility = async () => {
+      if (document.visibilityState === "visible" && !isRefreshing) {
+        isRefreshing = true;
+
+        try {
+          // Run these in parallel but handle errors independently
+          const tasks = [];
+
+          // fetchMoreRounds is always defined from the hook
+          tasks.push(
+            safeFetchMoreRounds().catch((err) => {
+              console.error(
+                "Error refreshing rounds on visibility change:",
+                err
+              );
+            })
+          );
+
+          if (fetchUserBets) {
+            tasks.push(
+              fetchUserBets().catch((err) => {
+                console.error(
+                  "Error fetching user bets on visibility change:",
+                  err
+                );
+                if (
+                  err?.name === "AxiosError" &&
+                  err?.response?.status === 500
+                ) {
+                  console.log(
+                    "Server error when fetching user bets, will retry later"
+                  );
+                }
+              })
+            );
+          }
+
+          // Use Promise.allSettled to ensure all promises complete regardless of success/failure
+          await Promise.allSettled(tasks);
+        } catch (error) {
+          console.error("Error during visibility change refresh:", error);
+        } finally {
+          // Add a small delay before allowing refreshes again to prevent hammering the server
+          setTimeout(() => {
+            isRefreshing = false;
+          }, 2000);
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
+  }, [fetchMoreRounds, fetchUserBets, safeFetchMoreRounds]);
+
   const formatTimeLeft = (seconds: number | null) => {
     if (seconds === null || seconds <= 0) return "Locked";
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`;
+    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
+      .toString()
+      .padStart(2, "0")}`;
   };
 
-  const [previousPrice, setPreviousPrice] = useState(liveRoundPrice);
-  useEffect(() => {
-    if (liveRoundPrice !== previousPrice) {
-      setPreviousPrice(liveRoundPrice);
-    }
-  }, [liveRoundPrice, previousPrice]);
-
-
-  // if (isLoading) {
-  //   return (
-  //     <div className="flex justify-center items-center h-screen">
-  //       <div className="loader border-4 border-t-4 border-gray-200 rounded-full w-12 h-12 animate-spin" />
-  //     </div>
-  //   );
-  // }
-
   return (
-
     <div className="container px-3 sm:px-4 md:px-6 lg:px-8 mt-5 md:mt-6 lg:mt-[70px] flex flex-col gap-4 md:gap-6 lg:gap-[40px]">
       <div className="grid grid-cols-12 gap-4 lg:gap-6 xl:gap-[40px]">
         <div className="flex flex-col gap-6 md:gap-8 lg:gap-[40px] col-span-12 xl:col-span-9">
@@ -325,24 +466,16 @@ export default function PredictionCards() {
                 width={64}
                 height={64}
               />
-              <div className="glass flex gap-2 sm:gap-[9px] lg:gap-[26px] relative top-0 left-[10px] sm:left-[12px] lg:left-[20px] items-center font-semibold px-3 sm:px-[20px] lg:px-[44px] py-1 sm:py-[6px] lg:py-[15px] rounded-full">
-                <p className="text-[10px] sm:text-[12px] lg:text-[20px]">SOL/USDT</p>
-                <p
-                  className="text-[10px] sm:text-[12px] transition-all duration-300 ease-in-out"
-                  key={liveRoundPrice}
-                  style={{
-                    animation: `priceUpdate 0.5s ease-out, numberRoll 0.5s ease-out`,
-                    color: liveRoundPrice > previousPrice
-                      ? '#06C729' // Green for price increase
-                      : liveRoundPrice < previousPrice
-                        ? '#FD6152' // Red for price decrease
-                        : '#FEFEFE' // White when unchanged
-                  }}
-                >
-                  ${liveRoundPrice.toFixed(4)}
+              <div className="glass flex gap-2 sm:gap-[9px] lg:gap-[26px] relative top-0 left-[8px] sm:left-[10px] lg:left:[20px] items-center font-semibold px-3 sm:px-[20px] lg:px-[44px] py-1 sm:py-[6px] lg:py-[15px] rounded-full">
+                <p className="text-[10px] sm:text-[12px] lg:text-[20px]">
+                  SOL/USDT
+                </p>
+                <p className="text-[10px] sm:text-[12px]">
+                  ${liveRoundPrice.toFixed(2)}
                 </p>
               </div>
             </div>
+           
             <div className="relative flex items-center justify-center w-[60px] sm:w-[80px] lg:w-[120px] h-[60px] sm:h-[80px] lg:h-[120px]">
               {/* Circular progress background */}
               <svg className="absolute w-full h-full" viewBox="0 0 100 100">
@@ -366,14 +499,15 @@ export default function PredictionCards() {
                   strokeWidth="5"
                   strokeLinecap="round"
                   strokeDasharray="283" // 2πr ≈ 283 (for r=45)
-                  strokeDashoffset={283 - (283 * (1 - (timeLeft! / 120)))} // Adjusted calculation
+                  strokeDashoffset={283 - 283 * (1 - (timeLeft ?? 0) / 120)} // Adjusted calculation with null check
                   transform="rotate(-90 50 50)"
                 />
 
                 {/* 12 hour markers */}
                 {Array.from({ length: 20 }).map((_, i) => {
-                  const angle = 15 + (i * 18); // Starts at 15°, 18° increments (covers 15°-345°)
-                  if (angle < 165 || angle > 195) { // Skip small bottom portion (165°-195°)
+                  const angle = 15 + i * 18; // Starts at 15°, 18° increments (covers 15°-345°)
+                  if (angle < 165 || angle > 195) {
+                    // Skip small bottom portion (165°-195°)
                     return (
                       <line
                         key={i}
@@ -446,7 +580,9 @@ export default function PredictionCards() {
           )}
 
           {isLocked && currentRound?.number !== config?.currentRound && (
-            <div className="text-center py-3 font-semibold">Waiting for new round...</div>
+            <div className="text-center py-3 font-semibold">
+              Waiting for new round...
+            </div>
           )}
 
           <div className="relative">
@@ -456,7 +592,6 @@ export default function PredictionCards() {
               }}
               onSlideChange={handleSlideChange}
               effect="coverflow"
-
               grabCursor={true}
               centeredSlides={true}
               slidesPerView={getSlidesPerView()}
@@ -476,30 +611,71 @@ export default function PredictionCards() {
               modules={[Pagination, EffectCoverflow]}
               className="w-full px-4 sm:px-0"
             >
-              {uniqueRounds.map((round, index) => {
+              {sortedRounds.map((round, index) => {
                 const roundNumber = Number(round.number);
-                const startTimeMs = Number(round.startTime) * 1000;
-                const lockTime = round.lockTime > 0 ? round.lockTime : startTimeMs / 1000 + 120;
-                const closeTime = round.closeTime > 0 ? round.closeTime : lockTime + 120;
-                //const claimableForRound = claimableBets.find((bet) => bet.roundNumber === roundNumber);
+                const startTimeMs =
+                  typeof round.startTime === "number" && !isNaN(round.startTime)
+                    ? round.startTime * 1000
+                    : round.startTime instanceof Date
+                    ? round.startTime.getTime()
+                    : 0;
+                const lockTime =
+                  round.lockTime instanceof Date
+                    ? round.lockTime.getTime() / 1000
+                    : typeof round.lockTime === "string" &&
+                      !isNaN(Number(round.lockTime))
+                    ? Number(round.lockTime)
+                    : startTimeMs / 1000 + 120;
+                const closeTime =
+                  round.closeTime instanceof Date
+                    ? round.closeTime.getTime() / 1000
+                    : typeof round.closeTime === "string" &&
+                      !isNaN(Number(round.closeTime))
+                    ? Number(round.closeTime)
+                    : lockTime + 120;
+
+                // Get the variant for this card
+                const cardVariant = formatCardVariant(
+                  round,
+                  currentRoundNumber
+                );
+
                 return (
-                  <SwiperSlide key={index} className="flex justify-center items-center">
+                  <SwiperSlide
+                    key={round.number}
+                    className="flex justify-center items-center"
+                  >
                     <PredictionCard
-                      variant={formatCardVariant(round, currentRoundNumber)}
+                      variant={cardVariant}
                       roundId={Number(round.number)}
                       roundData={{
-                        lockPrice: Number(round.lockPrice!) / 1e8,
-                        closePrice: round.endPrice ? Number(round.endPrice) / 1e8 : liveRoundPrice,
-                        currentPrice: liveRoundPrice || Number(round.lockPrice || 50 * 1e8) / 1e8,
-                        prizePool: Number(round.totalAmount || 0) / LAMPORTS_PER_SOL,
-                        upBets: (Number(round.totalBullAmount) || 0) / LAMPORTS_PER_SOL,
-                        downBets: (Number(round.totalBearAmount) || 0) / LAMPORTS_PER_SOL,
-                        timeRemaining: Math.max(0, closeTime - Date.now() / 1000),
-                        lockTimeRemaining: timeLeft !== null && roundNumber === Number(config?.currentRound) ? timeLeft : Math.max(0, lockTime - Date.now() / 1000),
-                        lockTime: timeLeft !== null && roundNumber === Number(config?.currentRound) ? Date.now() / 1000 + timeLeft : lockTime,
+                        lockPrice: round.lockPrice! / 1e8,
+                        closePrice: round.endPrice
+                          ? round.endPrice / 1e8
+                          : liveRoundPrice,
+                        currentPrice:
+                          liveRoundPrice || (round.lockPrice || 50 * 1e8) / 1e8,
+                        prizePool: (round.totalAmount || 0) / LAMPORTS_PER_SOL,
+                        upBets: (round.totalBullAmount || 0) / LAMPORTS_PER_SOL,
+                        downBets:
+                          (round.totalBearAmount || 0) / LAMPORTS_PER_SOL,
+                        timeRemaining: Math.max(
+                          0,
+                          closeTime - Date.now() / 1000
+                        ),
+                        lockTimeRemaining:
+                          timeLeft !== null &&
+                          roundNumber === Number(config?.currentRound)
+                            ? timeLeft
+                            : Math.max(0, lockTime - Date.now() / 1000),
+                        lockTime:
+                          timeLeft !== null &&
+                          roundNumber === Number(config?.currentRound)
+                            ? Date.now() / 1000 + timeLeft
+                            : lockTime,
                         closeTime,
                         isActive: round.isActive ? true : false,
-                        treasuryFee: config ? treasuryFee! : 5
+                        treasuryFee: config ? treasuryFee! : 5,
                       }}
                       onPlaceBet={handleBet}
                       currentRoundId={Number(config?.currentRound)}
@@ -525,13 +701,13 @@ export default function PredictionCards() {
             <LineChart />
           </div>
 
-          {connected && userBets.length > 0 && <BetsHistory userBets={userBets} />}
+          {connected && userBets.length > 0 && (
+            <BetsHistory userBets={userBets} />
+          )}
         </div>
 
         <LiveBets currentRound={Number(currentRound?.number) ?? null} />
-      
       </div>
     </div>
-
   );
 }
