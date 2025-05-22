@@ -22,12 +22,12 @@ export const WalletContextProvider = ({ children }) => {
   const network = WalletAdapterNetwork.Devnet;
 
   // You can also provide a custom RPC endpoint.
-  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+  const endpoint =  "https://lb.drpc.org/ogrpc?network=solana-devnet&dkey=AqnRwY5nD0C_uEv_hPfBwlLj0fFzMcQR8JKdzoXPVSjK";
 
   const wallets = useMemo(
     () => [ new PhantomWalletAdapter()],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [network]
+    [endpoint]
   );
 
   return (
