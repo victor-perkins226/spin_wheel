@@ -61,7 +61,6 @@ export default function PredictionCards() {
     fetchMoreRounds,
     timeLeft,
     isLocked,
-    getRoundStatus,
     getTimerDisplay,
   } = useRoundManager(5, 0);
 
@@ -283,6 +282,11 @@ export default function PredictionCards() {
         return "calculating";
       }
 
+      // Check if current round has just ended and should enter calculating state
+      if (roundNum === currentNum && timeLeft !== null && timeLeft <= 0 && timeLeft > -7) {
+        return "calculating";
+      }
+
       if (roundNum === currentNum || roundNum === currentNum - 1) {
         console.log(`Round ${roundNum} times:`, {
           lockTime: Number(round.lockTime),
@@ -296,6 +300,11 @@ export default function PredictionCards() {
       if (roundNum === currentNum) {
         const lockTime = Number(round.lockTime);
         const closeTime = Number(round.closeTime);
+
+        // If timeLeft is 0 or negative but within 7 seconds, show calculating
+        if (timeLeft !== null && timeLeft <= 0 && timeLeft > -7) {
+          return "calculating";
+        }
 
         if (now >= lockTime && now < closeTime && round.isActive) {
           console.log(`Round ${roundNum} is LIVE (current round in live phase)`);
@@ -323,7 +332,7 @@ export default function PredictionCards() {
 
       return "expired";
     },
-    [calculatingRound, calculatingUntil]
+    [calculatingRound, calculatingUntil, timeLeft]
   );
 
   const currentRoundNumber = Number(currentRound?.number) || 0;

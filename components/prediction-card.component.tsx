@@ -241,7 +241,7 @@ export default function PredictionCard({
   };
 
   const renderCalculatingState = () => {
-    if (!isCalculating) return null;
+    // if (!isCalculating) return null;
     
     return (
       <div
@@ -256,9 +256,6 @@ export default function PredictionCard({
               </div>
               <p>#{roundId}</p>
             </div>
-            {/* <div className="mt-1 text-center text-sm font-medium text-yellow-400">
-              {timeLeft !== null && timeLeft > 0 ? formatTimeLeft(timeLeft) : "Finalizing..."}
-            </div> */}
           </div>
 
           <div className="flex glass flex-col items-center gap-3 justify-center h-[250px]">
@@ -273,7 +270,7 @@ export default function PredictionCard({
             </h2>
           </div>
 
-          <Button
+          {/* <Button
             style={{ opacity: 0.5 }}
             className="glass flex flex-col gap-4 py-[16px] cursor-not-allowed"
             disabled
@@ -297,7 +294,7 @@ export default function PredictionCard({
             <p className="text-[10px] font-[600] leading-0">
               {calculatedMultipliers.bearMultiplier}x payout
             </p>
-          </Button>
+          </Button> */}
         </div>
       </div>
     );
@@ -306,11 +303,27 @@ export default function PredictionCard({
   const renderLiveRoundContent = () => {
     if (variant !== "live") return null;
     
-  if (isCalculating) {
-    return renderCalculatingState();
-  }
+    // Check if we should show calculating state instead of live
+    if (timeLeft !== null && timeLeft <= 0 && timeLeft > -7) {
+      return renderCalculatingState();
+    }
+    
+    
     return (
       <div className="flex flex-col h-[300px] glass p-[10px] rounded-[20px] items-center">
+          {canBet ? (
+          <div className="flex flex-col items-center gap-3 justify-center h-[250px]">
+            <DotLoader
+              color="#ffffff"
+              size={40}
+              aria-label="Loading Spinner"
+              data-testid="loader"
+            />
+            <h2 className="text-2xl font-semibold mt-4 text-center">
+              Calculating...
+            </h2>
+          </div>
+        ) : (
         <div className="max-w-[215px] flex flex-col gap-[33px] justify-between flex-1">
           <Image
             alt="Solana Background"
@@ -346,6 +359,7 @@ export default function PredictionCard({
             </div>
           </div>
         </div>
+        )}
       </div>
     );
   };
