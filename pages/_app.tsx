@@ -6,7 +6,7 @@ import Head from "next/head";
 import { WalletContextProvider } from "@/components/wallet.provider.component";
 import { Toaster } from "react-hot-toast";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
+import { useEffect, useState } from "react";
 
 export const poppins = Poppins({
   variable: "--font-poppins-sans",
@@ -18,6 +18,11 @@ export const poppins = Poppins({
 const queryClient = new QueryClient();
 
 export default function App({ Component, pageProps }: AppProps) {
+  const [domLoaded, setDomLoaded] = useState(false);
+
+  useEffect(() => {
+    setDomLoaded(true);
+  }, []);
 
   return (
     <>
@@ -54,9 +59,11 @@ export default function App({ Component, pageProps }: AppProps) {
 
       <QueryClientProvider client={queryClient}>
         <WalletContextProvider>
-          <Layout>
-            <Component {...pageProps} />
-          </Layout>
+          {domLoaded && (
+            <Layout>
+              <Component {...pageProps} />
+            </Layout>
+          )}
         </WalletContextProvider>
       </QueryClientProvider>
     </>

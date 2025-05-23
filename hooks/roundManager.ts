@@ -24,92 +24,179 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
     offset
   );
 
-  // Add this helper function to determine round status
-const getRoundStatus = (roundData: any) => {
-  const { timeRemaining, lockTimeRemaining, status } = roundData;
-  
-  // If round has ended, show the actual status
-  if (status === "ENDED" || status === "EXPIRED") {
-    return status;
-  }
-  
-  // If lock time has started (lockTimeRemaining <= 0) but round hasn't ended
-  if (lockTimeRemaining <= 0 && timeRemaining > 0) {
-    return "CALCULATING";
-  }
-  
-  // If in lock phase (very close to lock time)
-  if (lockTimeRemaining <= 5 && lockTimeRemaining > 0) {
-    return "LOCKING";
-  }
-  
-  // Otherwise, it's live/active
-  return "LIVE";
-};
-const getTimerDisplay = (roundData: any) => {
-  const { timeRemaining, lockTimeRemaining, status } = roundData;
-  
-  if (status === "ENDED" || status === "EXPIRED") {
-    return "Ended";
-  }
-  
-  if (lockTimeRemaining <= 0 && timeRemaining > 0) {
-    return "Calculating...";
-  }
-  
-  if (lockTimeRemaining <= 5 && lockTimeRemaining > 0) {
-    return `Locking in ${lockTimeRemaining}s`;
-  }
-  
-  // Show lock time if available, otherwise show remaining time
-  const displayTime = lockTimeRemaining > 0 ? lockTimeRemaining : timeRemaining;
-  const minutes = Math.floor(displayTime / 60);
-  const seconds = displayTime % 60;
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-};
-// In your useRoundManager hook, ensure you're processing the calculating state
-useEffect(() => {
-  if (!currentRound || !config?.lockDuration || isCurrentRoundLoading) {
-    setTimeLeft(null);
-    setIsLocked(false);
-    return;
-  }
-
+  // Update the calculateTimeLeft function
   const calculateTimeLeft = () => {
+    if (!currentRound || !config?.lockDuration || isCurrentRoundLoading) {
+      setTimeLeft(null);
+      setIsLocked(false);
+      return;
+    }
+  
     const now = Date.now() / 1000;
-    
-    // Get lock time properly
-    let lockTimeValue = currentRound.lockTime 
+    const lockTime = currentRound.lockTime 
       ? Number(currentRound.lockTime)
       : (Number(currentRound.startTime) + Number(config.lockDuration));
+    const closeTime = Number(currentRound.closeTime);
     
-    const timeRemaining = lockTimeValue - now;
+    const timeToLock = lockTime - now;
+    const timeToClose = closeTime - now;
     
-    if (timeRemaining <= 0) {
-      // Round is in calculating phase
+    if (timeToClose <= 0) {
+      // Round has completely ended - wait for next round
       setTimeLeft(0);
       setIsLocked(true);
-      
-      // Check if round has actually ended
-      const roundEndTime = Number(currentRound.startTime) + Number(config.roundDuration);
-      const roundTimeRemaining = roundEndTime - now;
-      
-      if (roundTimeRemaining <= 0) {
-        // Round has completely ended
-        setIsLocked(true);
-      }
-    } else {
-      setTimeLeft(Math.floor(timeRemaining));
+      return;
+    }
+    
+    if (timeToLock <= 0 && timeToClose > 0) {
+      // Round is in calculating phase - show remaining time until close
+      const calculatingTimeLeft = Math.floor(timeToClose);
+      setTimeLeft(calculatingTimeLeft);
+      setIsLocked(true);
+      return;
+    }
+    
+    if (timeToLock > 0) {
+      // Round is still accepting bets
+      setTimeLeft(Math.floor(timeToLock));
       setIsLocked(false);
+      return;
     }
   };
+
+  // Update the getRoundStatus function to work with timeLeft
+  const getRoundStatus = (roundData: any) => {
+    if (!roundData) return "ENDED";
+    
+    const now = Date.now() / 1000;
+    const lockTime = Number(roundData.lockTime);
+    const closeTime = Number(roundData.closeTime);
+    
+    // If round has ended
+    if (roundData.status === "ENDED" || roundData.status === "EXPIRED" || now >= closeTime) {
+      return "ENDED";
+    }
+    
+    // If lock time has passed but round hasn't closed (calculating phase)
+    if (now >= lockTime && now < closeTime) {
+      return "CALCULATING";
+    }
+    
+    // If very close to lock time (5 seconds buffer)
+    if (lockTime - now <= 5 && lockTime - now > 0) {
+      return "LOCKING";
+    }
+    
+    // Otherwise, it's live/active
+    return "LIVE";
+  };
+
+  const getTimerDisplay = (roundData: any) => {
+    const now = Date.now() / 1000;
+    const lockTime = Number(roundData.lockTime);
+    const closeTime = Number(roundData.closeTime);
+    
+    // If round has ended
+    if (now >= closeTime || roundData.status === "ENDED") {
+      return "Ended";
+    }
+    
+    // If in calculating phase, show time until close
+    if (now >= lockTime && now < closeTime) {
+      const calculatingTime = Math.floor(closeTime - now);
+      const minutes = Math.floor(calculatingTime / 60);
+      const seconds = calculatingTime % 60;
+      return `Calculating ${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+    
+    // If very close to lock time
+    if (lockTime - now <= 5 && lockTime - now > 0) {
+      const lockingTime = Math.floor(lockTime - now);
+      return `Locking in ${lockingTime}s`;
+    }
+    
+    // Show time until lock
+    const timeToLock = Math.floor(lockTime - now);
+    const minutes = Math.floor(timeToLock / 60);
+    const seconds = timeToLock % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // Calculate time left for lock duration
+  useEffect(() => {
+    if (!currentRound || !config?.lockDuration || isCurrentRoundLoading) {
+      setTimeLeft(null);
+      setIsLocked(false);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      return;
+    }
   
-  // Calculate immediately and set up interval
-  calculateTimeLeft();
-  const interval = setInterval(calculateTimeLeft, 1000);
+    const calculateTimeLeft = () => {
+      const now = Date.now() / 1000;
+      
+      // Fix conversion of startTime to ensure it's always a number
+      let startTimeMs: number;
+      if (currentRound.startTime instanceof Date) {
+        startTimeMs = currentRound.startTime.getTime();
+      } else if (typeof currentRound.startTime === "string") {
+        const numStartTime = Number(currentRound.startTime);
+        startTimeMs = !isNaN(numStartTime) ? numStartTime * 1000 : Date.now();
+      } else {
+        startTimeMs = Number(currentRound.startTime) * 1000;
+      }
+      
+      // Ensure lockTime and closeTime are always numbers
+      let lockTimeValue = currentRound.lockTime !== undefined && currentRound.lockTime !== null
+        ? Number(currentRound.lockTime)
+        : startTimeMs / 1000 + config.lockDuration;
   
-  return () => clearInterval(interval);
-}, [currentRound, config, currentRoundNumber]);
+      const closeTimeValue = Number(currentRound.closeTime);
+      
+      const timeToLock = lockTimeValue - now;
+      const timeToClose = closeTimeValue - now;
+  
+      if (timeToClose <= 0) {
+        // Round has completely ended
+        setTimeLeft(0);
+        setIsLocked(true);
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      } else if (timeToLock <= 0 && timeToClose > 0) {
+        // Round is in calculating phase
+        setTimeLeft(Math.floor(timeToClose));
+        setIsLocked(true);
+      } else if (timeToLock > 0) {
+        // Round is still accepting bets
+        setTimeLeft(Math.floor(timeToLock));
+        setIsLocked(false);
+      }
+    };
+  
+    // Clear previous interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  
+    // Calculate immediately
+    calculateTimeLeft();
+  
+    // Start interval
+    intervalRef.current = setInterval(calculateTimeLeft, 1000);
+  
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [currentRound, config?.lockDuration, isCurrentRoundLoading, currentRoundNumber]);
+
   // Log errors for debugging
   useEffect(() => {
     if (programError) console.error("useProgram Error:", programError);
@@ -138,86 +225,6 @@ useEffect(() => {
       });
     }
   }, [previousRounds]);
-
-  // Calculate time left for lock duration
-  useEffect(() => {
-    // Add a check here for config and currentRound being defined
-    if (!currentRound || !config?.lockDuration || isCurrentRoundLoading) {
-      setTimeLeft(null);
-      setIsLocked(false);
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      return;
-    }
-
-    const calculateTimeLeft = () => {
-      const now = Date.now() / 1000;
-      
-      // Fix conversion of startTime to ensure it's always a number
-      let startTimeMs: number;
-      if (currentRound.startTime instanceof Date) {
-        startTimeMs = currentRound.startTime.getTime();
-      } else if (typeof currentRound.startTime === "string") {
-        // Ensure string is a valid number before converting
-        const numStartTime = Number(currentRound.startTime);
-        startTimeMs = !isNaN(numStartTime) ? numStartTime * 1000 : Date.now(); // Fallback to Date.now() or handle error appropriately
-      } else {
-        // Assumed to be a number (Unix timestamp in seconds)
-        startTimeMs = Number(currentRound.startTime) * 1000;
-      }
-      
-      // Ensure lockTime is always a number
-      let lockTimeValue = currentRound.lockTime !== undefined && currentRound.lockTime !== null
-        ? Number(currentRound.lockTime)
-        : startTimeMs / 1000 + config.lockDuration;
- 
-      // Override invalid lockTime
-      if (lockTimeValue <= now && currentRound.number === currentRoundNumber) { // Ensure this applies to the current round being processed
-        console.warn("Invalid lockTime for current round:", lockTimeValue, "Current Time:", now, "Using fallback.");
-        lockTimeValue = now + config.lockDuration; // Set lockTime to now + lockDuration
-        // When lockTime is reset, ensure isLocked is false so the timer can run
-        setIsLocked(false); 
-      }
-      
-      const timeRemaining = lockTimeValue - now;
-
-      if (timeRemaining <= 0) {
-        setTimeLeft(0);
-        setIsLocked(true);
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-      } else {
-        setTimeLeft(Math.floor(timeRemaining));
-        setIsLocked(false); // Ensure isLocked is false if there's time remaining
-      }
-    };
-
-    // Clear previous interval if it exists, before setting a new one or just calculating time.
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-
-    // Calculate time immediately
-    calculateTimeLeft();
-
-    // Only start interval if not locked (calculateTimeLeft might have set isLocked to true)
-    // and if the currentRound from the hook is indeed the active round number from config
-    if (!isLocked && currentRound.number === currentRoundNumber) {
-      intervalRef.current = setInterval(calculateTimeLeft, 1000);
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [currentRound, config?.lockDuration, isCurrentRoundLoading, currentRoundNumber]); // Removed isLocked from deps, as it's managed within
 
   // Detect new round and reset timer
   useEffect(() => {
