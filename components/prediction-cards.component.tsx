@@ -91,18 +91,8 @@ export default function PredictionCards() {
       commitment: "finalized",
       wsEndpoint: 'wss://lb.drpc.org/ogws?network=solana-devnet&dkey=AqnRwY5nD0C_uEv_hPfBwlLj0fFzMcQR8JKdzoXPVSjK',
     });
+  }, [connected, publicKey]);
 
-  // Handle page visibility to pause/resume price updates
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      setIsPageVisible(!document.hidden);
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, []);
 
   // Optimized live price fetching with throttling and error handling
   useEffect(() => {
@@ -123,7 +113,6 @@ export default function PredictionCards() {
       }
 
       try {
-        const price = await fetchLivePrice();
         if (price && price > 0) {
           setLiveRoundPrice(price);
           setLastPriceUpdate(now);
@@ -848,3 +837,4 @@ export default function PredictionCards() {
     </div>
   );
 }
+

@@ -105,7 +105,7 @@ export const useRound = (roundNumber?: number) => {
         staleTime: (query) => {
             const roundData = query?.state?.data;
             // For ended rounds, cache indefinitely
-            if (roundData && (roundData.status === "ENDED" || roundData.status === "EXPIRED")) {
+            if (roundData && roundData.status === "ended") {
                 return Infinity;
             }
             return 30 * 1000; // 30 seconds for active rounds
@@ -115,7 +115,7 @@ export const useRound = (roundNumber?: number) => {
             if (!roundData) return false;
             
             // Don't refetch ended rounds
-            if (roundData.status === "ENDED" || roundData.status === "EXPIRED") {
+            if (roundData.status === "ended") {
                 return false;
             }
             
@@ -196,8 +196,7 @@ const shouldCacheLongTerm = (roundData: any): boolean => {
     const closeTime = Number(roundData.closeTime);
     
     return (
-        roundData.status === "ENDED" || 
-        roundData.status === "EXPIRED" || 
+        roundData.status === "ended" || 
         now >= closeTime
     );
 };
@@ -246,15 +245,6 @@ export const usePreviousRoundsByIds = (currentRound?: number, count: number = 5,
         enabled: !!program && !!currentRound && currentRound > 1 && !isNaN(currentRound),
         staleTime: 2 * 60 * 1000, // Cache for 2 minutes
         refetchInterval: false, // Don't auto-refetch historical data
-        onSuccess: (data: PreviousRoundsResponse) => {
-            console.log(
-                `Fetched ${data.rounds.length} previous rounds:`,
-                data.rounds.map((r) => ({ number: r.number, endPrice: r.endPrice }))
-            );
-        },
-        onError: (error: any) => {
-            console.error("Error fetching previous rounds:", error);
-        },
         retry: (failureCount, error: any) => {
             if (error?.message?.includes("Account does not exist")) return false;
             return failureCount < 2; // Reduced retries
