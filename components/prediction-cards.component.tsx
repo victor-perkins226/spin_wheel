@@ -251,7 +251,7 @@ export default function PredictionCards() {
       totalBearAmount: 0,
       isActive: false,
       status: "later",
-    } as Round;
+    } as unknown as Round;
   };
 
 // Update your card rendering logic
@@ -336,24 +336,21 @@ const formatCardVariant = (round: Round, currentRoundNumber?: number) => {
     previousRounds.find((r: Round) => Number(r.number) === nextRoundNumber) ??
     ({
       number: nextRoundNumber.toString(),
-      startTime:
-        typeof currentRound?.closeTime === "number"
-          ? currentRound.closeTime + 1
-          : Math.floor(Date.now() / 1000) + 1,
-      lockTime:
-        (typeof currentRound?.closeTime === "number"
-          ? currentRound.closeTime
-          : Math.floor(Date.now() / 1000)) + 120,
-      closeTime:
-        (typeof currentRound?.closeTime === "number"
-          ? currentRound.closeTime
-          : Math.floor(Date.now() / 1000)) + 240,
+      startTime: typeof currentRound?.closeTime === "number"
+        ? currentRound.closeTime + 1
+        : Math.floor(Date.now() / 1000) + 1,
+      lockTime: (typeof currentRound?.closeTime === "number"
+        ? currentRound.closeTime
+        : Math.floor(Date.now() / 1000)) + 120,
+      closeTime: (typeof currentRound?.closeTime === "number"
+        ? currentRound.closeTime
+        : Math.floor(Date.now() / 1000)) + 240,
       totalAmount: 0,
       totalBullAmount: 0,
       totalBearAmount: 0,
       isActive: false,
       status: "started",
-    } as Round);
+    } as unknown as Round);
 
   const rounds = [
     ...(currentRound ? [currentRound] : []),
@@ -494,7 +491,7 @@ const formatCardVariant = (round: Round, currentRoundNumber?: number) => {
         totalBearAmount: 0,
         isActive: i === 1, // Make the middle one active
         status: i === 0 ? "expired" : i === 1 ? "next" : "later",
-      } as Round);
+      } as unknown as Round);
     }
     
     return fallbackRounds;
