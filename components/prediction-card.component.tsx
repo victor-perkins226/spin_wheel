@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Button from "./button.component";
 import SVG from "./svg.component";
 import Image from "next/image";
@@ -78,21 +78,28 @@ export default function PredictionCard({
 
   useEffect(() => {
     if (roundData) {
-      const totalAmount = roundData.prizePool * LAMPORTS_PER_SOL;
-      const totalBullAmount = roundData.upBets * LAMPORTS_PER_SOL;
-      const totalBearAmount = roundData.downBets * LAMPORTS_PER_SOL;
+      const totalAmount = roundData.prizePool; // Already in SOL
+      const totalBullAmount = roundData.upBets; // Already in SOL  
+      const totalBearAmount = roundData.downBets; // Already in SOL
 
       const treasuryAmt = (totalAmount * roundData.treasuryFee) / 10000;
       const rewardAmount = totalAmount - treasuryAmt;
 
+      // Calculate multipliers: if you bet on the winning side, how much do you get back per SOL
       const bullMultiplier =
-        totalBullAmount > 0 ? rewardAmount / totalBullAmount : 0;
+        totalBullAmount > 0 ? rewardAmount / totalBullAmount : 1.0;
       const bearMultiplier =
-        totalBearAmount > 0 ? rewardAmount / totalBearAmount : 0;
+        totalBearAmount > 0 ? rewardAmount / totalBearAmount : 1.0;
 
       setCalculatedMultipliers({
         bullMultiplier: bullMultiplier.toFixed(2),
         bearMultiplier: bearMultiplier.toFixed(2),
+      });
+    } else {
+      // Default values when no round data
+      setCalculatedMultipliers({
+        bullMultiplier: "1.00",
+        bearMultiplier: "1.00",
       });
     }
   }, [roundData]);
@@ -127,13 +134,53 @@ export default function PredictionCard({
   const userBetStatus =
     userBets?.find((bet) => bet.roundId === roundId) || null;
 
+    const getCurrentPrice = () => {
+      if (!roundData) return 0;
+      
+      if (variant === "expired" || variant === "locked") {
+        // For expired rounds, always use the final close price
+        return roundData.closePrice > 0 ? roundData.closePrice : roundData.lockPrice;
+      } else {
+        // For live/next rounds, prioritize live price but fallback gracefully
+        return liveRoundPrice || roundData.currentPrice;
+      }
+    };
+    
+  const lockPriceRef = useRef<number | null>(null);
+
+  /*  When the card becomes LIVE for the first time,
+      store the current price in the ref and keep it forever.   */
+  useEffect(() => {
+    if (
+      variant === "live" &&
+      lockPriceRef.current === null &&        // we haven’t stored it yet
+      liveRoundPrice !== undefined
+    ) {
+      lockPriceRef.current = liveRoundPrice;
+      console.log("Lock price set to:", lockPriceRef.current);
+    }
+  }, [variant, liveRoundPrice]);
+
+  const getReferencePrice = () => {
+    // Preferred source:
+    if (lockPriceRef.current !== null) return lockPriceRef.current;
+  
+    // Fallbacks for edge cases
+    if (variant === "expired" || variant === "locked") {
+      return roundData?.closePrice ?? 0;          // round already over
+    }
+    return roundData?.currentPrice ?? 0;          // last-ditch fallback
+  };
+  
+
+    
   const getPriceMovement = () => {
     if (!roundData) return { difference: 0, direction: "up" as "up" | "down" };
     const currentPrice =
       variant === "expired" && roundData.closePrice > 0
         ? roundData.closePrice
         : liveRoundPrice || roundData.lockPrice;
-    const lockPrice = roundData.lockPrice;
+    const lockPrice = roundData.lockPrice || getReferencePrice();
     const difference = Math.abs(currentPrice - lockPrice);
     const direction = currentPrice >= lockPrice ? "up" : "down";
     return { difference, direction };
@@ -241,8 +288,6 @@ export default function PredictionCard({
   };
 
   const renderCalculatingState = () => {
-    // if (!isCalculating) return null;
-    
     return (
       <div
         className={`card_container glass rounded-[20px] p-[15px] sm:p-[25px] min-w-[240px] sm:min-w-[273px] w-full`}
@@ -269,32 +314,6 @@ export default function PredictionCard({
               Calculating...
             </h2>
           </div>
-
-          {/* <Button
-            style={{ opacity: 0.5 }}
-            className="glass flex flex-col gap-4 py-[16px] cursor-not-allowed"
-            disabled
-          >
-            <div className="flex justify-center items-center gap-2">
-              <p className="text-[20px] font-[600] leading-0">UP</p>
-            </div>
-            <p className="text-[10px] font-[600] leading-0">
-              {calculatedMultipliers.bullMultiplier}x payout
-            </p>
-          </Button>
-
-          <Button
-            style={{ opacity: 0.5 }}
-            className="glass flex flex-col gap-4 py-[16px] cursor-not-allowed"
-            disabled
-          >
-            <div className="flex justify-center items-center gap-2">
-              <p className="text-[20px] font-[600] leading-0">DOWN</p>
-            </div>
-            <p className="text-[10px] font-[600] leading-0">
-              {calculatedMultipliers.bearMultiplier}x payout
-            </p>
-          </Button> */}
         </div>
       </div>
     );
@@ -303,27 +322,12 @@ export default function PredictionCard({
   const renderLiveRoundContent = () => {
     if (variant !== "live") return null;
     
-    // Check if we should show calculating state instead of live
     if (timeLeft !== null && timeLeft <= 0 && timeLeft > -7) {
       return renderCalculatingState();
     }
     
-    
     return (
       <div className="flex flex-col h-[300px] glass p-[10px] rounded-[20px] items-center">
-          {canBet ? (
-          <div className="flex flex-col items-center gap-3 justify-center h-[250px]">
-            <DotLoader
-              color="#ffffff"
-              size={40}
-              aria-label="Loading Spinner"
-              data-testid="loader"
-            />
-            <h2 className="text-2xl font-semibold mt-4 text-center">
-              Calculating...
-            </h2>
-          </div>
-        ) : (
         <div className="max-w-[215px] flex flex-col gap-[33px] justify-between flex-1">
           <Image
             alt="Solana Background"
@@ -359,7 +363,6 @@ export default function PredictionCard({
             </div>
           </div>
         </div>
-        )}
       </div>
     );
   };
@@ -581,7 +584,7 @@ export default function PredictionCard({
           </p>
         </Button>
         {variant === "later" || variant === "later_next"
-          ? renderLaterRoundContent()
+          ? renderLaterRoundContent() 
           : variant === "next"
             ? renderNextRoundContent()
             : variant === "expired"

@@ -69,10 +69,10 @@ const fetchRound = async (program: any, roundNumber: number): Promise<Round> => 
     )[0];
 
     const round = await program.account.round.fetch(roundPda);
+ 
     const startTime = Number(round.startTime);
     const lockTime = Number(round.lockTime);
     const closeTime = Number(round.closeTime);
-
     return {
         number: Number(round.number),
         startTime: new Date(startTime * 1000).toISOString(),

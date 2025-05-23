@@ -79,7 +79,6 @@ export default function PredictionCards() {
       0
     );
     claimableAmountRef.current = newClaimableAmount;
-    console.log("Updated claimableAmount:", claimableAmountRef.current);
   }, [claimableBets]);
 
 
@@ -99,7 +98,6 @@ export default function PredictionCards() {
     if (price && price > 0 && price !== liveRoundPrice) {
       setLiveRoundPrice(price);
       setLastPriceUpdate(Date.now());
-      console.log("Updated live price to:", price);
     }
   }, [price, liveRoundPrice]);
 
@@ -301,15 +299,7 @@ export default function PredictionCards() {
         return "calculating";
       }
 
-      if (roundNum === currentNum || roundNum === currentNum - 1) {
-        console.log(`Round ${roundNum} times:`, {
-          lockTime: Number(round.lockTime),
-          closeTime: Number(round.closeTime),
-          currentTime: now,
-          isActive: round.isActive,
-          timeLeft: now < Number(round.closeTime) ? Number(round.closeTime) - now : 0,
-        });
-      }
+   
 
       if (roundNum === currentNum) {
         const lockTime = Number(round.lockTime);
@@ -321,7 +311,6 @@ export default function PredictionCards() {
         }
 
         if (now >= lockTime && now < closeTime && round.isActive) {
-          console.log(`Round ${roundNum} is LIVE (current round in live phase)`);
           return "live";
         }
 
@@ -335,7 +324,6 @@ export default function PredictionCards() {
         const closeTime = Number(round.closeTime);
 
         if (now >= lockTime && now < closeTime && round.isActive) {
-          console.log(`Round ${roundNum} is LIVE (previous round still in live phase)`);
           return "live";
         }
 
@@ -389,6 +377,7 @@ export default function PredictionCards() {
   const computedDisplayRounds = useMemo((): ExtendedRound[] => {
     try {
       const list = [...previousRounds];
+      console.log("Previous rounds:", list);  
       const now = Date.now() / 1000;
 
       let liveRound: Round | null = null;
@@ -401,10 +390,10 @@ export default function PredictionCards() {
 
         if (now >= lockTime && now < closeTime && currentRoundData.isActive) {
           liveRound = currentRoundData;
-          console.log("Found LIVE round (current):", currentRoundData.number);
+
         } else if (now < lockTime && currentRoundData.isActive) {
           nextRound = currentRoundData;
-          console.log("Found NEXT round (current):", currentRoundData.number);
+
         }
       }
 
@@ -463,7 +452,7 @@ export default function PredictionCards() {
 
           return variant === "expired" || roundNum < currentRoundNumber || now >= closeTime;
         })
-        .sort((a, b) => Number(b.number) - Number(a.number))
+        .sort((a, b) => Number(b.number) - Number(a.number)) // Sort by round number descending (newest first)
         .slice(0, 3);
 
       const laterRounds = list
@@ -471,6 +460,7 @@ export default function PredictionCards() {
           const roundNum = Number(r.number);
           return roundNum > Number(nextRound!.number);
         })
+        .sort((a, b) => Number(a.number) - Number(b.number)) // Sort by round number ascending
         .slice(0, 2);
 
       while (laterRounds.length < 2) {
@@ -482,8 +472,11 @@ export default function PredictionCards() {
         laterRounds.push(createDummyLaterRound(roundNum, laterRounds.length + 2, "later"));
       }
 
+      // Sort later rounds again after adding dummy rounds
+      laterRounds.sort((a, b) => Number(a.number) - Number(b.number));
+
       const result: ExtendedRound[] = [
-        ...expiredRounds.map((round) => ({ ...round, variant: "expired" })),
+        ...expiredRounds.map((round) => ({ ...round, variant: "expired" })).reverse(),
         { ...liveRound!, variant: "live" },
         { ...nextRound!, variant: "next" },
         ...laterRounds.map((round, index) => ({
@@ -491,19 +484,6 @@ export default function PredictionCards() {
           variant: index === 0 ? "later" : "later_next",
         })),
       ].filter(Boolean);
-
-      console.log("Round display info (GUARANTEED LIVE+NEXT):", {
-        currentRoundNumber,
-        liveRoundNumber: liveRound?.number,
-        nextRoundNumber: nextRound?.number,
-        expiredCount: expiredRounds.length,
-        laterCount: laterRounds.length,
-        totalDisplayed: result.length,
-        hasLive: result.some((r) => r.variant === "live"),
-        hasNext: result.some((r) => r.variant === "next"),
-        currentTime: now,
-        expiredRoundNumbers: expiredRounds.map((r) => r.number),
-      });
 
       return result;
     } catch (error) {
@@ -563,6 +543,7 @@ export default function PredictionCards() {
 
     return fallbackRounds;
   }, [computedDisplayRounds, currentRoundNumber]);
+
 
   useEffect(() => {
     const now = Date.now() / 1000;
@@ -687,11 +668,11 @@ export default function PredictionCards() {
                 modifier: 1,
                 slideShadows: true,
               }}
-              pagination={{
-                clickable: true,
-                dynamicBullets: mounted && screenWidth < 640,
-                el: ".swiper-pagination",
-              }}
+              // pagination={{
+              //   clickable: true,
+              //   dynamicBullets: mounted && screenWidth < 640,
+              //   el: ".swiper-pagination",
+              // }}
               modules={[Pagination, EffectCoverflow]}
               className="w-full px-4 sm:px-0"
             >
@@ -734,10 +715,10 @@ export default function PredictionCards() {
                       }
                       roundId={Number(round.number)}
                       roundData={{
-                        lockPrice: (round.lockPrice || 0) / 1e8,
+                        lockPrice: round.lockPrice! / 1e8,
                         closePrice: round.endPrice
                           ? round.endPrice / 1e8
-                          : liveRoundPrice,
+                          : null,
                         currentPrice:
                           liveRoundPrice || (round.lockPrice || 50 * 1e8) / 1e8,
                         prizePool: (round.totalAmount || 0) / LAMPORTS_PER_SOL,
