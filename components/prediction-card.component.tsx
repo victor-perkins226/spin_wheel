@@ -299,7 +299,7 @@ export default function PredictionCard({
 
     return (
       <div className="flex-1 glass h-[300px] flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
-        {isLocked ? (
+        {!canBet ? (
           <div className="flex flex-col items-center gap-3 justify-center h-[250px] ">
             <DotLoader
               color="#ffffff"
