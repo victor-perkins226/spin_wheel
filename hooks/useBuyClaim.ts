@@ -6,19 +6,17 @@ import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, } from "@solana/web3.js";
 import { BN } from "@project-serum/anchor";
 // import * as idl from "@/lib/idl.json";
 import { useProgram } from "./useProgram";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { UserBet, ClaimableBet, UserBetAccount } from "@/types/round";
 import toast from "react-hot-toast";
-
 
 // Define the return type for the hook
 interface SolPredictorHook {
     handlePlaceBet: (roundId: number, isBull: boolean, amount: number) => Promise<void>;
-    handleClaimPayout: (roundId: number) => Promise<any>; // Updated to accept TransactionInstruction
+    handleClaimPayout: (roundId: number) => Promise<any>;
     fetchUserBets: () => Promise<ClaimableBet[]>;
     claimableBets: ClaimableBet[];
     userBets: UserBet[];
-
 }
 
 const programId = new PublicKey("AKui3UEpyUEhtnqsDChTL76DFncYx6rRqp6CSShnUm9r")
@@ -26,36 +24,46 @@ const programId = new PublicKey("AKui3UEpyUEhtnqsDChTL76DFncYx6rRqp6CSShnUm9r")
 export const useSolPredictor = (): SolPredictorHook => {
     const { publicKey, connected } = useWallet();
     const { program } = useProgram();
-    // const [connection] = useState(
-    //     new Connection('https://devnet.helius-rpc.com/?api-key=a4c93129-769a-49d8-bc1b-918f1f537075', {
-    //         commitment: 'finalized',
-    //     })
-    // );
+    
     const [claimableBets, setClaimableBets] = useState<ClaimableBet[]>([]);
     const [userBets, setUserBets] = useState<UserBet[]>([]);
 
+    // Memoize PDAs to prevent recreations
+    const configPda = useMemo(() => 
+        PublicKey.findProgramAddressSync([Buffer.from("config")], programId)[0],
+        []
+    );
 
-    // if (!program) return;
-
-    // PDA derivation functions (as provided)
-    const [configPda] = PublicKey.findProgramAddressSync([Buffer.from("config")], programId);
-    const getRoundPda = (roundNumber: number) =>
+    const getRoundPda = useCallback((roundNumber: number) =>
         PublicKey.findProgramAddressSync(
             [Buffer.from("round"), new BN(roundNumber).toArrayLike(Buffer, "le", 8)],
-            program!.programId
-        )[0];
+            program?.programId || programId
+        )[0],
+        [program?.programId]
+    );
 
-    const getEscrowPda = (roundNumber: number) =>
+    const getEscrowPda = useCallback((roundNumber: number) =>
         PublicKey.findProgramAddressSync(
             [Buffer.from("escrow"), new BN(roundNumber).toArrayLike(Buffer, "le", 8)],
-            program!.programId
-        )[0];
+            program?.programId || programId
+        )[0],
+        [program?.programId]
+    );
 
-    const getUserBetPda = (user: PublicKey, roundNumber: number) =>
+    const getUserBetPda = useCallback((user: PublicKey, roundNumber: number) =>
         PublicKey.findProgramAddressSync(
             [Buffer.from("user_bet"), user.toBuffer(), new BN(roundNumber).toArrayLike(Buffer, "le", 8)],
-            program!.programId
-        )[0];
+            program?.programId || programId
+        )[0],
+        [program?.programId]
+    );
+
+    // Memoize the key dependencies for fetchUserBets
+    const fetchDependencies = useMemo(() => ({
+        publicKey: publicKey?.toBase58(),
+        connected,
+        programId: program?.programId?.toBase58()
+    }), [publicKey, connected, program?.programId]);
 
     const fetchUserBets = useCallback(async () => {
         if (!publicKey || !connected || !program) {
@@ -66,19 +74,14 @@ export const useSolPredictor = (): SolPredictorHook => {
         }
 
         try {
-            console.log('Fetching user bets for:', publicKey.toBase58());
-
-            // Fetch user_bet accounts for the user
             const userBetAccounts = await program.account.userBet.all([
                 {
                     memcmp: {
-                        offset: 8, // Discriminator offset
+                        offset: 8,
                         bytes: publicKey.toBase58(),
                     },
                 },
             ]) as unknown as { publicKey: PublicKey; account: UserBetAccount }[];
-
-            // console.log('Raw User Bets:', userBetAccounts);
 
             const bets: UserBet[] = await Promise.all(
                 userBetAccounts.map(async (account) => {
@@ -87,7 +90,6 @@ export const useSolPredictor = (): SolPredictorHook => {
                     const amount = account.account.amount.toNumber() / LAMPORTS_PER_SOL;
                     const claimed = account.account.claimed;
 
-                    // Generate id using userBet PDA
                     const [userBetPda] = PublicKey.findProgramAddressSync(
                         [Buffer.from('user_bet'), publicKey.toBuffer(), new BN(roundNumber).toArrayLike(Buffer, 'le', 8)],
                         programId
@@ -127,7 +129,6 @@ export const useSolPredictor = (): SolPredictorHook => {
                 })
             );
 
-            // Calculate claimable bets
             const claimable: ClaimableBet[] = bets
                 .filter((bet) => bet.status === 'WON')
                 .map((bet) => ({
@@ -139,8 +140,6 @@ export const useSolPredictor = (): SolPredictorHook => {
 
             setUserBets(bets);
             setClaimableBets(claimable);
-            // console.log('Fetched User Bets:', bets);
-            // console.log('Fetched Claimable Bets:', claimable);
             return claimable;
         } catch (error) {
             console.error('Failed to fetch user bets:', error);
@@ -148,7 +147,7 @@ export const useSolPredictor = (): SolPredictorHook => {
             setUserBets([]);
             return [];
         }
-    }, [publicKey, connected, program]);
+    }, [fetchDependencies.publicKey, fetchDependencies.connected, fetchDependencies.programId, program]);
 
     const handlePlaceBet = useCallback(async (roundId: number, isBull: boolean, amount: number) => {
         if (!publicKey) {
@@ -166,7 +165,7 @@ export const useSolPredictor = (): SolPredictorHook => {
             const escrowPda = getEscrowPda(roundId);
             const userBetPda = getUserBetPda(publicKey, roundId);
 
-            const lamports = amount * 1_000_000_000; // Convert SOL to lamports
+            const lamports = amount * 1_000_000_000;
 
             const tx = await program!.methods
                 .placeBet(new BN(lamports), isBull, new BN(roundId))
@@ -184,7 +183,6 @@ export const useSolPredictor = (): SolPredictorHook => {
             // Refresh bets after placing a bet
             await fetchUserBets();
 
-
             console.log(`Bet placed successfully: ${tx}`);
             toast("Bet placed successfully!");
         } catch (error: any) {
@@ -192,9 +190,7 @@ export const useSolPredictor = (): SolPredictorHook => {
             if (error.message.includes("6012")) {
                 toast("Contract is paused.");
             } else if (error.message.includes("6013")) {
-                toast(
-                    `Bet amount must be at least 0.1 SOL.`
-                );
+                toast("Bet amount must be at least 0.1 SOL.");
             } else if (error.message.includes("6014")) {
                 toast("You have already bet in this round.");
             } else if (error.message.includes("6022")) {
@@ -237,39 +233,19 @@ export const useSolPredictor = (): SolPredictorHook => {
         } catch (error: any) {
             console.error(`Failed to build claim instruction for round ${roundId}:`, error);
             throw error;
-        // } catch (error: any) {
-        //     console.error("Claim payout failed", error);
-        //     if (error.message.includes("6012")) {
-        //         toast("Contract is paused.");
-        //     } else if (error.message.includes("6006")) {
-        //         toast("Payout already claimed.");
-        //     } else if (error.message.includes("6003")) {
-        //         toast("Round has not ended yet.");
-        //     } else if (error.message.includes("6004")) {
-        //         toast("Round has not closed yet.");
-        //     } else if (error.message.includes("6015")) {
-        //         toast("No rewards available for this round.");
-        //     } else if (error.message.includes("6007")) {
-        //         toast("Invalid round number.");
-        //     } else if (error.message.includes("6010")) {
-        //         toast("Insufficient funds in escrow.");
-        //     } else {
-        //         toast("Failed to claim payout. Please try again.");
-        //     }
-        // }
         }
-    }, [publicKey, connected, program, fetchUserBets]);
+    }, [publicKey, connected, program, getRoundPda, getEscrowPda, getUserBetPda, configPda]);
 
+    // Only fetch when the stable dependencies actually change
     useEffect(() => {
-        if (publicKey && connected && program) {
+        if (fetchDependencies.publicKey && fetchDependencies.connected && fetchDependencies.programId) {
             fetchUserBets();
         } else {
             console.log('Skipping fetchUserBets: wallet not connected or program not initialized');
             setClaimableBets([]);
             setUserBets([]);
         }
-    }, [publicKey, connected, program, fetchUserBets]);
-
+    }, [fetchDependencies.publicKey, fetchDependencies.connected, fetchDependencies.programId, fetchUserBets]);
 
     return { handlePlaceBet, handleClaimPayout, claimableBets, userBets, fetchUserBets };
 };

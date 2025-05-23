@@ -39,6 +39,10 @@ export default function PredictionCards() {
   const [calculatingRound, setCalculatingRound] = useState<number | null>(null);
   const [calculatingUntil, setCalculatingUntil] = useState<number>(0);
   const [lastLiveRounds, setLastLiveRounds] = useState<Set<number>>(new Set());
+  const [priceUpdateInterval, setPriceUpdateInterval] = useState<number>(30000); // Start with 30 seconds
+  const [lastPriceUpdate, setLastPriceUpdate] = useState<number>(0);
+  const [isPageVisible, setIsPageVisible] = useState(true);
+  const priceUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const {
     handlePlaceBet,
     handleClaimPayout,
@@ -83,27 +87,82 @@ export default function PredictionCards() {
     }
   }, [connected, publicKey, fetchUserBets]);
 
-  // Fetch live price periodically
+  // Handle page visibility to pause/resume price updates
   useEffect(() => {
-    const updateLivePrice = async () => {
-      const price = await fetchLivePrice();
-      setLiveRoundPrice(price!);
+    const handleVisibilityChange = () => {
+      setIsPageVisible(!document.hidden);
     };
 
-    updateLivePrice(); // Initial fetch
-    const interval = setInterval(updateLivePrice, 10000); // Update every 10 seconds
-
-    return () => clearInterval(interval); // Cleanup on unmount
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
+  // Optimized live price fetching with throttling and error handling
   useEffect(() => {
-    connectionRef.current = new Connection(
-      "https://lb.drpc.org/ogrpc?network=solana-devnet&dkey=AqnRwY5nD0C_uEv_hPfBwlLj0fFzMcQR8JKdzoXPVSjK",
-      {
-        commitment: "finalized",
-        wsEndpoint: undefined,
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    const updateLivePrice = async () => {
+      const now = Date.now();
+
+      // Throttle requests - don't fetch if last update was less than 25 seconds ago
+      if (now - lastPriceUpdate < 25000) {
+        return;
       }
-    );
+
+      // Skip if page is not visible
+      if (!isPageVisible) {
+        return;
+      }
+
+      try {
+        const price = await fetchLivePrice();
+        if (price && price > 0) {
+          setLiveRoundPrice(price);
+          setLastPriceUpdate(now);
+          retryCount = 0; // Reset retry count on success
+          setPriceUpdateInterval(30000); // Reset to normal interval
+        }
+      } catch (error) {
+        console.warn("Failed to fetch live price:", error);
+        retryCount++;
+
+        // Exponential backoff for retries
+        if (retryCount <= maxRetries) {
+          const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 60000); // Max 1 minute
+          setPriceUpdateInterval(backoffDelay);
+        } else {
+          // If max retries reached, fall back to longer interval
+          setPriceUpdateInterval(120000); // 2 minutes
+          retryCount = 0;
+        }
+      }
+    };
+
+    // Initial fetch only if we haven't fetched recently
+    if (Date.now() - lastPriceUpdate > 25000) {
+      updateLivePrice();
+    }
+
+    // Set up interval based on current interval setting and page visibility
+    const intervalId = setInterval(() => {
+      if (isPageVisible) {
+        updateLivePrice();
+      }
+    }, priceUpdateInterval);
+
+    return () => {
+      clearInterval(intervalId);
+      if (priceUpdateTimeoutRef.current) {
+        clearTimeout(priceUpdateTimeoutRef.current);
+      }
+    };
+  }, [priceUpdateInterval, isPageVisible, lastPriceUpdate]);
+
+  useEffect(() => {
+ 
 
     const updateScreenWidth = () => {
       setScreenWidth(window.innerWidth);
