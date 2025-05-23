@@ -19,18 +19,19 @@ import { Round } from "@/types/round";
 import { useSolPredictor } from "@/hooks/useBuyClaim";
 import { BetsHistory } from "./BetsHistory";
 import LineChart from "./LineChart";
-import { fetchLivePrice } from "@/lib/price-utils";
+import { useLivePrice } from '@/lib/price-utils';
 import { useProgram } from "@/hooks/useProgram";
 import toast from "react-hot-toast";
 
 export default function PredictionCards() {
+  const { price, error } = useLivePrice()
   const [screenWidth, setScreenWidth] = useState(0);
   const [mounted, setMounted] = useState(false);
   const swiperRef = useRef<any>(null);
   const { publicKey, connected, sendTransaction } = useWallet();
   const connectionRef = useRef<Connection | null>(null);
   const [userBalance, setUserBalance] = useState(0);
-  const [liveRoundPrice, setLiveRoundPrice] = useState(50.5);
+  const [liveRoundPrice, setLiveRoundPrice] = useState<number | undefined>(50.5); 
   const [claimableRewards, setClaimableRewards] = useState(0);
   const {
     handlePlaceBet,
@@ -71,33 +72,31 @@ export default function PredictionCards() {
     console.log("Updated claimableAmount:", claimableAmountRef.current);
   }, [claimableBets]);
 
+
   useEffect(() => {
     if (connected && publicKey) {
       fetchUserBets();
     }
-  }, [connected, publicKey, fetchUserBets]);
+    connectionRef.current = new Connection("https://lb.drpc.org/ogrpc?network=solana-devnet&dkey=AqnRwY5nD0C_uEv_hPfBwlLj0fFzMcQR8JKdzoXPVSjK", {
+      commitment: "finalized",
+      wsEndpoint: 'wss://lb.drpc.org/ogws?network=solana-devnet&dkey=AqnRwY5nD0C_uEv_hPfBwlLj0fFzMcQR8JKdzoXPVSjK',
+    });
 
-  // Fetch live price periodically
-  useEffect(() => {
-    const updateLivePrice = async () => {
-      const price = await fetchLivePrice();
-      setLiveRoundPrice(price!);
-    };
-
-    updateLivePrice(); // Initial fetch
-    const interval = setInterval(updateLivePrice, 10000); // Update every 10 seconds
-
-    return () => clearInterval(interval); // Cleanup on unmount
-  }, []);
+  }, [connected, publicKey,handlePlaceBet, fetchUserBets]);
 
   useEffect(() => {
-    connectionRef.current = new Connection(
-      "https://lb.drpc.org/ogrpc?network=solana-devnet&dkey=AqnRwY5nD0C_uEv_hPfBwlLj0fFzMcQR8JKdzoXPVSjK",
-      {
-        commitment: "finalized",
-        wsEndpoint: undefined,
-      }
-    );
+    
+    if (typeof price === 'number') {
+      setLiveRoundPrice(price);
+    } else if (error) {
+      
+      setLiveRoundPrice(undefined);
+    }
+   
+
+  }, [price, error, isLoading]);
+
+  useEffect(() => {
 
     const updateScreenWidth = () => {
       setScreenWidth(window.innerWidth);
@@ -130,19 +129,20 @@ export default function PredictionCards() {
     fetchBalance();
   }, [connected, publicKey, currentRound?.number]);
 
-  const handleBet = async (
-    direction: "up" | "down",
-    amount: number,
-    roundId: number
-  ) => {
+  const handleBet = async (direction: "up" | "down", amount: number, roundId: number) => {
     if (!connected || !publicKey || !connectionRef.current) {
       toast.error("Please connect your wallet to place a bet");
       return;
     }
 
     try {
-      await handlePlaceBet(roundId, direction === "up", amount);
-      toast.success(`Bet placed: ${amount} SOL ${direction} on round ${roundId}`);
+
+      await handlePlaceBet(roundId, direction === "up", amount)
+      await fetchUserBets();
+      console.log('user bets', userBets);
+      
+      toast(`Bet placed: ${amount} SOL ${direction} on round ${roundId}`);
+      
     } catch (error) {
       console.error("Failed to place bet:", error);
       toast.error("Failed to place bet");
@@ -618,7 +618,7 @@ const formatCardVariant = (round: Round, currentRoundNumber?: number) => {
                   SOL/USDT
                 </p>
                 <p className="text-[10px] sm:text-[12px]">
-                  ${liveRoundPrice.toFixed(2)}
+                  ${liveRoundPrice!.toFixed(4)}
                 </p>
               </div>
             </div>
@@ -854,10 +854,7 @@ const formatCardVariant = (round: Round, currentRoundNumber?: number) => {
             <LineChart />
           </div>
 
-          {/* Only show bet history if wallet is connected and has bets */}
-          {connected && userBets.length > 0 && (
-            <BetsHistory userBets={userBets} />
-          )}
+          {connected && userBets.length > 0 && <BetsHistory userBets={userBets} />}
         </div>
 
         <LiveBets currentRound={Number(currentRound?.number) ?? null} />

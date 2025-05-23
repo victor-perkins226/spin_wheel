@@ -11,6 +11,7 @@ import { UserBet } from "@/types/round";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import toast from "react-hot-toast";
 import { DotLoader } from "react-spinners";
+import { useSolPredictor } from "@/hooks/useBuyClaim";
 
 interface IProps {
   variant?: "live" | "expired" | "next" | "later" | "locked";
@@ -69,6 +70,9 @@ export default function PredictionCard({
   const [maxAmount, setMaxAmount] = useState<number>(10);
   const { connected, publicKey } = useWallet();
   const { connection } = useConnection();
+  const {
+    fetchUserBets,
+  } = useSolPredictor();
 
   // Calculate multipliers
   const calculateMultipliers = () => {
@@ -93,7 +97,7 @@ export default function PredictionCard({
   const { bullMultiplier, bearMultiplier } = calculateMultipliers();
   const isCalculating = variant === "calculating";
   const isLocking = variant === "locking";
-  
+
   // Render calculating state
   if (isCalculating) {
     return (
@@ -104,23 +108,23 @@ export default function PredictionCard({
             Calculating
           </div>
         </div>
-        
+
         <div className="price-section">
           <div className="lock-price">
             <span className="label">Locked Price</span>
             <span className="price">${roundData.lockPrice?.toFixed(2) || "-.--"}</span>
           </div>
-          
+
           <div className="calculating-indicator">
             <div className="spinner"></div>
             <span>Calculating...</span>
           </div>
         </div>
-        
+
         <div className="prize-section">
           <span>Prize Pool: ${roundData.prizePool?.toFixed(4) || "0.0000"}</span>
         </div>
-        
+
         {/* Disable betting during calculating */}
         <div className="bet-section disabled">
           <button disabled className="bet-btn up disabled">
@@ -135,7 +139,7 @@ export default function PredictionCard({
   }
   // Update your timer calculation to handle calculating phase
 
-// In your useRoundManager hook, ensure you're processing the calculating state
+  // In your useRoundManager hook, ensure you're processing the calculating state
 
   useEffect(() => {
     if (!connected || !publicKey) {
@@ -193,39 +197,39 @@ export default function PredictionCard({
   // Map roundData to component's expected format
   const formattedRoundData = roundData
     ? {
-        lockPrice: roundData.lockPrice,
-        closePrice:
-          roundData.closePrice > 0
-            ? roundData.closePrice
-            : liveRoundPrice || roundData.lockPrice,
-        currentPrice: liveRoundPrice || roundData.lockPrice,
-        prizePool: roundData.prizePool,
-        upBets: roundData.upBets,
-        downBets: roundData.downBets,
-        lockTimeRemaining:
-          timeLeft !== null
-            ? timeLeft
-            : Math.max(0, roundData.lockTime - Date.now() / 1000),
-        timeRemaining: Math.max(0, roundData.timeRemaining),
-        status: roundData.isActive
-          ? "LIVE"
-          : roundData.timeRemaining > 0
+      lockPrice: roundData.lockPrice,
+      closePrice:
+        roundData.closePrice > 0
+          ? roundData.closePrice
+          : liveRoundPrice || roundData.lockPrice,
+      currentPrice: liveRoundPrice || roundData.lockPrice,
+      prizePool: roundData.prizePool,
+      upBets: roundData.upBets,
+      downBets: roundData.downBets,
+      lockTimeRemaining:
+        timeLeft !== null
+          ? timeLeft
+          : Math.max(0, roundData.lockTime - Date.now() / 1000),
+      timeRemaining: Math.max(0, roundData.timeRemaining),
+      status: roundData.isActive
+        ? "LIVE"
+        : roundData.timeRemaining > 0
           ? "LOCKED"
           : "ENDED",
-      }
+    }
     : {
-        lockPrice: 0,
-        closePrice: liveRoundPrice || 0,
-        currentPrice: liveRoundPrice || 0,
-        prizePool: 0,
-        upBets: 0,
-        downBets: 0,
-        lockTimeRemaining: 0,
-        timeRemaining: 0,
-        status: "ENDED" as const,
-      };
+      lockPrice: 0,
+      closePrice: liveRoundPrice || 0,
+      currentPrice: liveRoundPrice || 0,
+      prizePool: 0,
+      upBets: 0,
+      downBets: 0,
+      lockTimeRemaining: 0,
+      timeRemaining: 0,
+      status: "ENDED" as const,
+    };
 
-  console.log("Formatted Round Data:", formattedRoundData);
+  // console.log("Formatted Round Data:", formattedRoundData);
   const isLockPhase =
     roundData &&
     Date.now() / 1000 >= roundData.lockTime &&
@@ -244,7 +248,7 @@ export default function PredictionCard({
     setMode(mode);
   };
 
-  const handlePlaceBet = () => {
+  const handlePlaceBet = async () => {
     if (!connected) {
       toast("Please connect your wallet first");
       return;
@@ -259,6 +263,8 @@ export default function PredictionCard({
     }
     if (onPlaceBet && mode && roundId) {
       onPlaceBet(mode, amount, roundId);
+
+      await fetchUserBets();
       setIsFlipped(false);
       setMode("");
       setAmount(0.1);
@@ -377,8 +383,8 @@ export default function PredictionCard({
     const display =
       totalSeconds > 0
         ? `${Math.floor(totalSeconds / 60)
-            .toString()
-            .padStart(2, "0")}:${Math.floor(totalSeconds % 60)
+          .toString()
+          .padStart(2, "0")}:${Math.floor(totalSeconds % 60)
             .toString()
             .padStart(2, "0")}`
         : "Waiting";
@@ -411,9 +417,8 @@ export default function PredictionCard({
                 ${formattedRoundData.closePrice.toFixed(4)}
               </p>
               <div
-                className={`bg-white flex items-center gap-[4px] ${
-                  priceDirection === "up" ? "text-green-500" : "text-red-500"
-                } px-[10px] py-[5px] rounded-[5px]`}
+                className={`bg-white flex items-center gap-[4px] ${priceDirection === "up" ? "text-green-500" : "text-red-500"
+                  } px-[10px] py-[5px] rounded-[5px]`}
               >
                 {priceDirection === "up" ? (
                   <ArrowUp size={12} />
@@ -455,9 +460,8 @@ export default function PredictionCard({
                 ${formattedRoundData.closePrice.toFixed(4)}
               </p>
               <div
-                className={`bg-white flex items-center gap-[4px] ${
-                  priceDirection === "up" ? "text-green-500" : "text-red-500"
-                } px-[10px] py-[5px] rounded-[5px]`}
+                className={`bg-white flex items-center gap-[4px] ${priceDirection === "up" ? "text-green-500" : "text-red-500"
+                  } px-[10px] py-[5px] rounded-[5px]`}
               >
                 {priceDirection === "up" ? (
                   <ArrowUp size={12} />
@@ -486,21 +490,18 @@ export default function PredictionCard({
 
   return (
     <div
-      className={`card_container glass rounded-[20px] p-[15px] sm:p-[25px] ${
-        variant === "live"
+      className={`card_container glass rounded-[20px] p-[15px] sm:p-[25px] ${variant === "live"
           ? "min-w-[280px] sm:min-w-[320px] md:min-w-[380px]"
           : "min-w-[240px] sm:min-w-[273px] w-full"
-      }`}
+        }`}
     >
       <div
-        className={`${
-          isFlipped ? "hidden" : "flex"
-        } flex-col justify-between gap-[10px]`}
+        className={`${isFlipped ? "hidden" : "flex"
+          } flex-col justify-between gap-[10px]`}
       >
         <div
-          className={`${
-            variant === "expired" ? "opacity-80" : ""
-          } flex flex-col`}
+          className={`${variant === "expired" ? "opacity-80" : ""
+            } flex flex-col`}
         >
           <div className="flex justify-between items-center font-semibold text-[20px]">
             <div className="flex items-center gap-[10px]">
@@ -528,12 +529,11 @@ export default function PredictionCard({
         </div>
         <Button
           style={{ background: getButtonStyle("up") }}
-          className={`glass flex flex-col gap-4 py-[16px] ${
-            variant === "expired" ||
-            (variant === "live" && priceDirection === "up")
+          className={`glass flex flex-col gap-4 py-[16px] ${variant === "expired" ||
+              (variant === "live" && priceDirection === "up")
               ? "border-2 border-green-500"
               : ""
-          } `}
+            } `}
         >
           <div className="flex justify-center items-center gap-2">
             <p className="text-[20px] font-[600] leading-0">UP</p>
@@ -545,20 +545,19 @@ export default function PredictionCard({
         {variant === "later"
           ? renderLaterRoundContent()
           : variant === "next"
-          ? renderNextRoundContent()
-          : variant === "expired"
-          ? renderExpiredRoundContent()
-          : variant === "locked"
-          ? renderExpiredRoundContent()
-          : renderLiveRoundContent()}
+            ? renderNextRoundContent()
+            : variant === "expired"
+              ? renderExpiredRoundContent()
+              : variant === "locked"
+                ? renderExpiredRoundContent()
+                : renderLiveRoundContent()}
         <Button
           style={{ background: getButtonStyle("down") }}
-          className={`glass flex flex-col gap-4 py-[16px] ${
-            variant === "expired" ||
-            (variant === "live" && priceDirection === "down")
+          className={`glass flex flex-col gap-4 py-[16px] ${variant === "expired" ||
+              (variant === "live" && priceDirection === "down")
               ? "border-2 border-red-500"
               : ""
-          }`}
+            }`}
         >
           <div className="flex justify-center items-center gap-2">
             <p className="text-[20px] font-[600] leading-0">DOWN</p>
