@@ -150,37 +150,37 @@ export default function PredictionCard({
 
   const formattedRoundData = roundData
     ? {
-        lockPrice: roundData.lockPrice,
-        closePrice:
-          roundData.closePrice > 0
-            ? roundData.closePrice
-            : liveRoundPrice || roundData.lockPrice,
-        currentPrice: liveRoundPrice || roundData.lockPrice,
-        prizePool: roundData.prizePool,
-        upBets: roundData.upBets,
-        downBets: roundData.downBets,
-        lockTimeRemaining:
-          timeLeft !== null
-            ? timeLeft
-            : Math.max(0, roundData.lockTime - Date.now() / 1000),
-        timeRemaining: Math.max(0, roundData.timeRemaining),
-        status: roundData.isActive
-          ? "LIVE"
-          : roundData.timeRemaining > 0
+      lockPrice: roundData.lockPrice,
+      closePrice:
+        roundData.closePrice > 0
+          ? roundData.closePrice
+          : liveRoundPrice || roundData.lockPrice,
+      currentPrice: liveRoundPrice || roundData.lockPrice,
+      prizePool: roundData.prizePool,
+      upBets: roundData.upBets,
+      downBets: roundData.downBets,
+      lockTimeRemaining:
+        timeLeft !== null
+          ? timeLeft
+          : Math.max(0, roundData.lockTime - Date.now() / 1000),
+      timeRemaining: Math.max(0, roundData.timeRemaining),
+      status: roundData.isActive
+        ? "LIVE"
+        : roundData.timeRemaining > 0
           ? "LOCKED"
           : "ENDED",
-      }
+    }
     : {
-        lockPrice: 0,
-        closePrice: liveRoundPrice || 0,
-        currentPrice: liveRoundPrice || 0,
-        prizePool: 0,
-        upBets: 0,
-        downBets: 0,
-        lockTimeRemaining: 0,
-        timeRemaining: 0,
-        status: "ENDED" as const,
-      };
+      lockPrice: 0,
+      closePrice: liveRoundPrice || 0,
+      currentPrice: liveRoundPrice || 0,
+      prizePool: 0,
+      upBets: 0,
+      downBets: 0,
+      lockTimeRemaining: 0,
+      timeRemaining: 0,
+      status: "ENDED" as const,
+    };
 
   const isLockPhase =
     roundData &&
@@ -528,11 +528,10 @@ export default function PredictionCard({
 
   return (
     <div
-      className={`card_container glass rounded-[20px] p-[15px] sm:p-[25px] ${
-        variant === "live"
+      className={`card_container glass rounded-[20px] p-[15px] sm:p-[25px] ${variant === "live"
           ? "min-w-[280px] sm:min-w-[320px] md:min-w-[380px]"
           : "min-w-[240px] sm:min-w-[273px] w-full"
-      }`}
+        }`}
     >
       <div
         className={`${isFlipped ? "hidden" : "flex"
