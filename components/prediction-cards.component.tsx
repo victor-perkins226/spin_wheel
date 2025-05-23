@@ -35,7 +35,7 @@ export default function PredictionCards() {
   const { publicKey, connected, sendTransaction } = useWallet();
   const connectionRef = useRef<Connection | null>(null);
   const [userBalance, setUserBalance] = useState(0);
-  const [liveRoundPrice, setLiveRoundPrice] = useState<number | undefined>(50.5); 
+  const [liveRoundPrice, setLiveRoundPrice] = useState<number | undefined>(180.5); 
   const [claimableRewards, setClaimableRewards] = useState(0);
   const [calculatingRound, setCalculatingRound] = useState<number | null>(null);
   const [calculatingUntil, setCalculatingUntil] = useState<number>(0);
@@ -96,68 +96,24 @@ export default function PredictionCards() {
 
   // Optimized live price fetching with throttling and error handling
   useEffect(() => {
-    let retryCount = 0;
-    const maxRetries = 3;
-
-    const updateLivePrice = async () => {
-      const now = Date.now();
-
-      // Throttle requests - don't fetch if last update was less than 25 seconds ago
-      if (now - lastPriceUpdate < 25000) {
-        return;
-      }
-
-      // Skip if page is not visible
-      if (!isPageVisible) {
-        return;
-      }
-
-      try {
-        if (price && price > 0) {
-          setLiveRoundPrice(price);
-          setLastPriceUpdate(now);
-          retryCount = 0; // Reset retry count on success
-          setPriceUpdateInterval(30000); // Reset to normal interval
-        }
-      } catch (error) {
-        console.warn("Failed to fetch live price:", error);
-        retryCount++;
-
-        // Exponential backoff for retries
-        if (retryCount <= maxRetries) {
-          const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 60000); // Max 1 minute
-          setPriceUpdateInterval(backoffDelay);
-        } else {
-          // If max retries reached, fall back to longer interval
-          setPriceUpdateInterval(120000); // 2 minutes
-          retryCount = 0;
-        }
-      }
-    };
-
-    // Initial fetch only if we haven't fetched recently
-    if (Date.now() - lastPriceUpdate > 25000) {
-      updateLivePrice();
+    if (price && price > 0 && price !== liveRoundPrice) {
+      setLiveRoundPrice(price);
+      setLastPriceUpdate(Date.now());
+      console.log("Updated live price to:", price);
     }
+  }, [price, liveRoundPrice]);
 
-    // Set up interval based on current interval setting and page visibility
-    const intervalId = setInterval(() => {
-      if (isPageVisible) {
-        updateLivePrice();
-      }
-    }, priceUpdateInterval);
-
-    return () => {
-      clearInterval(intervalId);
-      if (priceUpdateTimeoutRef.current) {
-        clearTimeout(priceUpdateTimeoutRef.current);
-      }
+  // Page visibility handler
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsPageVisible(!document.hidden);
     };
-  }, [priceUpdateInterval, isPageVisible, lastPriceUpdate]);
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   useEffect(() => {
- 
-
     const updateScreenWidth = () => {
       setScreenWidth(window.innerWidth);
     };
@@ -403,7 +359,7 @@ export default function PredictionCards() {
       .padStart(2, "0")}`;
   };
 
-  const nextRound =
+  const nextRound = useMemo(() => 
     previousRounds.find((r: Round) => Number(r.number) === currentRoundNumber + 1) ??
     ({
       number: currentRoundNumber + 1,
@@ -428,7 +384,7 @@ export default function PredictionCards() {
       endPrice: null,
       rewardBaseCalAmount: 0,
       rewardAmount: 0,
-    } as Round);
+    } as Round), [previousRounds, currentRoundNumber, currentRound?.closeTime]);
 
   const computedDisplayRounds = useMemo((): ExtendedRound[] => {
     try {
@@ -629,10 +585,12 @@ export default function PredictionCards() {
       }
     });
     
-    // Update the last live rounds
-    setLastLiveRounds(currentLiveRounds);
-  }, [finalDisplayRoundsForSwiper, lastLiveRounds]);
-
+    // Update the last live rounds only if they're different
+    if (currentLiveRounds.size !== lastLiveRounds.size || 
+        ![...currentLiveRounds].every(round => lastLiveRounds.has(round))) {
+      setLastLiveRounds(currentLiveRounds);
+    }
+  }, [finalDisplayRoundsForSwiper]);
 
   return (
     <div className="container px-3 sm:px-4 md:px-6 lg:px-8 mt-5 md:mt-6 lg:mt-[70px] flex flex-col gap-4 md:gap-6 lg:gap-[40px]">

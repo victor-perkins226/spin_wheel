@@ -123,8 +123,9 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
       const now = Date.now() / 1000;
       
       let startTimeMs: number;
-      if (currentRound.startTime instanceof Date) {
-        startTimeMs = currentRound.startTime.getTime();
+      const startTimeValue = currentRound.startTime as any;
+      if (startTimeValue instanceof Date) {
+        startTimeMs = startTimeValue.getTime();
       } else if (typeof currentRound.startTime === "string") {
         const numStartTime = Number(currentRound.startTime);
         startTimeMs = !isNaN(numStartTime) ? numStartTime * 1000 : Date.now();
@@ -205,49 +206,49 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
     return Promise.resolve([]);
   }, [fetchUserBets]);
 
-// hooks/roundManager.ts - Update the effect that checks for new rounds
-useEffect(() => {
-  if (!currentRoundNumber || !config || !program) return; 
-
-  const checkNewRound = async () => {
-      try {
-          const newConfig = await queryClient.fetchQuery({
-              queryKey: ["config"],
-              queryFn: () => fetchConfig(program),
-              staleTime: 10 * 1000, // Cache config for 10 seconds
-          });
-          
-          const nextRoundNumber = currentRoundNumber + 1;
-          if (newConfig.currentRound > currentRoundNumber) {
-              console.log("New round detected:", newConfig.currentRound);
-              
-              // Only invalidate what's necessary
-              await queryClient.invalidateQueries({ 
-                  queryKey: ["config"], 
-                  refetchType: "all" 
-              });
-              await queryClient.invalidateQueries({ 
-                  queryKey: ["round", newConfig.currentRound], 
-                  refetchType: "all" 
-              });
-              
-              // Don't invalidate historical rounds - they don't change
-              setIsLocked(false);
-              setOffset(initialOffset); 
-              await stableFetchUserBets();
-          }
-      } catch (error) {
-          console.error("Failed to fetch config:", error);
+  // Memoize the check function to prevent recreating it on every render
+  const checkNewRound = useCallback(async () => {
+    if (!currentRoundNumber || !config || !program) return;
+    
+    try {
+      const newConfig = await queryClient.fetchQuery({
+        queryKey: ["config"],
+        queryFn: () => fetchConfig(program),
+        staleTime: 10 * 1000, // Cache config for 10 seconds
+      });
+      
+      const nextRoundNumber = currentRoundNumber + 1;
+      if (newConfig.currentRound > currentRoundNumber) {
+        console.log("New round detected:", newConfig.currentRound);
+        
+        // Only invalidate what's necessary
+        await queryClient.invalidateQueries({ 
+          queryKey: ["config"], 
+          refetchType: "all" 
+        });
+        await queryClient.invalidateQueries({ 
+          queryKey: ["round", newConfig.currentRound], 
+          refetchType: "all" 
+        });
+        
+        // Don't invalidate historical rounds - they don't change
+        setIsLocked(false);
+        setOffset(initialOffset); 
+        await stableFetchUserBets();
       }
-  };
+    } catch (error) {
+      console.error("Failed to fetch config:", error);
+    }
+  }, [currentRoundNumber, config, program, queryClient, initialOffset, stableFetchUserBets]);
 
-  // Reduce check frequency
-  const interval = setInterval(checkNewRound, 10000); // Check every 10 seconds instead of 5
-  return () => clearInterval(interval);
-}, [currentRoundNumber, config, program, queryClient, initialOffset, stableFetchUserBets]);
- 
+  // New round detection effect - fixed dependency array
+  useEffect(() => {
+    // Reduce check frequency
+    const interval = setInterval(checkNewRound, 10000); // Check every 10 seconds instead of 5
+    return () => clearInterval(interval);
+  }, [checkNewRound]);
 
-const fetchMoreRounds = async () => {
+  const fetchMoreRounds = async () => {
     if (!currentRoundNumber) return;
     const newOffset = offset + initialLimit;
     setOffset(newOffset);
