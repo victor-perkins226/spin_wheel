@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Button from "./button.component";
 import SVG from "./svg.component";
 import Image from "next/image";
@@ -14,7 +14,7 @@ import { DotLoader } from "react-spinners";
 import { useSolPredictor } from "@/hooks/useBuyClaim";
 
 interface IProps {
-  variant?: "live" | "expired" | "next" | "later" | "locked";
+  variant?: "live" | "expired" | "next" | "later" | "later_next" | "locked" | "calculating" | "locking";
   roundId?: number;
   roundData?: {
     lockPrice: number;
@@ -28,7 +28,7 @@ interface IProps {
     lockTime: number;
     closeTime: number;
     isActive: boolean;
-    treasuryFee: number; // Added
+    treasuryFee: number;
   };
   onPlaceBet?: (
     direction: "up" | "down",
@@ -42,6 +42,8 @@ interface IProps {
   userBets?: UserBet[];
   isLocked: boolean;
   timeLeft: number | null;
+  disabled?: boolean;
+  hasUserBet?: boolean; // Add this prop to explicitly pass bet status
 }
 
 const CUSTOM_INPUTS = [
@@ -63,90 +65,83 @@ export default function PredictionCard({
   userBets,
   isLocked,
   timeLeft,
+  disabled = false,
+  hasUserBet = false,
 }: IProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [mode, setMode] = useState<"up" | "down" | "">("");
   const [amount, setAmount] = useState<number>(0.1);
   const [maxAmount, setMaxAmount] = useState<number>(10);
+  const [calculatedMultipliers, setCalculatedMultipliers] = useState({ 
+    bullMultiplier: "0.00", 
+    bearMultiplier: "0.00" 
+  });
   const { connected, publicKey } = useWallet();
   const { connection } = useConnection();
-  const {
-    fetchUserBets,
-  } = useSolPredictor();
+  const { fetchUserBets } = useSolPredictor();
 
-  // Calculate multipliers
-  const calculateMultipliers = () => {
-    const totalAmount = roundData!.prizePool * LAMPORTS_PER_SOL;
-    const totalBullAmount = roundData!.upBets * LAMPORTS_PER_SOL;
-    const totalBearAmount = roundData!.downBets * LAMPORTS_PER_SOL;
+  useEffect(() => {
+    if (roundData) {
+      const totalAmount = roundData.prizePool; // Already in SOL
+      const totalBullAmount = roundData.upBets; // Already in SOL  
+      const totalBearAmount = roundData.downBets; // Already in SOL
 
-    const treasuryAmt = (totalAmount * roundData!.treasuryFee) / 10000;
-    const rewardAmount = totalAmount - treasuryAmt;
+      // Ensure we have valid numbers and avoid division by zero
+      const safeTotalAmount = Math.max(totalAmount || 0, 0);
+      const safeTotalBullAmount = Math.max(totalBullAmount || 0, 0);
+      const safeTotalBearAmount = Math.max(totalBearAmount || 0, 0);
+      const safeTreasuryFee = Math.max(roundData.treasuryFee || 0, 0);
 
-    const bullMultiplier =
-      totalBullAmount > 0 ? rewardAmount / totalBullAmount : 0;
-    const bearMultiplier =
-      totalBearAmount > 0 ? rewardAmount / totalBearAmount : 0;
+      // Calculate treasury amount with bounds checking
+      const treasuryAmt = Math.min((safeTotalAmount * safeTreasuryFee) / 10000, safeTotalAmount);
+      const rewardAmount = Math.max(safeTotalAmount - treasuryAmt, 0);
 
-    return {
-      bullMultiplier: bullMultiplier.toFixed(2),
-      bearMultiplier: bearMultiplier.toFixed(2),
-    };
-  };
+      // Calculate multipliers with proper fallbacks
+      let bullMultiplier = 1.0;
+      let bearMultiplier = 1.0;
 
-  const { bullMultiplier, bearMultiplier } = calculateMultipliers();
+      if (safeTotalBullAmount > 0 && rewardAmount >= 0) {
+        bullMultiplier = (rewardAmount + safeTotalBullAmount) / safeTotalBullAmount;
+        // Ensure multiplier is reasonable (between 1 and 100)
+        bullMultiplier = Math.max(1.0, Math.min(100.0, bullMultiplier));
+      }
+
+      if (safeTotalBearAmount > 0 && rewardAmount >= 0) {
+        bearMultiplier = (rewardAmount + safeTotalBearAmount) / safeTotalBearAmount;
+        // Ensure multiplier is reasonable (between 1 and 100)
+        bearMultiplier = Math.max(1.0, Math.min(100.0, bearMultiplier));
+      }
+
+      setCalculatedMultipliers({
+        bullMultiplier: bullMultiplier.toFixed(2),
+        bearMultiplier: bearMultiplier.toFixed(2),
+      });
+    } else {
+      // Default values when no round data
+      setCalculatedMultipliers({
+        bullMultiplier: "1.00",
+        bearMultiplier: "1.00",
+      });
+    }
+  }, [roundData]);
+
   const isCalculating = variant === "calculating";
   const isLocking = variant === "locking";
 
-  // Render calculating state
-  if (isCalculating) {
-    return (
-      <div className="prediction-card calculating">
-        <div className="card-header">
-          <h3>#{roundData.number}</h3>
-          <div className="status-badge calculating">
-            Calculating
-          </div>
-        </div>
-
-        <div className="price-section">
-          <div className="lock-price">
-            <span className="label">Locked Price</span>
-            <span className="price">${roundData.lockPrice?.toFixed(2) || "-.--"}</span>
-          </div>
-
-          <div className="calculating-indicator">
-            <div className="spinner"></div>
-            <span>Calculating...</span>
-          </div>
-        </div>
-
-        <div className="prize-section">
-          <span>Prize Pool: ${roundData.prizePool?.toFixed(4) || "0.0000"}</span>
-        </div>
-
-        {/* Disable betting during calculating */}
-        <div className="bet-section disabled">
-          <button disabled className="bet-btn up disabled">
-            Enter UP
-          </button>
-          <button disabled className="bet-btn down disabled">
-            Enter DOWN
-          </button>
-        </div>
-      </div>
-    );
-  }
-  // Update your timer calculation to handle calculating phase
-
-  // In your useRoundManager hook, ensure you're processing the calculating state
+  const formatTimeLeft = (seconds: number | null) => {
+    if (seconds === null || seconds <= 0) return "Locked";
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
+      .toString()
+      .padStart(2, "0")}`;
+  };
 
   useEffect(() => {
     if (!connected || !publicKey) {
       setMaxAmount(0);
       return;
     }
-    // fetch on connect (and whenever pubkey changes)
     (async () => {
       try {
         const lamports = await connection.getBalance(publicKey);
@@ -157,18 +152,60 @@ export default function PredictionCard({
     })();
   }, [connected, publicKey, connection]);
 
-  // User bet status
-  const userBetStatus =
-    userBets?.find((bet) => bet.roundId === roundId) || null;
+  const userHasBet = userBets?.some(bet => bet.roundId === roundId) || hasUserBet;
 
-  // Calculate price movement and direction
+  const canBet =
+    variant === "next" &&
+    roundData?.isActive === true &&
+    !isLocked &&
+    (timeLeft !== null ? timeLeft > bufferTimeInSeconds : false) &&
+    !userHasBet;
+
+  const getCurrentPrice = () => {
+    if (!roundData) return 0;
+    
+    if (variant === "expired" || variant === "locked") {
+      // For expired rounds, always use the final close price
+      return roundData.closePrice > 0 ? roundData.closePrice : roundData.lockPrice;
+    } else {
+      // For live/next rounds, prioritize live price but fallback gracefully
+      return liveRoundPrice || roundData.currentPrice;
+    }
+  };
+    
+  const lockPriceRef = useRef<number | null>(null);
+
+  /*  When the card becomes LIVE for the first time,
+      store the current price in the ref and keep it forever.   */
+  useEffect(() => {
+    if (
+      variant === "live" &&
+      lockPriceRef.current === null &&        // we haven’t stored it yet
+      liveRoundPrice !== undefined
+    ) {
+      lockPriceRef.current = liveRoundPrice;
+      console.log("Lock price set to:", lockPriceRef.current);
+    }
+  }, [variant, liveRoundPrice]);
+
+  const getReferencePrice = () => {
+    // Preferred source:
+    if (lockPriceRef.current !== null) return lockPriceRef.current;
+  
+    // Fallbacks for edge cases
+    if (variant === "expired" || variant === "locked") {
+      return roundData?.closePrice ?? 0;          // round already over
+    }
+    return roundData?.currentPrice ?? 0;          // last-ditch fallback
+  };
+  
   const getPriceMovement = () => {
     if (!roundData) return { difference: 0, direction: "up" as "up" | "down" };
     const currentPrice =
       variant === "expired" && roundData.closePrice > 0
         ? roundData.closePrice
         : liveRoundPrice || roundData.lockPrice;
-    const lockPrice = roundData.lockPrice;
+    const lockPrice = roundData.lockPrice || getReferencePrice();
     const difference = Math.abs(currentPrice - lockPrice);
     const direction = currentPrice >= lockPrice ? "up" : "down";
     return { difference, direction };
@@ -177,24 +214,6 @@ export default function PredictionCard({
   const { difference: priceDifference, direction: priceDirection } =
     getPriceMovement();
 
-  // Determine if round is bettable
-  const canBet =
-    variant === "next" &&
-    roundData?.isActive == true &&
-    !isLocked &&
-    (timeLeft !== null ? timeLeft > bufferTimeInSeconds : false);
-
-  // Format timeLeft as MM:SS
-  const formatTimeLeft = (seconds: number | null) => {
-    if (seconds === null || seconds <= 0) return "Locked";
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
-      .toString()
-      .padStart(2, "0")}`;
-  };
-
-  // Map roundData to component's expected format
   const formattedRoundData = roundData
     ? {
       lockPrice: roundData.lockPrice,
@@ -229,13 +248,21 @@ export default function PredictionCard({
       status: "ENDED" as const,
     };
 
-  // console.log("Formatted Round Data:", formattedRoundData);
   const isLockPhase =
     roundData &&
     Date.now() / 1000 >= roundData.lockTime &&
     Date.now() / 1000 < roundData.closeTime;
 
   const handleEnterPrediction = (mode: "up" | "down") => {
+    if (disabled || userHasBet) {
+      if (userHasBet) {
+        toast("You have already placed a bet for this round");
+        return;
+      }
+      // This will trigger the toast in the parent component
+      onPlaceBet?.(mode, amount, roundId);
+      return;
+    }
     if (!connected) {
       toast("Please connect your wallet first");
       return;
@@ -253,21 +280,47 @@ export default function PredictionCard({
       toast("Please connect your wallet first");
       return;
     }
-    if (amount <= 0) {
+    
+    // Validate amount more strictly
+    if (!amount || amount <= 0 || isNaN(amount)) {
       toast("Please enter a valid amount");
       return;
     }
+    
+    // Check minimum bet amount (0.001 SOL as per error codes in attachments)
+    if (amount < 0.001) {
+      toast("Minimum bet amount is 0.001 SOL");
+      return;
+    }
+    
+    // Check if user has sufficient balance
+    if (amount > maxAmount) {
+      toast("Insufficient balance");
+      return;
+    }
+    
     if (!canBet) {
       toast("Betting is not available for this round");
       return;
     }
+    
+    // Validate round data before placing bet
+    if (!roundData || !roundData.isActive) {
+      toast("Round is not active for betting");
+      return;
+    }
+    
     if (onPlaceBet && mode && roundId) {
-      onPlaceBet(mode, amount, roundId);
-
-      await fetchUserBets();
-      setIsFlipped(false);
-      setMode("");
-      setAmount(0.1);
+      try {
+        onPlaceBet(mode, amount, roundId);
+        await fetchUserBets();
+        setIsFlipped(false);
+        setMode("");
+        setAmount(0.1);
+      } catch (error) {
+        console.error("Error placing bet:", error);
+        // Don't show additional toast here as the hook will handle it
+      }
     }
   };
 
@@ -275,7 +328,6 @@ export default function PredictionCard({
     setAmount(Number((maxAmount * percentage).toFixed(2)));
   };
 
-  // Generate button style based on variant and price movement
   const getButtonStyle = (direction: "up" | "down") => {
     if (variant === "expired" || variant === "live") {
       if (priceDirection === direction) {
@@ -289,24 +341,23 @@ export default function PredictionCard({
     return "";
   };
 
-  const renderNextRoundContent = () => {
-    if (variant !== "next") return null;
-
-    if (!roundData) {
-      return (
-        <div className="flex-1 glass h-[300px] flex flex-col items-center justify-center rounded-[20px] px-[19px] py-[8.5px]">
-          <h2 className="text-xl font-semibold text-center">
-            Waiting for next round...
-          </h2>
-          <DotLoader color="#06C729" size={30} className="mt-3" />
-        </div>
-      );
-    }
-
+  const renderCalculatingState = () => {
     return (
-      <div className="flex-1 glass h-[300px] flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
-        {!canBet ? (
-          <div className="flex flex-col items-center gap-3 justify-center h-[250px] ">
+      <div
+        className={`card_container glass rounded-[20px] p-[15px] sm:p-[25px] min-w-[240px] sm:min-w-[273px] w-full`}
+      >
+        <div className="flex flex-col justify-between gap-[10px]">
+          <div className="flex flex-col">
+            <div className="flex justify-between items-center font-semibold text-[20px]">
+              <div className="flex items-center gap-[10px]">
+                <SVG width={12} height={12} iconName="play-fill" />
+                <p className="capitalize">Calculating</p>
+              </div>
+              <p>#{roundId}</p>
+            </div>
+          </div>
+
+          <div className="flex glass flex-col items-center gap-3 justify-center h-[250px]">
             <DotLoader
               color="#ffffff"
               size={40}
@@ -317,92 +368,20 @@ export default function PredictionCard({
               Calculating...
             </h2>
           </div>
-        ) : (
-          <>
-            <div className="flex flex-col items-center gap-[7px]">
-              <Image
-                alt="Solana Background"
-                src={SolanaBg || "/placeholder.svg"}
-                className="rounded-[10px] w-[215px] h-[142px] object-cover"
-                width={215}
-                height={142}
-              />
-              <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
-                <p>Prize Pool</p>
-                <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
-              </div>
-              {/* <div className="flex-1 glass py-4 flex flex-col items-center justify-center rounded-[20px] px-[19px] py-[8.5px]">
-          <h2 className="text-xl font-semibold text-center">Calculating...</h2>
-          <DotLoader color="#06C729" size={30} className="mt-3" />
-        </div> */}
-              <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
-                <p>Time Left</p>
-                <p>{formatTimeLeft(timeLeft)}</p>
-              </div>
-            </div>
-            {canBet ? (
-              <>
-                <Button
-                  style={{
-                    background:
-                      "linear-gradient(90deg, #06C729 0%, #04801B 100%)",
-                  }}
-                  onClick={() => handleEnterPrediction("up")}
-                  className="cursor-pointer"
-                >
-                  Enter UP
-                </Button>
-                <Button
-                  style={{
-                    background:
-                      "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)",
-                  }}
-                  onClick={() => handleEnterPrediction("down")}
-                  className="cursor-pointer"
-                >
-                  Enter DOWN
-                </Button>
-              </>
-            ) : (
-              <div className="text-center py-3 font-semibold">
-                Betting closed for this round
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    );
-  };
-
-  const renderLaterRoundContent = () => {
-    if (variant !== "later") return null;
-    const baseRemaining = timeLeft || 0;
-
-    const totalSeconds = baseRemaining > 0 ? baseRemaining + 120 : 0;
-
-    const display =
-      totalSeconds > 0
-        ? `${Math.floor(totalSeconds / 60)
-          .toString()
-          .padStart(2, "0")}:${Math.floor(totalSeconds % 60)
-            .toString()
-            .padStart(2, "0")}`
-        : "Waiting";
-    return (
-      <div className="glass h-[300px]  rounded-[20px] flex flex-col gap-[12px] items-center justify-center">
-        <div className="flex items-center gap-[12px]">
-          <SVG iconName="play-fill" />
-          <p className="font-semibold text-[20px]">Next Play</p>
         </div>
-        <p className="font-semibold text-[35px]">{display}</p>
       </div>
     );
   };
 
   const renderLiveRoundContent = () => {
     if (variant !== "live") return null;
+    
+    if (timeLeft !== null && timeLeft <= 0 && timeLeft > -7) {
+      return renderCalculatingState();
+    }
+    
     return (
-      <div className=" flex flex-col h-[300px] glass p-[10px] rounded-[20px] items-center">
+      <div className="flex flex-col h-[300px] glass p-[10px] rounded-[20px] items-center">
         <div className="max-w-[215px] flex flex-col gap-[33px] justify-between flex-1">
           <Image
             alt="Solana Background"
@@ -430,7 +409,7 @@ export default function PredictionCard({
             </div>
             <div className="flex justify-between items-center text-[10px]">
               <p>Locked Price</p>
-              <p>${formattedRoundData.lockPrice.toFixed(4)}</p>
+              <p>${lockPriceRef.current?.toFixed(4)}</p>
             </div>
             <div className="flex justify-between text-[16px]">
               <p>Prize Pool</p>
@@ -485,8 +464,134 @@ export default function PredictionCard({
     );
   };
 
-  if (!roundData && variant !== "later" && variant !== "next")
-    return <div>No round data available</div>;
+  const renderNextRoundContent = () => {
+    if (variant !== "next") return null;
+
+    if (!roundData) {
+      return (
+        <div className="flex-1 glass h-[300px] flex flex-col items-center justify-center rounded-[20px] px-[19px] py-[8.5px]">
+          <h2 className="text-xl font-semibold text-center">
+            Waiting for next round...
+          </h2>
+        </div>
+      );
+    }
+
+    const buttonDisabled = disabled || !canBet || userHasBet;
+
+    return (
+      <div className="flex-1 glass h-[300px] flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
+        {!canBet ? (
+          <div className="flex flex-col items-center gap-3 justify-center h-[250px]">
+            <DotLoader
+              color="#ffffff"
+              size={40}
+              aria-label="Loading Spinner"
+              data-testid="loader"
+            />
+            <h2 className="text-2xl font-semibold mt-4 text-center">
+              Calculating...
+            </h2>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-col items-center gap-[7px]">
+              <Image
+                alt="Solana Background"
+                src={SolanaBg || "/placeholder.svg"}
+                className="rounded-[10px] w-[215px] h-[142px] object-cover"
+                width={215}
+                height={142}
+              />
+              <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
+                <p>Prize Pool</p>
+                <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
+              </div>
+              <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
+                <p>Time Left</p>
+                <p>{formatTimeLeft(timeLeft)}</p>
+              </div>
+            </div>
+            {canBet ? (
+              <>
+                <Button
+                  style={{
+                    background: buttonDisabled 
+                      ? "#9CA3AF" 
+                      : "linear-gradient(90deg, #06C729 0%, #04801B 100%)",
+                  }}
+                  onClick={() => buttonDisabled ? null : handleEnterPrediction("up")}
+                  className={`glass flex flex-col gap-4 py-[16px] ${
+                    buttonDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:opacity-80"
+                  }`}
+                  disabled={buttonDisabled}
+                >
+                  {userHasBet ? "Already Bet" : "Enter UP"}
+                </Button>
+                <Button
+                  style={{
+                    background: buttonDisabled 
+                      ? "#9CA3AF" 
+                      : "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)",
+                  }}
+                  onClick={() => buttonDisabled ? null : handleEnterPrediction("down")}
+                  className={`glass flex flex-col gap-4 py-[16px] ${
+                    buttonDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:opacity-80"
+                  }`}
+                  disabled={buttonDisabled}
+                >
+                  {userHasBet ? "Already Bet" : "Enter DOWN"}
+                </Button>
+              </>
+            ) : (
+              <div className="text-center py-3 font-semibold">
+                Betting closed for this round
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const renderLaterRoundContent = () => {
+    if (variant !== "later" && variant !== "later_next") return null;
+    
+    const baseRemaining = timeLeft || 0;
+    const totalSeconds = variant === "later" 
+      ? baseRemaining 
+      : baseRemaining + 120;
+
+    const display =
+      totalSeconds > 0
+        ? `${Math.floor(totalSeconds / 60)
+          .toString()
+          .padStart(2, "0")}:${Math.floor(totalSeconds % 60)
+            .toString()
+            .padStart(2, "0")}`
+        : "Waiting";
+    return (
+      <div className="glass h-[300px] rounded-[20px] flex flex-col gap-[12px] items-center justify-center">
+        <div className="flex items-center gap-[12px]">
+          <SVG iconName="play-fill" />
+          <p className="font-semibold text-[20px]">Next Play</p>
+        </div>
+        <p className="font-semibold text-[35px]">{display}</p>
+      </div>
+    );
+  };
+
+  if (isCalculating) {
+    return renderCalculatingState();
+  }
+
+  if (!roundData && variant !== "later" && variant !== "next") {
+    return (
+      <div className="card_container glass rounded-[20px] p-[15px] sm:p-[25px] min-w-[240px] sm:min-w-[273px] w-full flex items-center justify-center">
+        <p>No round data available</p>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -506,7 +611,7 @@ export default function PredictionCard({
           <div className="flex justify-between items-center font-semibold text-[20px]">
             <div className="flex items-center gap-[10px]">
               <SVG width={12} height={12} iconName="play-fill" />
-              <p className="capitalize">{variant}</p>
+              <p className="capitalize">{variant === "later_next" ? "later" : variant}</p>
             </div>
             <p>#{roundId}</p>
           </div>
@@ -539,11 +644,11 @@ export default function PredictionCard({
             <p className="text-[20px] font-[600] leading-0">UP</p>
           </div>
           <p className="text-[10px] font-[600] leading-0">
-            {bullMultiplier}x payout
+            {calculatedMultipliers.bullMultiplier}x payout
           </p>
         </Button>
-        {variant === "later"
-          ? renderLaterRoundContent()
+        {variant === "later" || variant === "later_next"
+          ? renderLaterRoundContent() 
           : variant === "next"
             ? renderNextRoundContent()
             : variant === "expired"
@@ -563,10 +668,11 @@ export default function PredictionCard({
             <p className="text-[20px] font-[600] leading-0">DOWN</p>
           </div>
           <p className="text-[10px] font-[600] leading-0">
-            {bearMultiplier}x payout
+            {calculatedMultipliers.bearMultiplier}x payout
           </p>
         </Button>
       </div>
+
       <div className={`${isFlipped ? "flex" : "hidden"} flex-col gap-[26px]`}>
         <div className="flex gap-2 items-center font-semibold text-[16px]">
           <SVG
@@ -617,7 +723,7 @@ export default function PredictionCard({
             </div>
           ))}
         </div>
-        <Button onClick={handlePlaceBet}>
+        <Button className="cursor-pointer" onClick={handlePlaceBet}>
           Buy {mode?.toUpperCase()} for {amount} SOL
         </Button>
       </div>

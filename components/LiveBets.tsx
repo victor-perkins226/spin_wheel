@@ -17,7 +17,8 @@ interface Bet {
 }
 
 // Backend API and WebSocket URLs
-const API_URL = "https://sol-prediction-backend.onrender.com/bet-placed?limit=1000&offset=0";
+const API_URL =
+  "https://sol-prediction-backend.onrender.com/bet-placed?limit=1000&offset=0";
 const WS_URL = "https://sol-prediction-backend.onrender.com";
 
 // Initialize WebSocket connection
@@ -157,7 +158,15 @@ function LiveBets({ currentRound }: LiveBetsProps) {
         ) : currentRound === null ? (
           <div>No active round</div>
         ) : liveBets.length === 0 ? (
-          <div>No bets available for Round {currentRound}</div>
+          <>
+            {currentRound ? (
+              <div className="">
+                No bets available for Round {currentRound}
+              </div>
+            ) : (
+              <div className="text-gray-500">No bets available. Connect your wallet</div>
+            )}
+          </>
         ) : (
           <table className="w-full text-left">
             <thead>
@@ -170,7 +179,10 @@ function LiveBets({ currentRound }: LiveBetsProps) {
             </thead>
             <tbody>
               {liveBets.map((bet) => (
-                <tr key={bet.round_number} className="font-semibold text-[15px]">
+                <tr
+                  key={bet.round_number}
+                  className="font-semibold text-[15px]"
+                >
                   <td className="py-3">
                     <div className="flex gap-[6px] items-center">
                       <SVG width={29} height={29} iconName="avatar" />

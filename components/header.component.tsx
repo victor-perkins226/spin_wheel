@@ -17,6 +17,12 @@ const NAVLINKS = [
 
 export default function Header() {
   const { publicKey, connected, disconnect } = useWallet();
+  const [mounted, setMounted] = useState(false);
+  
+  // Only show wallet buttons after component has mounted on client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <div className="container">
@@ -37,16 +43,17 @@ export default function Header() {
           ))}
         </nav> */}
 
-        {/* {renderWalletButton()} */}
+        {/* Conditionally render wallet button only on client side */}
         <div>
-          <WalletMultiButton />
+          {mounted && <WalletMultiButton />}
         </div>
-
-
-        {/* <WalletDisconnectButton/> */}
       </header>
 
       <header className="flex md:hidden justify-between p-[20px] mt-[58px]">
+        <Link href={routes.home()}>
+          <Image className="w-[120px]" src={Logo} alt="fortuva logo" />
+        </Link>
+
         <SVG iconName="profile" width={52} height={52} />
 
         <div className="glass p-[15px] rounded-[20px]">

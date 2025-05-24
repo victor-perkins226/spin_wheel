@@ -1,17 +1,20 @@
 import React, { ReactNode } from "react";
-import MobileNav from "./mobile-nav.component";
 import Header from "./header.component";
+import MobileNav from "./mobile-nav.component";
+import { useRouter } from "next/router";
 
-interface IProps {
+interface LayoutProps {
   children: ReactNode;
 }
 
-export default function Layout({ children }: IProps) {
+export default function Layout({ children }: LayoutProps) {
+  const router = useRouter();
+  
   return (
     <>
       <Header />
-      <div className="mb-[80px]">{children}</div>
-      <MobileNav />
+      {children}
+      {router.pathname !== "/leaderboard" && <MobileNav />}
     </>
   );
 }

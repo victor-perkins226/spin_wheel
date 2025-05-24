@@ -1,6 +1,6 @@
 "use client"
 
-import React, { Children, FC, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ConnectionProvider,
   WalletProvider,
@@ -22,18 +22,26 @@ export const WalletContextProvider = ({ children }) => {
   const network = WalletAdapterNetwork.Devnet;
 
   // You can also provide a custom RPC endpoint.
-  const endpoint =  "https://lb.drpc.org/ogrpc?network=solana-devnet&dkey=AqnRwY5nD0C_uEv_hPfBwlLj0fFzMcQR8JKdzoXPVSjK";
+  const endpoint = "https://lb.drpc.org/ogrpc?network=solana-devnet&dkey=AqnRwY5nD0C_uEv_hPfBwlLj0fFzMcQR8JKdzoXPVSjK";
 
-  const wallets = useMemo(
-    () => [ new PhantomWalletAdapter()],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [endpoint]
-  );
+  // Client-side only code
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const wallets = [
+    new PhantomWalletAdapter(),
+  ];
 
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider> {children}</WalletModalProvider>
+        <WalletModalProvider>
+          {/* If not mounted (server-side), render children without wallet UI */}
+          {mounted ? children : <div style={{ visibility: "hidden" }}>{children}</div>}
+        </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
   );
