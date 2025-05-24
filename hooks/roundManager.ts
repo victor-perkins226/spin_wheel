@@ -31,10 +31,21 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
     }
   
     const now = Date.now() / 1000;
+    
+    // Ensure we have valid timestamps
+    const startTime = Number(currentRound.startTime);
     const lockTime = currentRound.lockTime 
       ? Number(currentRound.lockTime)
-      : (Number(currentRound.startTime) + Number(config.lockDuration));
+      : (startTime + Number(config.lockDuration));
     const closeTime = Number(currentRound.closeTime);
+    
+    // Validate timestamps
+    if (isNaN(startTime) || isNaN(lockTime) || isNaN(closeTime)) {
+      console.warn("Invalid timestamps in current round:", { startTime, lockTime, closeTime });
+      setTimeLeft(null);
+      setIsLocked(false);
+      return;
+    }
     
     const timeToLock = lockTime - now;
     const timeToClose = closeTime - now;
@@ -65,6 +76,11 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
     const now = Date.now() / 1000;
     const lockTime = Number(roundData.lockTime);
     const closeTime = Number(roundData.closeTime);
+    
+    // Validate timestamps
+    if (isNaN(lockTime) || isNaN(closeTime)) {
+      return "ENDED";
+    }
     
     if (roundData.status === "ENDED" || roundData.status === "EXPIRED" || now >= closeTime) {
       return "ENDED";
@@ -124,20 +140,31 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
       
       let startTimeMs: number;
       const startTimeValue = currentRound.startTime as any;
+      
+      // Better timestamp handling
       if (startTimeValue instanceof Date) {
         startTimeMs = startTimeValue.getTime();
       } else if (typeof currentRound.startTime === "string") {
         const numStartTime = Number(currentRound.startTime);
         startTimeMs = !isNaN(numStartTime) ? numStartTime * 1000 : Date.now();
       } else {
-        startTimeMs = Number(currentRound.startTime) * 1000;
+        const numStartTime = Number(currentRound.startTime);
+        startTimeMs = !isNaN(numStartTime) ? numStartTime * 1000 : Date.now();
       }
       
       let lockTimeValue = currentRound.lockTime !== undefined && currentRound.lockTime !== null
         ? Number(currentRound.lockTime)
-        : startTimeMs / 1000 + config.lockDuration;
-  
+        : startTimeMs / 1000 + Number(config.lockDuration);
+
       const closeTimeValue = Number(currentRound.closeTime);
+      
+      // Validate all timestamps
+      if (isNaN(lockTimeValue) || isNaN(closeTimeValue)) {
+        console.warn("Invalid timestamps during calculation:", { lockTimeValue, closeTimeValue });
+        setTimeLeft(null);
+        setIsLocked(false);
+        return;
+      }
       
       const timeToLock = lockTimeValue - now;
       const timeToClose = closeTimeValue - now;

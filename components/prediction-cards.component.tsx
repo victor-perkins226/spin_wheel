@@ -44,6 +44,7 @@ export default function PredictionCards() {
   const [lastPriceUpdate, setLastPriceUpdate] = useState<number>(0);
   const [isPageVisible, setIsPageVisible] = useState(true);
   const priceUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [successfulBets, setSuccessfulBets] = useState<Set<number>>(new Set());
   const {
     handlePlaceBet,
     handleClaimPayout,
@@ -165,17 +166,33 @@ export default function PredictionCards() {
       return;
     }
 
-    try {
+    // Check if user has already placed a bet for this round
+    if (hasSuccessfulBetInRound(roundId)) {
+      toast.error("You have already placed a bet for this round");
+      return;
+    }
 
+    try {
       await handlePlaceBet(roundId, direction === "up", amount)
       await fetchUserBets();
-      console.log('user bets', userBets);
       
-      toast(`Bet placed: ${amount} SOL ${direction} on round ${roundId}`);
+      // Add the round to successful bets to disable further betting
+      setSuccessfulBets(prev => new Set(prev).add(roundId));
       
-    } catch (error) {
+      toast.success(`Bet placed: ${amount} SOL ${direction} on round ${roundId}`);
+      
+    } catch (error: any) {
       console.error("Failed to place bet:", error);
-      toast.error("Failed to place bet");
+      
+      // Handle specific error cases - these will already be handled by the hook
+      // Just show a generic error if we get here
+      if (!error.message?.includes("already bet") && 
+          !error.message?.includes("locked") && 
+          !error.message?.includes("insufficient") &&
+          !error.message?.includes("paused") &&
+          !error.message?.includes("not active")) {
+        toast.error("Failed to place bet. Please try again.");
+      }
     }
   };
 
@@ -217,8 +234,7 @@ export default function PredictionCards() {
 
       setClaimableRewards(0);
 
-      console.log(`Batched payout claimed successfully: ${signature}`);
-      alert(`Successfully claimed rewards for ${claimableBets.length} rounds!`);
+      toast(`Successfully claimed rewards for ${claimableBets.length} rounds!`);
     } catch (error: any) {
       console.error("Failed to claim rewards:", error);
       let errorMessage = "Failed to claim rewards. Please try again.";
@@ -239,7 +255,7 @@ export default function PredictionCards() {
       } else if (error.message.includes("Signature request denied")) {
         errorMessage = "Transaction was not signed.";
       }
-      alert(errorMessage);
+      toast(errorMessage);
     }
   }, [
     connected,
@@ -250,6 +266,16 @@ export default function PredictionCards() {
     fetchUserBets,
     handleClaimPayout,
   ]);
+
+  // Helper function to check if user has already bet in a round
+  const hasUserBetInRound = useCallback((roundId: number): boolean => {
+    return userBets.some(bet => bet.roundId === roundId);
+  }, [userBets]);
+
+  // Helper function to check if user has successfully placed a bet in a round
+  const hasSuccessfulBetInRound = useCallback((roundId: number): boolean => {
+    return successfulBets.has(roundId) || userBets.some(bet => bet.roundId === roundId);
+  }, [successfulBets, userBets]);
 
   const getSlidesPerView = () => {
     if (!mounted) return 1;
@@ -377,7 +403,6 @@ export default function PredictionCards() {
   const computedDisplayRounds = useMemo((): ExtendedRound[] => {
     try {
       const list = [...previousRounds];
-      console.log("Previous rounds:", list);  
       const now = Date.now() / 1000;
 
       let liveRound: Round | null = null;
@@ -405,8 +430,7 @@ export default function PredictionCards() {
 
           if (now >= lockTime && now < closeTime && previousRoundData.isActive) {
             liveRound = previousRoundData;
-            console.log("Found LIVE round (previous):", previousRoundData.number);
-          }
+        }
         }
       }
 
@@ -419,18 +443,15 @@ export default function PredictionCards() {
 
         if (nextRoundData) {
           nextRound = nextRoundData;
-          console.log("Found NEXT round:", nextRoundData.number);
         }
       }
 
       if (!liveRound) {
         if (currentRoundData && now < Number(currentRoundData.closeTime)) {
           liveRound = { ...currentRoundData, isActive: true };
-          console.log("Forcing current round to be LIVE:", liveRound.number);
         } else {
           liveRound = createDummyLaterRound(currentRoundNumber, 0, "live");
           liveRound.isActive = true;
-          console.log("Created dummy LIVE round:", liveRound.number);
         }
       }
 
@@ -438,7 +459,6 @@ export default function PredictionCards() {
         const nextRoundNumber = liveRound ? Number(liveRound.number) + 1 : currentRoundNumber + 1;
         nextRound = createDummyLaterRound(nextRoundNumber, 1, "next");
         nextRound.isActive = true;
-        console.log("Created dummy NEXT round:", nextRound.number);
       }
 
       const expiredRounds = list
@@ -651,6 +671,48 @@ export default function PredictionCards() {
             </div>
           </div>
 
+          {connected && (
+            <div className="glass rounded-xl p-4 flex justify-between items-center flex-wrap gap-4">
+              <div>
+                <p className="text-sm opacity-70">Your Balance</p>
+                <div className="flex items-center gap-1 font-semibold">
+                  <Image
+                    className="w-[20px] h-auto object-contain"
+                    src="/assets/solana_logo.png"
+                    alt="Solana"
+                    width={20}
+                    height={20}
+                  />
+                  <span>{userBalance.toFixed(4)} SOL</span>
+                </div>
+              </div>
+              {claimableAmountRef.current > 0 && (
+                <div className="flex items-center gap-3">
+                  <div>
+                    <p className="text-sm opacity-70">Unclaimed Rewards</p>
+                    <div className="flex items-center gap-1 font-semibold text-green-500">
+                      <Image
+                        className="w-[20px] h-auto object-contain"
+                        src="/assets/solana_logo.png"
+                        alt="Solana"
+                        width={20}
+                        height={20}
+                      />
+                      <span>{claimableAmountRef.current.toFixed(4)} SOL</span>
+                    </div>
+                  </div>
+                  <button
+                    className="glass bg-green-500 py-2 px-4  cursor-pointer rounded-lg font-semibold hover:bg-green-600 transition-colors"
+                    onClick={handleClaimRewards}
+                    disabled={claimableAmountRef.current === 0}
+                  >
+                    Claim
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="relative">
             <Swiper
               onSwiper={(swiper) => {
@@ -750,6 +812,8 @@ export default function PredictionCards() {
                       userBets={connected ? userBets : []}
                       isLocked={isLocked}
                       timeLeft={timeLeft}
+                      hasUserBet={connected ? hasSuccessfulBetInRound(Number(round.number)) : false}
+                      disabled={connected ? hasSuccessfulBetInRound(Number(round.number)) : false}
                     />
                   </SwiperSlide>
                 );

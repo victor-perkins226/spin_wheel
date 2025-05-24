@@ -2,11 +2,10 @@
 'use client'
 
 import { useWallet } from "@solana/wallet-adapter-react";
-import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, } from "@solana/web3.js";
-import { BN } from "@project-serum/anchor";
-// import * as idl from "@/lib/idl.json";
+import { LAMPORTS_PER_SOL, PublicKey, SystemProgram } from "@solana/web3.js";
+import { BN, ProgramError } from "@project-serum/anchor";
 import { useProgram } from "./useProgram";
-import { useCallback, useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { UserBet, ClaimableBet, UserBetAccount } from "@/types/round";
 import toast from "react-hot-toast";
 
@@ -17,53 +16,36 @@ interface SolPredictorHook {
     fetchUserBets: () => Promise<ClaimableBet[]>;
     claimableBets: ClaimableBet[];
     userBets: UserBet[];
+    isPlacingBet: boolean;
 }
 
-const programId = new PublicKey("AKui3UEpyUEhtnqsDChTL76DFncYx6rRqp6CSShnUm9r")
-
+const programId = new PublicKey("AKui3UEpyUEhtnqsDChTL76DFncYx6rRqp6CSShnUm9r");
 export const useSolPredictor = (): SolPredictorHook => {
     const { publicKey, connected } = useWallet();
     const { program } = useProgram();
-    
     const [claimableBets, setClaimableBets] = useState<ClaimableBet[]>([]);
     const [userBets, setUserBets] = useState<UserBet[]>([]);
+    const [isPlacingBet, setIsPlacingBet] = useState(false);
+    const pendingTransactionRef = useRef<string | null>(null);
 
-    // Memoize PDAs to prevent recreations
-    const configPda = useMemo(() => 
-        PublicKey.findProgramAddressSync([Buffer.from("config")], programId)[0],
-        []
-    );
-
-    const getRoundPda = useCallback((roundNumber: number) =>
+    const [configPda] = PublicKey.findProgramAddressSync([Buffer.from("config")], programId);
+    const getRoundPda = (roundNumber: number) =>
         PublicKey.findProgramAddressSync(
             [Buffer.from("round"), new BN(roundNumber).toArrayLike(Buffer, "le", 8)],
-            program?.programId || programId
-        )[0],
-        [program?.programId]
-    );
+            program!.programId
+        )[0];
 
-    const getEscrowPda = useCallback((roundNumber: number) =>
+    const getEscrowPda = (roundNumber: number) =>
         PublicKey.findProgramAddressSync(
             [Buffer.from("escrow"), new BN(roundNumber).toArrayLike(Buffer, "le", 8)],
-            program?.programId || programId
-        )[0],
-        [program?.programId]
-    );
+            program!.programId
+        )[0];
 
-    const getUserBetPda = useCallback((user: PublicKey, roundNumber: number) =>
+    const getUserBetPda = (user: PublicKey, roundNumber: number) =>
         PublicKey.findProgramAddressSync(
             [Buffer.from("user_bet"), user.toBuffer(), new BN(roundNumber).toArrayLike(Buffer, "le", 8)],
-            program?.programId || programId
-        )[0],
-        [program?.programId]
-    );
-
-    // Memoize the key dependencies for fetchUserBets
-    const fetchDependencies = useMemo(() => ({
-        publicKey: publicKey?.toBase58(),
-        connected,
-        programId: program?.programId?.toBase58()
-    }), [publicKey, connected, program?.programId]);
+            program!.programId
+        )[0];
 
     const fetchUserBets = useCallback(async () => {
         if (!publicKey || !connected || !program) {
@@ -74,6 +56,8 @@ export const useSolPredictor = (): SolPredictorHook => {
         }
 
         try {
+            console.log('Fetching user bets for:', publicKey.toBase58());
+
             const userBetAccounts = await program.account.userBet.all([
                 {
                     memcmp: {
@@ -147,11 +131,16 @@ export const useSolPredictor = (): SolPredictorHook => {
             setUserBets([]);
             return [];
         }
-    }, [fetchDependencies.publicKey, fetchDependencies.connected, fetchDependencies.programId, program]);
+    }, [publicKey, connected, program]);
 
     const handlePlaceBet = useCallback(async (roundId: number, isBull: boolean, amount: number) => {
         if (!publicKey) {
             toast("Please connect your wallet.");
+            return;
+        }
+
+        if (!connected || !program) {
+            toast("Please connect your wallet and ensure program is loaded.");
             return;
         }
 
@@ -160,52 +149,175 @@ export const useSolPredictor = (): SolPredictorHook => {
             return;
         }
 
+        if (amount < 0.001) {
+            toast("Minimum bet amount is 0.001 SOL.");
+            return;
+        }
+
+        // Prevent duplicate submissions
+        if (isPlacingBet) {
+            toast("Transaction in progress, please wait...");
+            return;
+        }
+
+        // Create unique transaction identifier
+        const transactionId = `${roundId}-${isBull}-${amount}-${Date.now()}`;
+        if (pendingTransactionRef.current === transactionId) {
+            toast("Duplicate transaction detected, please wait...");
+            return;
+        }
+
+        setIsPlacingBet(true);
+        pendingTransactionRef.current = transactionId;
+
         try {
             const roundPda = getRoundPda(roundId);
             const escrowPda = getEscrowPda(roundId);
             const userBetPda = getUserBetPda(publicKey, roundId);
 
-            const lamports = amount * 1_000_000_000;
+            try {
+                const roundAccount = await program.account.round.fetch(roundPda);
+                if (roundAccount) {
+                    const now = Date.now() / 1000;
+                    const lockTime = Number(roundAccount.lockTime);
+                    if (now >= lockTime) {
+                        toast("This round is no longer accepting bets.");
+                        return;
+                    }
 
-            const tx = await program!.methods
-                .placeBet(new BN(lamports), isBull, new BN(roundId))
-                .accounts({
-                    config: configPda,
-                    round: roundPda,
-                    userBet: userBetPda,
-                    user: publicKey,
-                    escrow: escrowPda,
-                    systemProgram: SystemProgram.programId,
-                })
-                .signers([])
-                .rpc();
+                    if (!roundAccount.isActive) {
+                        toast("This round is not active.");
+                        return;
+                    }
+                }
+            } catch (roundError: any) {
+                if (!roundError.message?.includes("Account does not exist")) {
+                    console.error("Error validating round:", roundError);
+                    toast("Failed to validate round. Please try again.");
+                    return;
+                }
+                console.log(`Round ${roundId} account doesn't exist yet, proceeding with bet placement`);
+            }
 
-            // Refresh bets after placing a bet
-            await fetchUserBets();
+            const lamports = Math.floor(amount * 1_000_000_000);
 
-            console.log(`Bet placed successfully: ${tx}`);
-            toast("Bet placed successfully!");
+            console.log("Placing bet with params:", {
+                roundId,
+                isBull,
+                amount,
+                lamports,
+                userPubkey: publicKey.toBase58(),
+                transactionId
+            });
+
+            try {
+                // Use .rpc() method with proper error handling
+                const tx = await program!.methods
+                    .placeBet(new BN(lamports), isBull, new BN(roundId))
+                    .accounts({
+                        config: configPda,
+                        round: roundPda,
+                        userBet: userBetPda,
+                        user: publicKey,
+                        escrow: escrowPda,
+                        systemProgram: SystemProgram.programId,
+                    })
+                    .signers([])
+                    .rpc();
+
+                await fetchUserBets();
+                console.log(`Bet placed successfully: ${tx}`);
+                toast("Bet placed successfully!");
+
+            } catch (rpcError: any) {
+                console.error("RPC Error details:", rpcError);
+                
+                // Handle ProgramError specifically
+                if (rpcError instanceof ProgramError) {
+                    const errorCode = rpcError.code;
+                    console.log("Program error code:", errorCode);
+                    
+                    switch (errorCode) {
+                        case 6012:
+                            toast("Contract is paused.");
+                            break;
+                        case 6013:
+                            toast("Bet amount must be at least 0.001 SOL.");
+                            break;
+                        case 6014:
+                            toast("You have already bet in this round.");
+                            break;
+                        case 6022:
+                            toast("Round is locked for betting.");
+                            break;
+                        case 6001:
+                            toast("Round is not active.");
+                            break;
+                        case 6007:
+                            toast("Invalid round number.");
+                            break;
+                        case 6010:
+                            toast("Insufficient funds in escrow.");
+                            break;
+                        default:
+                            toast(`Program error: ${rpcError.msg || `Code ${errorCode}`}`);
+                            break;
+                    }
+                    return;
+                }
+
+                // Handle other RPC errors
+                if (rpcError.message?.includes("This transaction has already been processed")) {
+                    toast("Transaction already processed. Please check your bets.");
+                    await fetchUserBets();
+                    return;
+                }
+
+                if (rpcError.message?.includes("Transaction was not confirmed")) {
+                    toast("Transaction failed to confirm. Please try again with a new transaction.");
+                    return;
+                }
+
+                if (rpcError.message?.includes("Blockhash not found")) {
+                    toast("Transaction expired. Please try again.");
+                    return;
+                }
+
+                if (rpcError.message?.includes("User rejected") || rpcError.message?.includes("User denied")) {
+                    toast("Transaction was cancelled.");
+                    return;
+                }
+
+                if (rpcError.message?.includes("insufficient funds")) {
+                    toast("Insufficient SOL balance to place bet.");
+                    return;
+                }
+
+                if (rpcError.message?.includes("Account does not exist")) {
+                    toast("Round not yet initialized. Please try again in a moment.");
+                    return;
+                }
+
+                // Log detailed error for debugging
+                console.error("Detailed RPC error:", rpcError);
+                if (rpcError.logs) {
+                    console.error("Error logs:", rpcError.logs);
+                }
+
+                // Generic error fallback
+                toast(`Failed to place bet: ${rpcError.message || "Unknown error"}`);
+            }
+            
         } catch (error: any) {
             console.error("Place bet failed", error);
-            if (error.message.includes("6012")) {
-                toast("Contract is paused.");
-            } else if (error.message.includes("6013")) {
-                toast("Bet amount must be at least 0.1 SOL.");
-            } else if (error.message.includes("6014")) {
-                toast("You have already bet in this round.");
-            } else if (error.message.includes("6022")) {
-                toast("Round is locked for betting.");
-            } else if (error.message.includes("6001")) {
-                toast("Round is not active.");
-            } else if (error.message.includes("6007")) {
-                toast("Invalid round number.");
-            } else if (error.message.includes("6010")) {
-                toast("Insufficient funds in escrow.");
-            } else {
-                toast("Failed to place bet. Please try again.");
-            }
+            
+            // Final fallback error handling
+            toast(`An unexpected error occurred: ${error.message || "Unknown error"}`);
+        } finally {
+            setIsPlacingBet(false);
+            pendingTransactionRef.current = null;
         }
-    }, [publicKey, getRoundPda, getEscrowPda, getUserBetPda, program, configPda, fetchUserBets]);
+    }, [publicKey, connected, getRoundPda, getEscrowPda, getUserBetPda, program, configPda, fetchUserBets]);
 
     const handleClaimPayout = useCallback(async (roundId: number) => {
         if (!publicKey || !connected || !program) {
@@ -236,16 +348,15 @@ export const useSolPredictor = (): SolPredictorHook => {
         }
     }, [publicKey, connected, program, getRoundPda, getEscrowPda, getUserBetPda, configPda]);
 
-    // Only fetch when the stable dependencies actually change
     useEffect(() => {
-        if (fetchDependencies.publicKey && fetchDependencies.connected && fetchDependencies.programId) {
+        if (publicKey && connected && program) {
             fetchUserBets();
         } else {
             console.log('Skipping fetchUserBets: wallet not connected or program not initialized');
             setClaimableBets([]);
             setUserBets([]);
         }
-    }, [fetchDependencies.publicKey, fetchDependencies.connected, fetchDependencies.programId, fetchUserBets]);
+    }, [publicKey, connected, program, fetchUserBets]);
 
-    return { handlePlaceBet, handleClaimPayout, claimableBets, userBets, fetchUserBets };
+    return { handlePlaceBet, handleClaimPayout, claimableBets, userBets, fetchUserBets, isPlacingBet };
 };

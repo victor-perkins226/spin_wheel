@@ -42,6 +42,8 @@ interface IProps {
   userBets?: UserBet[];
   isLocked: boolean;
   timeLeft: number | null;
+  disabled?: boolean;
+  hasUserBet?: boolean; // Add this prop to explicitly pass bet status
 }
 
 const CUSTOM_INPUTS = [
@@ -63,6 +65,8 @@ export default function PredictionCard({
   userBets,
   isLocked,
   timeLeft,
+  disabled = false,
+  hasUserBet = false,
 }: IProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [mode, setMode] = useState<"up" | "down" | "">("");
@@ -82,14 +86,31 @@ export default function PredictionCard({
       const totalBullAmount = roundData.upBets; // Already in SOL  
       const totalBearAmount = roundData.downBets; // Already in SOL
 
-      const treasuryAmt = (totalAmount * roundData.treasuryFee) / 10000;
-      const rewardAmount = totalAmount - treasuryAmt;
+      // Ensure we have valid numbers and avoid division by zero
+      const safeTotalAmount = Math.max(totalAmount || 0, 0);
+      const safeTotalBullAmount = Math.max(totalBullAmount || 0, 0);
+      const safeTotalBearAmount = Math.max(totalBearAmount || 0, 0);
+      const safeTreasuryFee = Math.max(roundData.treasuryFee || 0, 0);
 
-      // Calculate multipliers: if you bet on the winning side, how much do you get back per SOL
-      const bullMultiplier =
-        totalBullAmount > 0 ? rewardAmount / totalBullAmount : 1.0;
-      const bearMultiplier =
-        totalBearAmount > 0 ? rewardAmount / totalBearAmount : 1.0;
+      // Calculate treasury amount with bounds checking
+      const treasuryAmt = Math.min((safeTotalAmount * safeTreasuryFee) / 10000, safeTotalAmount);
+      const rewardAmount = Math.max(safeTotalAmount - treasuryAmt, 0);
+
+      // Calculate multipliers with proper fallbacks
+      let bullMultiplier = 1.0;
+      let bearMultiplier = 1.0;
+
+      if (safeTotalBullAmount > 0 && rewardAmount >= 0) {
+        bullMultiplier = (rewardAmount + safeTotalBullAmount) / safeTotalBullAmount;
+        // Ensure multiplier is reasonable (between 1 and 100)
+        bullMultiplier = Math.max(1.0, Math.min(100.0, bullMultiplier));
+      }
+
+      if (safeTotalBearAmount > 0 && rewardAmount >= 0) {
+        bearMultiplier = (rewardAmount + safeTotalBearAmount) / safeTotalBearAmount;
+        // Ensure multiplier is reasonable (between 1 and 100)
+        bearMultiplier = Math.max(1.0, Math.min(100.0, bearMultiplier));
+      }
 
       setCalculatedMultipliers({
         bullMultiplier: bullMultiplier.toFixed(2),
@@ -131,20 +152,26 @@ export default function PredictionCard({
     })();
   }, [connected, publicKey, connection]);
 
-  const userBetStatus =
-    userBets?.find((bet) => bet.roundId === roundId) || null;
+  const userHasBet = userBets?.some(bet => bet.roundId === roundId) || hasUserBet;
 
-    const getCurrentPrice = () => {
-      if (!roundData) return 0;
-      
-      if (variant === "expired" || variant === "locked") {
-        // For expired rounds, always use the final close price
-        return roundData.closePrice > 0 ? roundData.closePrice : roundData.lockPrice;
-      } else {
-        // For live/next rounds, prioritize live price but fallback gracefully
-        return liveRoundPrice || roundData.currentPrice;
-      }
-    };
+  const canBet =
+    variant === "next" &&
+    roundData?.isActive === true &&
+    !isLocked &&
+    (timeLeft !== null ? timeLeft > bufferTimeInSeconds : false) &&
+    !userHasBet;
+
+  const getCurrentPrice = () => {
+    if (!roundData) return 0;
+    
+    if (variant === "expired" || variant === "locked") {
+      // For expired rounds, always use the final close price
+      return roundData.closePrice > 0 ? roundData.closePrice : roundData.lockPrice;
+    } else {
+      // For live/next rounds, prioritize live price but fallback gracefully
+      return liveRoundPrice || roundData.currentPrice;
+    }
+  };
     
   const lockPriceRef = useRef<number | null>(null);
 
@@ -172,8 +199,6 @@ export default function PredictionCard({
     return roundData?.currentPrice ?? 0;          // last-ditch fallback
   };
   
-
-    
   const getPriceMovement = () => {
     if (!roundData) return { difference: 0, direction: "up" as "up" | "down" };
     const currentPrice =
@@ -188,12 +213,6 @@ export default function PredictionCard({
 
   const { difference: priceDifference, direction: priceDirection } =
     getPriceMovement();
-
-  const canBet =
-    variant === "next" &&
-    roundData?.isActive == true &&
-    !isLocked &&
-    (timeLeft !== null ? timeLeft > bufferTimeInSeconds : false);
 
   const formattedRoundData = roundData
     ? {
@@ -235,6 +254,15 @@ export default function PredictionCard({
     Date.now() / 1000 < roundData.closeTime;
 
   const handleEnterPrediction = (mode: "up" | "down") => {
+    if (disabled || userHasBet) {
+      if (userHasBet) {
+        toast("You have already placed a bet for this round");
+        return;
+      }
+      // This will trigger the toast in the parent component
+      onPlaceBet?.(mode, amount, roundId);
+      return;
+    }
     if (!connected) {
       toast("Please connect your wallet first");
       return;
@@ -252,21 +280,47 @@ export default function PredictionCard({
       toast("Please connect your wallet first");
       return;
     }
-    if (amount <= 0) {
+    
+    // Validate amount more strictly
+    if (!amount || amount <= 0 || isNaN(amount)) {
       toast("Please enter a valid amount");
       return;
     }
+    
+    // Check minimum bet amount (0.001 SOL as per error codes in attachments)
+    if (amount < 0.001) {
+      toast("Minimum bet amount is 0.001 SOL");
+      return;
+    }
+    
+    // Check if user has sufficient balance
+    if (amount > maxAmount) {
+      toast("Insufficient balance");
+      return;
+    }
+    
     if (!canBet) {
       toast("Betting is not available for this round");
       return;
     }
+    
+    // Validate round data before placing bet
+    if (!roundData || !roundData.isActive) {
+      toast("Round is not active for betting");
+      return;
+    }
+    
     if (onPlaceBet && mode && roundId) {
-      onPlaceBet(mode, amount, roundId);
-
-      await fetchUserBets();
-      setIsFlipped(false);
-      setMode("");
-      setAmount(0.1);
+      try {
+        onPlaceBet(mode, amount, roundId);
+        await fetchUserBets();
+        setIsFlipped(false);
+        setMode("");
+        setAmount(0.1);
+      } catch (error) {
+        console.error("Error placing bet:", error);
+        // Don't show additional toast here as the hook will handle it
+      }
     }
   };
 
@@ -355,7 +409,7 @@ export default function PredictionCard({
             </div>
             <div className="flex justify-between items-center text-[10px]">
               <p>Locked Price</p>
-              <p>${formattedRoundData.lockPrice.toFixed(4)}</p>
+              <p>${lockPriceRef.current?.toFixed(4)}</p>
             </div>
             <div className="flex justify-between text-[16px]">
               <p>Prize Pool</p>
@@ -423,6 +477,8 @@ export default function PredictionCard({
       );
     }
 
+    const buttonDisabled = disabled || !canBet || userHasBet;
+
     return (
       <div className="flex-1 glass h-[300px] flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
         {!canBet ? (
@@ -460,23 +516,31 @@ export default function PredictionCard({
               <>
                 <Button
                   style={{
-                    background:
-                      "linear-gradient(90deg, #06C729 0%, #04801B 100%)",
+                    background: buttonDisabled 
+                      ? "#9CA3AF" 
+                      : "linear-gradient(90deg, #06C729 0%, #04801B 100%)",
                   }}
-                  onClick={() => handleEnterPrediction("up")}
-                  className="cursor-pointer"
+                  onClick={() => buttonDisabled ? null : handleEnterPrediction("up")}
+                  className={`glass flex flex-col gap-4 py-[16px] ${
+                    buttonDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:opacity-80"
+                  }`}
+                  disabled={buttonDisabled}
                 >
-                  Enter UP
+                  {userHasBet ? "Already Bet" : "Enter UP"}
                 </Button>
                 <Button
                   style={{
-                    background:
-                      "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)",
+                    background: buttonDisabled 
+                      ? "#9CA3AF" 
+                      : "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)",
                   }}
-                  onClick={() => handleEnterPrediction("down")}
-                  className="cursor-pointer"
+                  onClick={() => buttonDisabled ? null : handleEnterPrediction("down")}
+                  className={`glass flex flex-col gap-4 py-[16px] ${
+                    buttonDisabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:opacity-80"
+                  }`}
+                  disabled={buttonDisabled}
                 >
-                  Enter DOWN
+                  {userHasBet ? "Already Bet" : "Enter DOWN"}
                 </Button>
               </>
             ) : (
@@ -659,7 +723,7 @@ export default function PredictionCard({
             </div>
           ))}
         </div>
-        <Button onClick={handlePlaceBet}>
+        <Button className="cursor-pointer" onClick={handlePlaceBet}>
           Buy {mode?.toUpperCase()} for {amount} SOL
         </Button>
       </div>
