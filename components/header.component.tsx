@@ -1,25 +1,20 @@
 import Image from "next/image";
-import React, { useState, useEffect } from "react";
-import Logo from "@/public/assets/logo.svg";
+import React, { useEffect, useState } from "react";
+import darkLogo from "@/public/assets/logo.svg";
+import lightLogo from "@/public/assets/lightLogo.png";
 import Link from "next/link";
-import Button from "./button.component";
 import routes from "@/helpers/routes";
 import SVG from "./svg.component";
-import { WalletDisconnectButton, WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { useWallet } from "@solana/wallet-adapter-react";
-
-const NAVLINKS = [
-  { link: routes.home(), label: "Home" },
-  { link: routes.leaderboard(), label: "Leaderboard" },
-  { link: "", label: "Trade" },
-  { link: "", label: "Whitepaper" },
-];
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { useTheme } from "next-themes";
 
 export default function Header() {
-  const { publicKey, connected, disconnect } = useWallet();
+  const { theme } = useTheme();
+
+
   const [mounted, setMounted] = useState(false);
-  
-  // Only show wallet buttons after component has mounted on client
+
+  // Prevent hydration mismatch by checking if component has mounted
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -28,7 +23,13 @@ export default function Header() {
     <div className="container">
       <header className="hidden glass mt-[58px] rounded-[20px] md:flex justify-between items-center p-[20px] max-w-[1290] mx-auto">
         <Link href={routes.home()}>
-          <Image className="w-[140px]" src={Logo} alt="fortuva logo" />
+          {mounted && (
+            <Image
+              className="w-[140px]"
+              src={theme === "dark" ? darkLogo : lightLogo}
+              alt="fortuva logo"
+            />
+          )}
         </Link>
 
         {/* <nav className="flex gap-[16px] xl:gap-[70px]">
@@ -43,17 +44,13 @@ export default function Header() {
           ))}
         </nav> */}
 
-        {/* Conditionally render wallet button only on client side */}
-        <div>
-          {mounted && <WalletMultiButton />}
-        </div>
+        {/* {renderWalletButton()} */}
+
+        <WalletMultiButton />
+        {/* <WalletDisconnectButton/> */}
       </header>
 
       <header className="flex md:hidden justify-between p-[20px] mt-[58px]">
-        <Link href={routes.home()}>
-          <Image className="w-[120px]" src={Logo} alt="fortuva logo" />
-        </Link>
-
         <SVG iconName="profile" width={52} height={52} />
 
         <div className="glass p-[15px] rounded-[20px]">

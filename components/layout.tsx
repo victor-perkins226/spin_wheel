@@ -1,20 +1,21 @@
 import React, { ReactNode } from "react";
-import Header from "./header.component";
 import MobileNav from "./mobile-nav.component";
-import { useRouter } from "next/router";
+import Header from "./header.component";
+import { useTheme } from "next-themes";
 
-interface LayoutProps {
+interface IProps {
   children: ReactNode;
 }
 
-export default function Layout({ children }: LayoutProps) {
-  const router = useRouter();
-  
+export default function Layout({ children }: IProps) {
+  const {theme} = useTheme();
   return (
     <>
+    <div className={`${theme === "dark" ?"bg-background" :"bg-gradient-to-b from-[#fefefe] via-pink-100 to-violet-50"}`}>
       <Header />
-      {children}
-      {router.pathname !== "/leaderboard" && <MobileNav />}
+      <div className="pb-[80px]">{children}</div>
+      <MobileNav />
+    </div>
     </>
   );
 }
