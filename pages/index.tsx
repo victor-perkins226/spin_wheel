@@ -11,7 +11,7 @@ export default function Home() {
         <title>Prediction | FORTUVA</title>
       </Head>
       <Hero />
-        <div className="mt-10 flex justify-end me-8">
+      <div className="mt-10 flex justify-end me-48">
         <ThemeToggle />
       </div>
       <PredictionCards />
