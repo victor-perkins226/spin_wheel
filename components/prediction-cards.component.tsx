@@ -22,6 +22,7 @@ import LineChart from "./LineChart";
 import { fetchLivePrice } from "@/lib/price-utils";
 import { useProgram } from "@/hooks/useProgram";
 import toast from "react-hot-toast";
+import { useTheme } from "next-themes";
 
 export default function PredictionCards() {
   const [screenWidth, setScreenWidth] = useState(0);
@@ -42,6 +43,8 @@ export default function PredictionCards() {
   const claimableAmountRef = useRef<number>(0); // Store claimableAmount in useRef
   const { program } = useProgram();
   const initialSlideJumped = useRef(false);
+
+  const {theme} = useTheme();
   const {
     config,
     currentRound,
@@ -55,7 +58,7 @@ export default function PredictionCards() {
     timeLeft,
     isLocked,
     getRoundStatus,
-    getTimerDisplay
+    getTimerDisplay,
   } = useRoundManager(5, 0);
 
   const [isFetchingRounds, setIsFetchingRounds] = useState(false);
@@ -142,7 +145,9 @@ export default function PredictionCards() {
 
     try {
       await handlePlaceBet(roundId, direction === "up", amount);
-      toast.success(`Bet placed: ${amount} SOL ${direction} on round ${roundId}`);
+      toast.success(
+        `Bet placed: ${amount} SOL ${direction} on round ${roundId}`
+      );
     } catch (error) {
       console.error("Failed to place bet:", error);
       toast.error("Failed to place bet");
@@ -235,12 +240,16 @@ export default function PredictionCards() {
   };
 
   // Create dummy later rounds
-  const createDummyLaterRound = (baseRound: Round, offsetNumber: number): Round => {
+  const createDummyLaterRound = (
+    baseRound: Round,
+    offsetNumber: number
+  ): Round => {
     const roundNumber = Number(baseRound.number) + offsetNumber;
-    const baseStartTime = typeof baseRound.closeTime === 'number' 
-      ? baseRound.closeTime + (offsetNumber * 240) 
-      : Math.floor(Date.now() / 1000) + (offsetNumber * 240);
-    
+    const baseStartTime =
+      typeof baseRound.closeTime === "number"
+        ? baseRound.closeTime + offsetNumber * 240
+        : Math.floor(Date.now() / 1000) + offsetNumber * 240;
+
     return {
       number: roundNumber.toString(),
       startTime: baseStartTime,
@@ -254,39 +263,39 @@ export default function PredictionCards() {
     } as unknown as Round;
   };
 
-// Update your card rendering logic
-const formatCardVariant = (round: Round, currentRoundNumber?: number) => {
-  if (!currentRoundNumber) return "expired";
-  
-  const roundNum = Number(round.number);
-  const currentNum = Number(currentRoundNumber);
-  
-  // Determine the display status
-  const displayStatus = getRoundStatus(round);
-  
-  if (roundNum === currentNum - 1) {
-    // This is the "live" round (current active round)
-    switch (displayStatus) {
-      case "CALCULATING":
-        return "calculating";
-      case "LOCKING":
-        return "locking";
-      case "ENDED":
-      case "EXPIRED":
-        return "expired";
-      default:
-        return "live";
+  // Update your card rendering logic
+  const formatCardVariant = (round: Round, currentRoundNumber?: number) => {
+    if (!currentRoundNumber) return "expired";
+
+    const roundNum = Number(round.number);
+    const currentNum = Number(currentRoundNumber);
+
+    // Determine the display status
+    const displayStatus = getRoundStatus(round);
+
+    if (roundNum === currentNum - 1) {
+      // This is the "live" round (current active round)
+      switch (displayStatus) {
+        case "CALCULATING":
+          return "calculating";
+        case "LOCKING":
+          return "locking";
+        case "ENDED":
+        case "EXPIRED":
+          return "expired";
+        default:
+          return "live";
+      }
+    } else if (roundNum === currentNum) {
+      return "next"; // Next round for betting
+    } else if (roundNum === currentNum + 1) {
+      return "later"; // Later round
+    } else if (roundNum < currentNum - 1) {
+      return "expired"; // Past rounds
     }
-  } else if (roundNum === currentNum) {
-    return "next"; // Next round for betting
-  } else if (roundNum === currentNum + 1) {
-    return "later"; // Later round
-  } else if (roundNum < currentNum - 1) {
-    return "expired"; // Past rounds
-  }
-  
-  return "expired";
-};
+
+    return "expired";
+  };
   const handleSlideChange = () => {
     if (!swiperRef.current) return;
     const swiper = swiperRef.current;
@@ -328,7 +337,7 @@ const formatCardVariant = (round: Round, currentRoundNumber?: number) => {
   const currentRoundNumber =
     Number(config?.currentRound) ||
     Number(currentRound?.number) ||
-    Math.max(...previousRounds.map(r => Number(r.number)), 0) ||
+    Math.max(...previousRounds.map((r) => Number(r.number)), 0) ||
     1000;
 
   const nextRoundNumber = currentRoundNumber + 1;
@@ -336,15 +345,18 @@ const formatCardVariant = (round: Round, currentRoundNumber?: number) => {
     previousRounds.find((r: Round) => Number(r.number) === nextRoundNumber) ??
     ({
       number: nextRoundNumber.toString(),
-      startTime: typeof currentRound?.closeTime === "number"
-        ? currentRound.closeTime + 1
-        : Math.floor(Date.now() / 1000) + 1,
-      lockTime: (typeof currentRound?.closeTime === "number"
-        ? currentRound.closeTime
-        : Math.floor(Date.now() / 1000)) + 120,
-      closeTime: (typeof currentRound?.closeTime === "number"
-        ? currentRound.closeTime
-        : Math.floor(Date.now() / 1000)) + 240,
+      startTime:
+        typeof currentRound?.closeTime === "number"
+          ? currentRound.closeTime + 1
+          : Math.floor(Date.now() / 1000) + 1,
+      lockTime:
+        (typeof currentRound?.closeTime === "number"
+          ? currentRound.closeTime
+          : Math.floor(Date.now() / 1000)) + 120,
+      closeTime:
+        (typeof currentRound?.closeTime === "number"
+          ? currentRound.closeTime
+          : Math.floor(Date.now() / 1000)) + 240,
       totalAmount: 0,
       totalBullAmount: 0,
       totalBearAmount: 0,
@@ -393,47 +405,49 @@ const formatCardVariant = (round: Round, currentRoundNumber?: number) => {
     try {
       const list = [...sortedRounds];
       const currentTime = Math.floor(Date.now() / 1000);
-      
+
       // Find live round (the round before current)
       const liveRoundIndex = list.findIndex(
         (r) => formatCardVariant(r, currentRoundNumber) === "live"
       );
-      
+
       // If no live round found, return empty array
       // if (liveRoundIndex === -1) return [];
-      
+
       const liveRound = list[liveRoundIndex];
-      
+
       // Find next round (current round in our context)
       const nextRoundIndex = list.findIndex(
         (r) => formatCardVariant(r, currentRoundNumber) === "next"
       );
       const nextRound = nextRoundIndex !== -1 ? list[nextRoundIndex] : null;
-      
+
       // Get expired rounds (up to 3)
       const expiredRounds = list
         .filter((r) => formatCardVariant(r, currentRoundNumber) === "expired")
         .sort((a, b) => Number(b.number) - Number(a.number)) // Sort in descending order
         .slice(0, 3); // Take the 3 most recent expired rounds
-      
+
       // Get real later rounds, but only if they're actual future rounds
       const laterRounds = list
         .filter((r) => {
           const variant = formatCardVariant(r, currentRoundNumber);
           // Only include later rounds where closeTime is in the future
-          return variant === "later" && 
-                 typeof r.closeTime === "number" && 
-                 r.closeTime > currentTime;
+          return (
+            variant === "later" &&
+            typeof r.closeTime === "number" &&
+            r.closeTime > currentTime
+          );
         })
         .slice(0, 1); // Take only 1 real later round
-      
+
       // Add only one dummy later round if we have a next round to base it on
       // and only if we don't already have a real later round
       const dummyLaterRounds: Round[] = [];
       if (nextRound && laterRounds.length === 0) {
         dummyLaterRounds.push(createDummyLaterRound(nextRound, 1));
       }
-      
+
       // Create the final array in the correct order
       // We'll manage the order explicitly rather than sorting at the end
       const result = [
@@ -443,13 +457,18 @@ const formatCardVariant = (round: Round, currentRoundNumber?: number) => {
         ...laterRounds, // Then any real later rounds
         ...dummyLaterRounds, // Finally any dummy later rounds
       ];
-      
+
       return result.filter(Boolean); // Ensure no null/undefined items if liveRound or nextRound is null
     } catch (error) {
       console.error("Error filtering rounds to display:", error);
       return [];
     }
-  }, [sortedRounds, currentRoundNumber, createDummyLaterRound, formatCardVariant]); // Added dependencies from createDummyLaterRound and formatCardVariant
+  }, [
+    sortedRounds,
+    currentRoundNumber,
+    createDummyLaterRound,
+    formatCardVariant,
+  ]); // Added dependencies from createDummyLaterRound and formatCardVariant
 
   // Update the ref with the latest non-empty computed rounds
   useEffect(() => {
@@ -459,7 +478,8 @@ const formatCardVariant = (round: Round, currentRoundNumber?: number) => {
   }, [computedDisplayRounds]);
 
   // Determine if the system is in a state of loading/preparing the next round
-  const isSystemLoadingNextRound = isLoading || (isLocked && currentRound?.number !== config?.currentRound);
+  const isSystemLoadingNextRound =
+    isLoading || (isLocked && currentRound?.number !== config?.currentRound);
 
   // Determine the final set of rounds to display in the Swiper
   const finalDisplayRoundsForSwiper = useMemo(() => {
@@ -467,20 +487,20 @@ const formatCardVariant = (round: Round, currentRoundNumber?: number) => {
     if (computedDisplayRounds.length > 0) {
       return computedDisplayRounds;
     }
-    
+
     // If no computed rounds but we have previous rounds cached, use them
     if (previousComputedRoundsRef.current.length > 0) {
       return previousComputedRoundsRef.current;
     }
-    
+
     // Fallback: create minimal dummy rounds if no data is available
     const fallbackCurrentTime = Math.floor(Date.now() / 1000);
     const fallbackRounds: Round[] = [];
-    
+
     for (let i = 0; i < 3; i++) {
       const roundNumber = currentRoundNumber - 1 + i;
-      const baseTime = fallbackCurrentTime + (i * 240);
-      
+      const baseTime = fallbackCurrentTime + i * 240;
+
       fallbackRounds.push({
         number: roundNumber.toString(),
         startTime: baseTime - 240,
@@ -493,7 +513,7 @@ const formatCardVariant = (round: Round, currentRoundNumber?: number) => {
         status: i === 0 ? "expired" : i === 1 ? "next" : "later",
       } as unknown as Round);
     }
-    
+
     return fallbackRounds;
   }, [computedDisplayRounds, currentRoundNumber]);
 
@@ -622,7 +642,6 @@ const formatCardVariant = (round: Round, currentRoundNumber?: number) => {
                 </p>
               </div>
             </div>
-           
             <div className="relative flex items-center justify-center w-[60px] sm:w-[80px] lg:w-[120px] h-[60px] sm:h-[80px] lg:h-[120px]">
               {/* Circular progress background */}
               <svg className="absolute w-full h-full" viewBox="0 0 100 100">
@@ -632,17 +651,17 @@ const formatCardVariant = (round: Round, currentRoundNumber?: number) => {
                   cy="50"
                   r="45"
                   fill="none"
-                  stroke="#374151" // grey-700
+                  stroke={theme === "dark" ? "#374151" : "#E5E7EB"} // grey-700 for dark, grey-200 for light
                   strokeWidth="5"
                 />
 
-                {/* Grey progress circle */}
+                {/* Progress circle */}
                 <circle
                   cx="50"
                   cy="50"
                   r="45"
                   fill="none"
-                  stroke="#6B7280" // grey-500
+                  stroke={theme === "dark" ? "#6B7280" : "#9CA3AF"} // grey-500 for dark, grey-400 for light
                   strokeWidth="5"
                   strokeLinecap="round"
                   strokeDasharray="283" // 2πr ≈ 283 (for r=45)
@@ -662,7 +681,7 @@ const formatCardVariant = (round: Round, currentRoundNumber?: number) => {
                         y1="8"
                         x2="50"
                         y2="12"
-                        stroke="#4B5563" // grey-600
+                        stroke={theme === "dark" ? "#4B5563" : "#6B7280"} // grey-600 for dark, grey-500 for light
                         strokeWidth="1.5"
                         transform={`rotate(${angle} 50 50)`}
                       />
@@ -674,10 +693,18 @@ const formatCardVariant = (round: Round, currentRoundNumber?: number) => {
 
               {/* Time display in center */}
               <div className="absolute flex flex-col items-center justify-center z-10">
-                <span className="font-semibold text-white text-[12px] sm:text-[16px] lg:text-[24px]">
+                <span
+                  className={`font-semibold text-[12px] sm:text-[16px] lg:text-[24px] ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}
+                >
                   {formatTimeLeft(timeLeft)}
                 </span>
-                <span className="text-[#D1D5DB] text-[8px] sm:text-[10px] lg:text-[12px]">
+                <span
+                  className={`text-[8px] sm:text-[10px] lg:text-[12px] ${
+                    theme === "dark" ? "text-[#D1D5DB]" : "text-gray-500"
+                  }`}
+                >
                   2m
                 </span>
               </div>
@@ -728,7 +755,9 @@ const formatCardVariant = (round: Round, currentRoundNumber?: number) => {
 
           {!connected && (
             <div className="glass rounded-xl p-4 flex justify-center items-center">
-              <p className="text-sm opacity-70">Connect your wallet to place bets and view your balance</p>
+              <p className="text-sm opacity-70">
+                Connect your wallet to place bets and view your balance
+              </p>
             </div>
           )}
 
@@ -759,8 +788,12 @@ const formatCardVariant = (round: Round, currentRoundNumber?: number) => {
               className="w-full px-4 sm:px-0"
             >
               {finalDisplayRoundsForSwiper.map((round, index) => {
-                if (!round || !round.number) { // Add a check for valid round object
-                  console.warn("Skipping invalid round object in Swiper map:", round);
+                if (!round || !round.number) {
+                  // Add a check for valid round object
+                  console.warn(
+                    "Skipping invalid round object in Swiper map:",
+                    round
+                  );
                   return null;
                 }
                 const roundNumber = Number(round.number);

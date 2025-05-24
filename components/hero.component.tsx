@@ -4,7 +4,7 @@ import HeroBg from "@/public/assets/hero_bg.png";
 
 export default function Hero() {
   return (
-    <div className="container">
+    <div className="container bg-background">
       <section className="rounded-[20px] mt-[17px] lg:mt-[66px] p-[18px] xl:p-[43px] h-[219px] md:h-[494px] w-full glass z-0">
         <div className="relative w-full h-full flex items-center p-[34px] rounded-[20px] overflow-hidden">
           <Image

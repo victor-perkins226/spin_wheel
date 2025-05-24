@@ -6,6 +6,7 @@ import Head from "next/head";
 import { WalletContextProvider } from "@/components/wallet.provider.component";
 import { Toaster } from "react-hot-toast";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {ThemeProvider as NextThemesProvider} from "next-themes";
 
 
 export const poppins = Poppins({
@@ -18,7 +19,6 @@ export const poppins = Poppins({
 const queryClient = new QueryClient();
 
 export default function App({ Component, pageProps }: AppProps) {
-
   return (
     <>
       <Toaster />
@@ -54,9 +54,11 @@ export default function App({ Component, pageProps }: AppProps) {
 
       <QueryClientProvider client={queryClient}>
         <WalletContextProvider>
-          <Layout>
-            <Component {...pageProps} />
-          </Layout>
+          <NextThemesProvider attribute="class" defaultTheme="dark">
+            <Layout>
+              <Component {...pageProps} />
+            </Layout>
+          </NextThemesProvider>
         </WalletContextProvider>
       </QueryClientProvider>
     </>

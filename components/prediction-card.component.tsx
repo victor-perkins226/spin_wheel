@@ -11,6 +11,7 @@ import { UserBet } from "@/types/round";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import toast from "react-hot-toast";
 import { DotLoader } from "react-spinners";
+import { useTheme } from "next-themes";
 
 interface IProps {
   variant?: "live" | "expired" | "next" | "later" | "locked";
@@ -69,6 +70,8 @@ export default function PredictionCard({
   const [maxAmount, setMaxAmount] = useState<number>(10);
   const { connected, publicKey } = useWallet();
   const { connection } = useConnection();
+
+  const {theme} = useTheme();
 
   // Calculate multipliers
   const calculateMultipliers = () => {
@@ -393,93 +396,222 @@ export default function PredictionCard({
     );
   };
 
+  // const renderLiveRoundContent = () => {
+  //   if (variant !== "live") return null;
+  //   return (
+  //     <div className=" flex flex-col h-[300px] glass p-[10px] rounded-[20px] items-center">
+  //       <div className="max-w-[215px] flex flex-col gap-[33px] justify-between flex-1">
+  //         <Image
+  //           alt="Solana Background"
+  //           src={SolanaBg || "/placeholder.svg"}
+  //           className="rounded-[10px] w-[215px] h-[142px] object-cover"
+  //           width={215}
+  //           height={142}
+  //         />
+  //         <div className="flex flex-col gap-[22px] font-semibold text-[#FEFEFE]">
+  //           <div className="flex justify-between">
+  //             <p className="text-[20px]">
+  //               ${formattedRoundData.closePrice.toFixed(4)}
+  //             </p>
+  //             <div
+  //               className={`bg-white flex items-center gap-[4px] ${
+  //                 priceDirection === "up" ? "text-green-500" : "text-red-500"
+  //               } px-[10px] py-[5px] rounded-[5px]`}
+  //             >
+  //               {priceDirection === "up" ? (
+  //                 <ArrowUp size={12} />
+  //               ) : (
+  //                 <ArrowDown size={12} />
+  //               )}
+  //               <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
+  //             </div>
+  //           </div>
+  //           <div className="flex justify-between items-center text-[10px]">
+  //             <p>Locked Price</p>
+  //             <p>${formattedRoundData.lockPrice.toFixed(4)}</p>
+  //           </div>
+  //           <div className="flex justify-between text-[16px]">
+  //             <p>Prize Pool</p>
+  //             <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
+  //           </div>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // };
+
+
   const renderLiveRoundContent = () => {
-    if (variant !== "live") return null;
-    return (
-      <div className=" flex flex-col h-[300px] glass p-[10px] rounded-[20px] items-center">
-        <div className="max-w-[215px] flex flex-col gap-[33px] justify-between flex-1">
-          <Image
-            alt="Solana Background"
-            src={SolanaBg || "/placeholder.svg"}
-            className="rounded-[10px] w-[215px] h-[142px] object-cover"
-            width={215}
-            height={142}
-          />
-          <div className="flex flex-col gap-[22px] font-semibold text-[#FEFEFE]">
-            <div className="flex justify-between">
-              <p className="text-[20px]">
-                ${formattedRoundData.closePrice.toFixed(4)}
-              </p>
-              <div
-                className={`bg-white flex items-center gap-[4px] ${
-                  priceDirection === "up" ? "text-green-500" : "text-red-500"
-                } px-[10px] py-[5px] rounded-[5px]`}
-              >
-                {priceDirection === "up" ? (
-                  <ArrowUp size={12} />
-                ) : (
-                  <ArrowDown size={12} />
-                )}
-                <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
-              </div>
-            </div>
-            <div className="flex justify-between items-center text-[10px]">
-              <p>Locked Price</p>
-              <p>${formattedRoundData.lockPrice.toFixed(4)}</p>
-            </div>
-            <div className="flex justify-between text-[16px]">
-              <p>Prize Pool</p>
-              <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+  if (variant !== "live") return null;
+  
+  const getPriceTextStyle = () => {
+    return `text-[20px] ${theme === 'dark' ? 'text-[#FEFEFE]' : 'text-gray-900'}`;
   };
 
-  const renderExpiredRoundContent = () => {
-    if (variant !== "expired" && variant !== "locked") return null;
-    return (
-      <div className="flex-1 flex flex-col glass p-[10px] rounded-[20px] items-center opacity-80">
-        <div className="max-w-[215px] flex flex-col gap-[33px] justify-between flex-1">
-          <Image
-            alt="Solana Background"
-            src={SolanaBg || "/placeholder.svg"}
-            className="rounded-[10px] w-[215px] h-[142px] object-cover"
-            width={215}
-            height={142}
-          />
-          <div className="flex flex-col gap-[22px] font-semibold text-[#FEFEFE]">
-            <div className="flex justify-between">
-              <p className="text-[20px]">
-                ${formattedRoundData.closePrice.toFixed(4)}
-              </p>
-              <div
-                className={`bg-white flex items-center gap-[4px] ${
-                  priceDirection === "up" ? "text-green-500" : "text-red-500"
-                } px-[10px] py-[5px] rounded-[5px]`}
-              >
-                {priceDirection === "up" ? (
-                  <ArrowUp size={12} />
-                ) : (
-                  <ArrowDown size={12} />
-                )}
-                <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
-              </div>
+  const getContentTextStyle = () => {
+    return `font-semibold ${theme === 'dark' ? 'text-[#FEFEFE]' : 'text-gray-800'}`;
+  };
+
+  const getLabelTextStyle = () => {
+    return `text-[10px] ${theme === 'dark' ? 'text-[#FEFEFE]' : 'text-gray-600'}`;
+  };
+
+  const getPriceDirectionBg = () => {
+    return theme === 'dark' ? 'bg-white' : 'bg-gray-100';
+  };
+
+  return (
+    <div className="flex flex-col h-[300px] glass p-[10px] rounded-[20px] items-center">
+      <div className="max-w-[215px] flex flex-col gap-[33px] justify-between flex-1">
+        <Image
+          alt="Solana Background"
+          src={SolanaBg || "/placeholder.svg"}
+          className="rounded-[10px] w-[215px] h-[142px] object-cover"
+          width={215}
+          height={142}
+        />
+        <div className={`flex flex-col gap-[22px] font-semibold ${getContentTextStyle()}`}>
+          <div className="flex justify-between">
+            <p className={getPriceTextStyle()}>
+              ${formattedRoundData.closePrice.toFixed(4)}
+            </p>
+            <div
+              className={`${getPriceDirectionBg()} flex items-center gap-[4px] ${
+                priceDirection === "up" ? "text-green-500" : "text-red-500"
+              } px-[10px] py-[5px] rounded-[5px]`}
+            >
+              {priceDirection === "up" ? (
+                <ArrowUp size={12} />
+              ) : (
+                <ArrowDown size={12} />
+              )}
+              <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
             </div>
-            <div className="flex justify-between items-center text-[10px]">
-              <p>Locked Price</p>
-              <p>${formattedRoundData.lockPrice.toFixed(4)}</p>
-            </div>
-            <div className="flex justify-between text-[16px]">
-              <p>Prize Pool</p>
-              <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
-            </div>
+          </div>
+          <div className={`flex justify-between items-center ${getLabelTextStyle()}`}>
+            <p>Locked Price</p>
+            <p>${formattedRoundData.lockPrice.toFixed(4)}</p>
+          </div>
+          <div className="flex justify-between text-[16px]">
+            <p>Prize Pool</p>
+            <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
           </div>
         </div>
       </div>
-    );
+    </div>
+  );
+};
+
+
+  // const renderExpiredRoundContent = () => {
+  //   if (variant !== "expired" && variant !== "locked") return null;
+  //   return (
+  //     <div className="flex-1 flex flex-col glass p-[10px] rounded-[20px] items-center opacity-80">
+  //       <div className="max-w-[215px] flex flex-col gap-[33px] justify-between flex-1">
+  //         <Image
+  //           alt="Solana Background"
+  //           src={SolanaBg || "/placeholder.svg"}
+  //           className="rounded-[10px] w-[215px] h-[142px] object-cover"
+  //           width={215}
+  //           height={142}
+  //         />
+  //         <div className="flex flex-col gap-[22px] font-semibold text-[#FEFEFE]">
+  //           <div className="flex justify-between">
+  //             <p className="text-[20px]">
+  //               ${formattedRoundData.closePrice.toFixed(4)}
+  //             </p>
+  //             <div
+  //               className={`bg-white flex items-center gap-[4px] ${
+  //                 priceDirection === "up" ? "text-green-500" : "text-red-500"
+  //               } px-[10px] py-[5px] rounded-[5px]`}
+  //             >
+  //               {priceDirection === "up" ? (
+  //                 <ArrowUp size={12} />
+  //               ) : (
+  //                 <ArrowDown size={12} />
+  //               )}
+  //               <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
+  //             </div>
+  //           </div>
+  //           <div className="flex justify-between items-center text-[10px]">
+  //             <p>Locked Price</p>
+  //             <p>${formattedRoundData.lockPrice.toFixed(4)}</p>
+  //           </div>
+  //           <div className="flex justify-between text-[16px]">
+  //             <p>Prize Pool</p>
+  //             <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
+  //           </div>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // };
+
+
+  const renderExpiredRoundContent = () => {
+  if (variant !== "expired" && variant !== "locked") return null;
+  
+  const getPriceTextStyle = () => {
+    return `text-[20px] ${theme === 'dark' ? 'text-[#FEFEFE]' : 'text-gray-900'}`;
   };
+
+  const getContentTextStyle = () => {
+    return `font-semibold ${theme === 'dark' ? 'text-[#FEFEFE]' : 'text-gray-800'}`;
+  };
+
+  const getLabelTextStyle = () => {
+    return `text-[10px] ${theme === 'dark' ? 'text-[#FEFEFE]' : 'text-gray-600'}`;
+  };
+
+  const getPriceDirectionBg = () => {
+    return theme === 'dark' ? 'bg-white' : 'bg-gray-100';
+  };
+
+  const getOpacityStyle = () => {
+    return theme === 'dark' ? 'opacity-80' : 'opacity-70';
+  };
+
+  return (
+    <div className={`flex-1 flex flex-col glass p-[10px] rounded-[20px] items-center ${getOpacityStyle()}`}>
+      <div className="max-w-[215px] flex flex-col gap-[33px] justify-between flex-1">
+        <Image
+          alt="Solana Background"
+          src={SolanaBg || "/placeholder.svg"}
+          className="rounded-[10px] w-[215px] h-[142px] object-cover"
+          width={215}
+          height={142}
+        />
+        <div className={`flex flex-col gap-[22px] font-semibold ${getContentTextStyle()}`}>
+          <div className="flex justify-between">
+            <p className={getPriceTextStyle()}>
+              ${formattedRoundData.closePrice.toFixed(4)}
+            </p>
+            <div
+              className={`${getPriceDirectionBg()} flex items-center gap-[4px] ${
+                priceDirection === "up" ? "text-green-500" : "text-red-500"
+              } px-[10px] py-[5px] rounded-[5px]`}
+            >
+              {priceDirection === "up" ? (
+                <ArrowUp size={12} />
+              ) : (
+                <ArrowDown size={12} />
+              )}
+              <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
+            </div>
+          </div>
+          <div className={`flex justify-between items-center ${getLabelTextStyle()}`}>
+            <p>Locked Price</p>
+            <p>${formattedRoundData.lockPrice.toFixed(4)}</p>
+          </div>
+          <div className="flex justify-between text-[16px]">
+            <p>Prize Pool</p>
+            <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
   if (!roundData && variant !== "later" && variant !== "next")
     return <div>No round data available</div>;

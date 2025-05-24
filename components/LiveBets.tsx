@@ -6,6 +6,7 @@ import React, { useState, useEffect } from "react";
 import SVG from "./svg.component";
 import io from "socket.io-client";
 import axios from "axios";
+import { useTheme } from "next-themes";
 
 // Define the Bet interface
 interface Bet {
@@ -33,9 +34,16 @@ interface LiveBetsProps {
 }
 
 function LiveBets({ currentRound }: LiveBetsProps) {
+  const { theme } = useTheme();
   const [liveBets, setLiveBets] = useState<Bet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // Ensure component is mounted to avoid hydration issues
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Fetch bets when currentRound changes
   useEffect(() => {
@@ -140,59 +148,203 @@ function LiveBets({ currentRound }: LiveBetsProps) {
     };
   }, [currentRound]);
 
+  if (!mounted) {
+    return null;
+  }
+
+  const getStateMessageStyle = () => {
+    return `flex items-center justify-center h-32 text-center ${
+      theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+    }`;
+  };
+
+  const getErrorStyle = () => {
+    return theme === 'dark' ? 'text-red-400' : 'text-red-500';
+  };
+
+  const getLoadingStyle = () => {
+    return theme === 'dark' ? 'text-gray-300' : 'text-gray-600';
+  };
+
+  const getTableHeaderStyle = () => {
+    return `pb-[24px] font-semibold text-sm ${
+      theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+    }`;
+  };
+
+  const getTableRowStyle = () => {
+    return `font-semibold text-[15px] transition-colors ${
+      theme === 'dark' 
+        ? 'hover:bg-white/5 text-foreground' 
+        : 'hover:bg-gray-50 text-foreground'
+    }`;
+  };
+
+  const getUserTextStyle = () => {
+    return `font-mono text-sm ${
+      theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
+    }`;
+  };
+
+  const getAmountTextStyle = () => {
+    return `font-mono text-sm font-semibold ${
+      theme === 'dark' ? 'text-green-400' : 'text-green-600'
+    }`;
+  };
+
+  const getLeaderboardButtonStyle = () => {
+    return `glass py-[15px] px-[24px] rounded-[20px] font-semibold text-[20px] cursor-pointer transition-all duration-200 ${
+      theme === 'dark'
+        ? 'hover:bg-white/10 text-foreground'
+        : 'hover:bg-black/5 text-foreground shadow-sm'
+    }`;
+  };
+
   return (
     <div className="hidden xl:flex col-span-3 flex-col gap-[93px] items-end">
+      {/* Leaderboard Button */}
       <div
-        className="glass py-[15px] px-[24px] rounded-[20px] font-semibold text-[20px] cursor-pointer"
+        className={getLeaderboardButtonStyle()}
         onClick={() => (window.location.href = "/leaderboard")}
       >
-        Leaderboard
+        <div className="flex items-center gap-2">
+          <SVG iconName="trophy" width={20} height={20} />
+          Leaderboard
+        </div>
       </div>
 
+      {/* Live Bets Container */}
       <div className="glass px-[30px] h-full max-h-[700px] py-[16px] rounded-[20px] w-full">
-        {error ? (
-          <div className="text-red-500">{error}</div>
-        ) : isLoading ? (
-          <div>Loading bets...</div>
-        ) : currentRound === null ? (
-          <div>No active round</div>
-        ) : liveBets.length === 0 ? (
-          <div>No bets available for Round {currentRound}</div>
-        ) : (
-          <table className="w-full text-left">
-            <thead>
-              <tr>
-                <th className="pb-[24px]">User</th>
-                <th className="pb-[24px]">Amount</th>
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${
+              theme === 'dark' ? 'bg-green-400' : 'bg-green-500'
+            } animate-pulse`}></div>
+            Live Bets
+            {currentRound && (
+              <span className={`text-sm font-normal ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+              }`}>
+                Round #{currentRound}
+              </span>
+            )}
+          </h3>
+        </div>
 
-                {/* <th className="pb-[24px]">Round</th> */}
-              </tr>
-            </thead>
-            <tbody>
-              {liveBets.map((bet) => (
-                <tr key={bet.signature} className="font-semibold text-[15px]">
-                  <td className="py-3">
-                    <div className="flex gap-[6px] items-center">
-                      <SVG width={29} height={29} iconName="avatar" />
-                      {bet.user}
-                    </div>
-                  </td>
-                  <td className="py-3">
-                    <div className="flex items-center gap-1">
-                      <Image
-                        className="w-[30px] h-auto object-contain"
-                        src="/assets/solana_logo.png"
-                        alt="Solana"
-                        width={30}
-                        height={30}
-                      />
-                      {bet.amount.toFixed(2)} SOL
-                    </div>
-                  </td>
+        {/* Content */}
+        {error ? (
+          <div className={`${getStateMessageStyle()} ${getErrorStyle()}`}>
+            <div>
+              <SVG iconName="alert" width={24} height={24} />
+              <div className="mt-2">{error}</div>
+              <button 
+                onClick={() => window.location.reload()}
+                className="mt-2 text-sm underline hover:no-underline"
+              >
+                Try again
+              </button>
+            </div>
+          </div>
+        ) : isLoading ? (
+          <div className={`${getStateMessageStyle()} ${getLoadingStyle()}`}>
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
+              <div>Loading bets...</div>
+            </div>
+          </div>
+        ) : currentRound === null ? (
+          <div className={getStateMessageStyle()}>
+            <div>
+              <SVG iconName="clock" width={24} height={24} />
+              <div className="mt-2">No active round</div>
+            </div>
+          </div>
+        ) : liveBets.length === 0 ? (
+          <div className={getStateMessageStyle()}>
+            <div>
+              <SVG iconName="empty" width={24} height={24} />
+              <div className="mt-2">No bets yet for Round {currentRound}</div>
+              <div className="text-xs mt-1 opacity-60">
+                Be the first to place a prediction!
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-y-auto max-h-[600px]">
+            <table className="w-full text-left">
+              <thead className="sticky top-0 bg-background/80 backdrop-blur-sm">
+                <tr>
+                  <th className={getTableHeaderStyle()}>User</th>
+                  <th className={getTableHeaderStyle()}>Amount</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {liveBets.map((bet, index) => (
+                  <tr 
+                    key={bet.signature} 
+                    className={`${getTableRowStyle()} ${
+                      index !== liveBets.length - 1 
+                        ? theme === 'dark' 
+                          ? 'border-b border-gray-700/50' 
+                          : 'border-b border-gray-200/50'
+                        : ''
+                    }`}
+                  >
+                    <td className="py-3">
+                      <div className="flex gap-[8px] items-center">
+                        <div className={`rounded-full p-1 ${
+                          theme === 'dark' 
+                            ? 'bg-gray-700/50' 
+                            : 'bg-gray-200/50'
+                        }`}>
+                          <SVG width={24} height={24} iconName="avatar" />
+                        </div>
+                        <span className={getUserTextStyle()}>
+                          {bet.user}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3">
+                      <div className="flex items-center gap-2">
+                        <div className={`rounded-full p-1 ${
+                          theme === 'dark' 
+                            ? 'bg-gray-700/30' 
+                            : 'bg-gray-100'
+                        }`}>
+                          <Image
+                            className="w-[20px] h-auto object-contain"
+                            src="/assets/solana_logo.png"
+                            alt="Solana"
+                            width={20}
+                            height={20}
+                          />
+                        </div>
+                        <span className={getAmountTextStyle()}>
+                          {bet.amount.toFixed(2)} SOL
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Show total stats */}
+            {liveBets.length > 0 && (
+              <div className={`mt-4 pt-3 border-t ${
+                theme === 'dark' ? 'border-gray-700/50' : 'border-gray-200/50'
+              }`}>
+                <div className="flex justify-between text-xs">
+                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+                    Total Volume
+                  </span>
+                  <span className={`font-semibold ${getAmountTextStyle()}`}>
+                    {liveBets.reduce((sum, bet) => sum + bet.amount, 0).toFixed(2)} SOL
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
