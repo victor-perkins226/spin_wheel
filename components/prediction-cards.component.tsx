@@ -19,7 +19,7 @@ import { Round } from "@/types/round";
 import { useSolPredictor } from "@/hooks/useBuyClaim";
 import { BetsHistory } from "./BetsHistory";
 import LineChart from "./LineChart";
-import { fetchLivePrice } from "@/lib/price-utils";
+import { useLivePrice } from "@/lib/price-utils";
 import { useProgram } from "@/hooks/useProgram";
 import toast from "react-hot-toast";
 import { useTheme } from "next-themes";
@@ -83,7 +83,7 @@ export default function PredictionCards() {
   // Fetch live price periodically
   useEffect(() => {
     const updateLivePrice = async () => {
-      const price = await fetchLivePrice();
+      const price = await useLivePrice();
       setLiveRoundPrice(price!);
     };
 

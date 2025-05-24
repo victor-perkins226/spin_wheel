@@ -7,14 +7,14 @@ export interface Round {
     status: "started" | "locked" | "ended";
     lockTime: number; // Unix timestamp (seconds)
     closeTime: number; // Unix timestamp (seconds)
-    lockPrice: string| number; // String to handle large u64 numbers
-    endPrice: string |number; // String to handle large u64 numbers
+    lockPrice:  number; // String to handle large u64 numbers
+    endPrice: number; // String to handle large u64 numbers
     isActive: boolean;
-    totalBullAmount: string | number; // String for u64
-    totalBearAmount: string | number; // String for u64
-    totalAmount: string | number; // String for u64
-    rewardBaseCalAmount: string | number; // String for u64
-    rewardAmount: string | number; // String for u64
+    totalBullAmount: number; // String for u64
+    totalBearAmount:  number; // String for u64
+    totalAmount:  number; // String for u64
+    rewardBaseCalAmount: number; // String for u64
+    rewardAmount: number; // String for u64
   }
 
   export interface Config {

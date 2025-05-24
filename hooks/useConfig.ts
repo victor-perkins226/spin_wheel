@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 // import axios from "axios";
 import { Config, Round } from "@/types/round";
 import { useProgram } from "./useProgram";
@@ -69,10 +69,10 @@ const fetchRound = async (program: any, roundNumber: number): Promise<Round> => 
     )[0];
 
     const round = await program.account.round.fetch(roundPda);
+ 
     const startTime = Number(round.startTime);
     const lockTime = Number(round.lockTime);
     const closeTime = Number(round.closeTime);
-
     return {
         number: Number(round.number),
         startTime: new Date(startTime * 1000).toISOString(),
@@ -94,6 +94,7 @@ const fetchRound = async (program: any, roundNumber: number): Promise<Round> => 
     };
 };
 
+// hooks/useConfig.ts - Update the useRound hook
 export const useRound = (roundNumber?: number) => {
     const { program } = useProgram();
 
@@ -101,21 +102,47 @@ export const useRound = (roundNumber?: number) => {
         queryKey: ["round", roundNumber],
         queryFn: () => fetchRound(program, roundNumber!),
         enabled: !!program && !!roundNumber && !isNaN(roundNumber) && roundNumber > 0,
-        staleTime: 30 * 1000,
-        refetchInterval: (data) => {
-            if (!data) return false;
+        staleTime: (query) => {
+            const roundData = query?.state?.data;
+            // For ended rounds, cache indefinitely
+            if (roundData && roundData.status === "ended") {
+                return Infinity;
+            }
+            return 30 * 1000; // 30 seconds for active rounds
+        },
+        refetchInterval: (query) => {
+            const roundData = query?.state?.data;
+            if (!roundData) return false;
+            
+            // Don't refetch ended rounds
+            if (roundData.status === "ended") {
+                return false;
+            }
+            
             const now = Date.now() / 1000;
-            const lockTime = data.lockTime || new Date(data.startTime).getTime() / 1000 + 300;
-            return now >= lockTime ? 5 * 1000 : 10 * 1000;
+            const lockTime = roundData.lockTime || new Date(roundData.startTime).getTime() / 1000 + 300;
+            const closeTime = Number(roundData.closeTime);
+            
+            // If round is completely over, don't refetch
+            if (now >= closeTime) {
+                return false;
+            }
+            
+            // More frequent updates only for active rounds near lock/close time
+            if (now >= lockTime) {
+                return 5 * 1000; // 5 seconds during calculating phase
+            } else if (lockTime - now <= 60) {
+                return 10 * 1000; // 10 seconds in the last minute before lock
+            } else {
+                return 30 * 1000; // 30 seconds for regular betting phase
+            }
         },
         retry: (failureCount, error: any) => {
-            if (error.message.includes("Account does not exist")) return false; // Don’t retry on missing account
-            console.error(`Error fetching round ${roundNumber}:`, error);
-            return failureCount < 3;
+            if (error?.message?.includes("Account does not exist")) return false;
+            return failureCount < 2;
         },
     });
 };
-
 
 export const getRoundOutcome = (round: Round) => {
     if (!round.endPrice || !round.lockPrice) return "PENDING";
@@ -162,8 +189,21 @@ const fetchRoundById = async (program: any, roundNumber: number): Promise<Round 
     }
 };
 
+const shouldCacheLongTerm = (roundData: any): boolean => {
+    if (!roundData) return false;
+    
+    const now = Date.now() / 1000;
+    const closeTime = Number(roundData.closeTime);
+    
+    return (
+        roundData.status === "ended" || 
+        now >= closeTime
+    );
+};
+// hooks/useConfig.ts - Update usePreviousRoundsByIds
 export const usePreviousRoundsByIds = (currentRound?: number, count: number = 5, offset: number = 0) => {
     const { program } = useProgram();
+    const queryClient = useQueryClient();
 
     return useQuery({
         queryKey: ["previousRounds", currentRound, count, offset],
@@ -179,8 +219,20 @@ export const usePreviousRoundsByIds = (currentRound?: number, count: number = 5,
 
             console.log(`Fetching rounds: ${roundNumbers.join(", ")}`);
 
+            // Use queryClient.fetchQuery to leverage the caching from useRound
             const rounds = await Promise.all(
-                roundNumbers.map((roundNumber) => fetchRoundById(program, roundNumber))
+                roundNumbers.map(async (roundNumber) => {
+                    try {
+                        return await queryClient.fetchQuery({
+                            queryKey: ["round", roundNumber],
+                            queryFn: () => fetchRound(program, roundNumber),
+                            staleTime: 2 * 60 * 1000, // 2 minutes cache for historical rounds
+                        });
+                    } catch (error) {
+                        console.error(`Failed to fetch round ${roundNumber}:`, error);
+                        return null;
+                    }
+                })
             );
 
             const validRounds = rounds.filter((round): round is Round => round !== null);
@@ -191,19 +243,11 @@ export const usePreviousRoundsByIds = (currentRound?: number, count: number = 5,
             };
         },
         enabled: !!program && !!currentRound && currentRound > 1 && !isNaN(currentRound),
-        staleTime: 2 * 60 * 1000,
-        onSuccess: (data: PreviousRoundsResponse) => {
-            console.log(
-                `Fetched ${data.rounds.length} previous rounds:`,
-                data.rounds.map((r) => ({ number: r.number, endPrice: r.endPrice }))
-            );
-        },
-        onError: (error: any) => {
-            console.error("Error fetching previous rounds:", error);
-        },
+        staleTime: 2 * 60 * 1000, // Cache for 2 minutes
+        refetchInterval: false, // Don't auto-refetch historical data
         retry: (failureCount, error: any) => {
-            if (error.message.includes("Account does not exist")) return false;
-            return failureCount < 3;
+            if (error?.message?.includes("Account does not exist")) return false;
+            return failureCount < 2; // Reduced retries
         },
     });
 };
