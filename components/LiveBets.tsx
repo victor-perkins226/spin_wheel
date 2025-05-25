@@ -208,7 +208,7 @@ function LiveBets({ currentRound }: LiveBetsProps) {
         onClick={() => (window.location.href = "/leaderboard")}
       >
         <div className="flex items-center gap-2">
-          <SVG iconName="trophy" width={20} height={20} />
+          <SVG iconName="medal" width={20} height={20} />
           Leaderboard
         </div>
       </div>
@@ -221,13 +221,13 @@ function LiveBets({ currentRound }: LiveBetsProps) {
               theme === 'dark' ? 'bg-green-400' : 'bg-green-500'
             } animate-pulse`}></div>
             Live Bets
-            {currentRound && (
+            {currentRound ? (
               <span className={`text-sm font-normal ${
                 theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
               }`}>
                 Round #{currentRound}
               </span>
-            )}
+            ): ''}
           </h3>
         </div>
 
@@ -235,7 +235,7 @@ function LiveBets({ currentRound }: LiveBetsProps) {
         {error ? (
           <div className={`${getStateMessageStyle()} ${getErrorStyle()}`}>
             <div>
-              <SVG iconName="alert" width={24} height={24} />
+              <SVG iconName="clock" width={24} height={24} />
               <div className="mt-2">{error}</div>
               <button 
                 onClick={() => window.location.reload()}
@@ -262,8 +262,7 @@ function LiveBets({ currentRound }: LiveBetsProps) {
         ) : liveBets.length === 0 ? (
           <div className={getStateMessageStyle()}>
             <div>
-              <SVG iconName="empty" width={24} height={24} />
-              <div className="mt-2">No bets yet for Round {currentRound}</div>
+              <div className="mt-2">No bets yet </div>
               <div className="text-xs mt-1 opacity-60">
                 Be the first to place a prediction!
               </div>

@@ -23,6 +23,7 @@ import { useLivePrice } from "@/lib/price-utils";
 import { useProgram } from "@/hooks/useProgram";
 import toast from "react-hot-toast";
 import { useTheme } from "next-themes";
+import { DotLoader } from "react-spinners";
 
 export default function PredictionCards() {
   const [screenWidth, setScreenWidth] = useState(0);
@@ -44,7 +45,7 @@ export default function PredictionCards() {
   const { program } = useProgram();
   const initialSlideJumped = useRef(false);
 
-  const {theme} = useTheme();
+  const { theme } = useTheme();
   const {
     config,
     currentRound,
@@ -79,19 +80,22 @@ export default function PredictionCards() {
       fetchUserBets();
     }
   }, [connected, publicKey, fetchUserBets]);
+  const { price: livePrice, isLoading: priceLoading, error: priceError } = useLivePrice();
 
   // Fetch live price periodically
   useEffect(() => {
     const updateLivePrice = async () => {
-      const price = await useLivePrice();
-      setLiveRoundPrice(price!);
+      if (livePrice !== undefined) {
+      console.log("Live price fetched:", livePrice);
+      setLiveRoundPrice(livePrice!);
+      }
     };
 
     updateLivePrice(); // Initial fetch
-    const interval = setInterval(updateLivePrice, 10000); // Update every 10 seconds
+    // const interval = setInterval(updateLivePrice, 10000); // Update every 10 seconds
 
-    return () => clearInterval(interval); // Cleanup on unmount
-  }, []);
+    // return () => clearInterval(interval); // Cleanup on unmount
+  }, [livePrice]);
 
   useEffect(() => {
     connectionRef.current = new Connection(
@@ -199,7 +203,7 @@ export default function PredictionCards() {
       setClaimableRewards(0);
 
       console.log(`Batched payout claimed successfully: ${signature}`);
-      alert(`Successfully claimed rewards for ${claimableBets.length} rounds!`);
+      toast.success(`Successfully claimed rewards for ${claimableBets.length} rounds!`);
     } catch (error: any) {
       console.error("Failed to claim rewards:", error);
       let errorMessage = "Failed to claim rewards. Please try again.";
@@ -220,7 +224,7 @@ export default function PredictionCards() {
       } else if (error.message.includes("Signature request denied")) {
         errorMessage = "Transaction was not signed.";
       }
-      alert(errorMessage);
+      toast.error(errorMessage);
     }
   }, [
     connected,
@@ -264,36 +268,22 @@ export default function PredictionCards() {
   };
 
   // Update your card rendering logic
-  const formatCardVariant = (round: Round, currentRoundNumber?: number) => {
-    if (!currentRoundNumber) return "expired";
+  const formatCardVariant = (round: Round, current: number) => {
+    const status = getRoundStatus(round); // e.g. STARTED | LOCKED | CALCULATING | ENDED
+    const n = Number(round.number);
 
-    const roundNum = Number(round.number);
-    const currentNum = Number(currentRoundNumber);
+    // 1.  Round *you can bet on* → “next”
+    if (n === current) return "next";
 
-    // Determine the display status
-    const displayStatus = getRoundStatus(round);
-
-    if (roundNum === currentNum - 1) {
-      // This is the "live" round (current active round)
-      switch (displayStatus) {
-        case "CALCULATING":
-          return "calculating";
-        case "LOCKING":
-          return "locking";
-        case "ENDED":
-        case "EXPIRED":
-          return "expired";
-        default:
-          return "live";
-      }
-    } else if (roundNum === currentNum) {
-      return "next"; // Next round for betting
-    } else if (roundNum === currentNum + 1) {
-      return "later"; // Later round
-    } else if (roundNum < currentNum - 1) {
-      return "expired"; // Past rounds
+    // 2.  Previous round that is still being resolved → “live” / ”calculating”
+    if (n === current - 1) {
+      return "live";
     }
 
+    // 3.  Future rounds (current+1, current+2 …)
+    if (n > current) return "later";
+
+    // 4.  Anything older
     return "expired";
   };
   const handleSlideChange = () => {
@@ -335,11 +325,9 @@ export default function PredictionCards() {
   }, [timeLeft, safeFetchMoreRounds]);
 
   const currentRoundNumber =
-    Number(config?.currentRound) ||
-    Number(currentRound?.number) ||
-    Math.max(...previousRounds.map((r) => Number(r.number)), 0) ||
-    1000;
+    Number(config?.currentRound) ?? Number(currentRound?.number) ?? null;
 
+  if (currentRoundNumber == null) return <DotLoader />;
   const nextRoundNumber = currentRoundNumber + 1;
   const nextRound =
     previousRounds.find((r: Round) => Number(r.number) === nextRoundNumber) ??
@@ -399,6 +387,19 @@ export default function PredictionCards() {
       return [];
     }
   }, [roundMap]);
+
+  const liveRound = previousRounds.find(
+    (r) => Number(r.number) === currentRoundNumber - 1
+  );
+
+  useEffect(() => {
+    if (!liveRound) return;
+    const id = setInterval(() => {
+      if (Date.now() / 1000 > liveRound.closeTime) safeFetchMoreRounds();
+    }, 5_000); // poll every 5 s
+
+    return () => clearInterval(id);
+  }, [liveRound, safeFetchMoreRounds]);
 
   // Renamed original displayRounds to computedDisplayRounds
   const computedDisplayRounds = useMemo(() => {
@@ -530,6 +531,8 @@ export default function PredictionCards() {
     }
   }, [finalDisplayRoundsForSwiper, currentRoundNumber, formatCardVariant]); // Added formatCardVariant dependency
 
+  console.log(
+    "Final display rounds for Swiper:", finalDisplayRoundsForSwiper)
   useEffect(() => {
     const swiper = swiperRef.current;
     if (swiper && liveIndex >= 0 && !initialSlideJumped.current) {
@@ -779,11 +782,11 @@ export default function PredictionCards() {
                 modifier: 1,
                 slideShadows: true,
               }}
-              pagination={{
-                clickable: true,
-                dynamicBullets: mounted && screenWidth < 640,
-                el: ".swiper-pagination",
-              }}
+              // pagination={{
+              //   clickable: true,
+              //   dynamicBullets: mounted && screenWidth < 640,
+              //   el: ".swiper-pagination",
+              // }}
               modules={[Pagination, EffectCoverflow]}
               className="w-full px-4 sm:px-0"
             >
