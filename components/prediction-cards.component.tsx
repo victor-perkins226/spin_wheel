@@ -764,122 +764,143 @@ export default function PredictionCards() {
             </div>
           )}
 
-          <div className="relative">
-            <Swiper
-              onSwiper={(swiper) => {
-                swiperRef.current = swiper;
-              }}
-              onSlideChange={handleSlideChange}
-              effect="coverflow"
-              grabCursor={true}
-              centeredSlides={true}
-              slidesPerView={getSlidesPerView()}
-              spaceBetween={mounted && screenWidth < 640 ? 10 : 20}
-              coverflowEffect={{
-                rotate: mounted && screenWidth < 640 ? 20 : 50,
-                stretch: 0,
-                depth: mounted && screenWidth < 640 ? 50 : 100,
-                modifier: 1,
-                slideShadows: true,
-              }}
-              // pagination={{
-              //   clickable: true,
-              //   dynamicBullets: mounted && screenWidth < 640,
-              //   el: ".swiper-pagination",
-              // }}
-              modules={[Pagination, EffectCoverflow]}
-              className="w-full px-4 sm:px-0"
-            >
-              {finalDisplayRoundsForSwiper.map((round, index) => {
-                if (!round || !round.number) {
-                  // Add a check for valid round object
-                  console.warn(
-                    "Skipping invalid round object in Swiper map:",
-                    round
+          {!connected ? (
+            // Show wallet connection prompt instead of cards when not connected
+            <div className="flex flex-col items-center justify-center min-h-[400px] gap-6">
+              <div className="glass rounded-xl p-8 flex flex-col items-center gap-4 max-w-md mx-auto text-center">
+                <Image
+                  className="w-16 h-16 object-contain opacity-50"
+                  src="/assets/solana_logo.png"
+                  alt="Solana"
+                  width={64}
+                  height={64}
+                />
+                <h3 className="text-xl font-semibold">Connect Your Wallet</h3>
+                <p className="text-sm opacity-70">
+                  To start predicting SOL price movements and placing bets, please connect your Solana wallet.
+                </p>
+                <div className="flex flex-col gap-2 text-xs opacity-60">
+                  <p>• View live prediction rounds</p>
+                  <p>• Place UP/DOWN bets</p>
+                  <p>• Track your betting history</p>
+                  <p>• Claim your winnings</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Show cards only when wallet is connected
+            <div className="relative">
+              <Swiper
+                onSwiper={(swiper) => {
+                  swiperRef.current = swiper;
+                }}
+                onSlideChange={handleSlideChange}
+                effect="coverflow"
+                grabCursor={true}
+                centeredSlides={true}
+                slidesPerView={getSlidesPerView()}
+                spaceBetween={mounted && screenWidth < 640 ? 10 : 20}
+                coverflowEffect={{
+                  rotate: mounted && screenWidth < 640 ? 20 : 50,
+                  stretch: 0,
+                  depth: mounted && screenWidth < 640 ? 50 : 100,
+                  modifier: 1,
+                  slideShadows: true,
+                }}
+                modules={[Pagination, EffectCoverflow]}
+                className="w-full px-4 sm:px-0"
+              >
+                {finalDisplayRoundsForSwiper.map((round, index) => {
+                  if (!round || !round.number) {
+                    // Add a check for valid round object
+                    console.warn(
+                      "Skipping invalid round object in Swiper map:",
+                      round
+                    );
+                    return null;
+                  }
+                  const roundNumber = Number(round.number);
+                  const startTimeMs =
+                    typeof round.startTime === "number" && !isNaN(round.startTime)
+                      ? round.startTime * 1000
+                      : round.startTime instanceof Date
+                      ? round.startTime.getTime()
+                      : 0;
+                  const lockTime =
+                    round.lockTime instanceof Date
+                      ? round.lockTime.getTime() / 1000
+                      : typeof round.lockTime === "string" &&
+                        !isNaN(Number(round.lockTime))
+                      ? Number(round.lockTime)
+                      : startTimeMs / 1000 + 120;
+                  const closeTime =
+                    round.closeTime instanceof Date
+                      ? round.closeTime.getTime() / 1000
+                      : typeof round.closeTime === "string" &&
+                        !isNaN(Number(round.closeTime))
+                      ? Number(round.closeTime)
+                      : lockTime + 120;
+
+                  // Get the variant for this card
+                  const cardVariant = formatCardVariant(
+                    round,
+                    currentRoundNumber
                   );
-                  return null;
-                }
-                const roundNumber = Number(round.number);
-                const startTimeMs =
-                  typeof round.startTime === "number" && !isNaN(round.startTime)
-                    ? round.startTime * 1000
-                    : round.startTime instanceof Date
-                    ? round.startTime.getTime()
-                    : 0;
-                const lockTime =
-                  round.lockTime instanceof Date
-                    ? round.lockTime.getTime() / 1000
-                    : typeof round.lockTime === "string" &&
-                      !isNaN(Number(round.lockTime))
-                    ? Number(round.lockTime)
-                    : startTimeMs / 1000 + 120;
-                const closeTime =
-                  round.closeTime instanceof Date
-                    ? round.closeTime.getTime() / 1000
-                    : typeof round.closeTime === "string" &&
-                      !isNaN(Number(round.closeTime))
-                    ? Number(round.closeTime)
-                    : lockTime + 120;
 
-                // Get the variant for this card
-                const cardVariant = formatCardVariant(
-                  round,
-                  currentRoundNumber
-                );
-
-                return (
-                  <SwiperSlide
-                    key={round.number} // Ensure key is stable and unique
-                    className="flex justify-center items-center"
-                  >
-                    <PredictionCard
-                      variant={cardVariant}
-                      roundId={Number(round.number)}
-                      roundData={{
-                        lockPrice: round.lockPrice! / 1e8,
-                        closePrice: round.endPrice
-                          ? round.endPrice / 1e8
-                          : liveRoundPrice,
-                        currentPrice:
-                          liveRoundPrice || (round.lockPrice || 50 * 1e8) / 1e8,
-                        prizePool: (round.totalAmount || 0) / LAMPORTS_PER_SOL,
-                        upBets: (round.totalBullAmount || 0) / LAMPORTS_PER_SOL,
-                        downBets:
-                          (round.totalBearAmount || 0) / LAMPORTS_PER_SOL,
-                        timeRemaining: Math.max(
-                          0,
-                          closeTime - Date.now() / 1000
-                        ),
-                        lockTimeRemaining:
-                          timeLeft !== null &&
-                          roundNumber === Number(config?.currentRound)
-                            ? timeLeft
-                            : Math.max(0, lockTime - Date.now() / 1000),
-                        lockTime:
-                          timeLeft !== null &&
-                          roundNumber === Number(config?.currentRound)
-                            ? Date.now() / 1000 + timeLeft
-                            : lockTime,
-                        closeTime,
-                        isActive: round.isActive ? true : false,
-                        treasuryFee: config ? treasuryFee! : 5,
-                      }}
-                      onPlaceBet={handleBet}
-                      currentRoundId={Number(config?.currentRound)}
-                      bufferTimeInSeconds={0}
-                      liveRoundPrice={liveRoundPrice}
-                      userBets={connected ? userBets : []} // Only show user bets if connected
-                      isLocked={isLocked}
-                      timeLeft={timeLeft}
-                      // Pass wallet connection status to the card
-                      isWalletConnected={connected}
-                    />
-                  </SwiperSlide>
-                );
-              })}
-            </Swiper>
-            <div className="swiper-pagination !relative !mt-4" />
-          </div>
+                  return (
+                    <SwiperSlide
+                      key={round.number} // Ensure key is stable and unique
+                      className="flex justify-center items-center"
+                    >
+                      <PredictionCard
+                        variant={cardVariant}
+                        roundId={Number(round.number)}
+                        roundData={{
+                          lockPrice: round.lockPrice! / 1e8,
+                          closePrice: round.endPrice
+                            ? round.endPrice / 1e8
+                            : liveRoundPrice,
+                          currentPrice:
+                            liveRoundPrice || (round.lockPrice || 50 * 1e8) / 1e8,
+                          prizePool: (round.totalAmount || 0) / LAMPORTS_PER_SOL,
+                          upBets: (round.totalBullAmount || 0) / LAMPORTS_PER_SOL,
+                          downBets:
+                            (round.totalBearAmount || 0) / LAMPORTS_PER_SOL,
+                          timeRemaining: Math.max(
+                            0,
+                            closeTime - Date.now() / 1000
+                          ),
+                          lockTimeRemaining:
+                            timeLeft !== null &&
+                            roundNumber === Number(config?.currentRound)
+                              ? timeLeft
+                              : Math.max(0, lockTime - Date.now() / 1000),
+                          lockTime:
+                            timeLeft !== null &&
+                            roundNumber === Number(config?.currentRound)
+                              ? Date.now() / 1000 + timeLeft
+                              : lockTime,
+                          closeTime,
+                          isActive: round.isActive ? true : false,
+                          treasuryFee: config ? treasuryFee! : 5,
+                        }}
+                        onPlaceBet={handleBet}
+                        currentRoundId={Number(config?.currentRound)}
+                        bufferTimeInSeconds={0}
+                        liveRoundPrice={liveRoundPrice}
+                        userBets={connected ? userBets : []} // Only show user bets if connected
+                        isLocked={isLocked}
+                        timeLeft={timeLeft}
+                        // Pass wallet connection status to the card
+                        isWalletConnected={connected}
+                      />
+                    </SwiperSlide>
+                  );
+                })}
+              </Swiper>
+              <div className="swiper-pagination !relative !mt-4" />
+            </div>
+          )}
 
           <div className="xl:hidden">
             <MobileLiveBets liveBets={[]} />
