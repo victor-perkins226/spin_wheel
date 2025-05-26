@@ -700,7 +700,7 @@ export default function PredictionCards() {
                   strokeWidth="5"
                   strokeLinecap="round"
                   strokeDasharray="283" // 2πr ≈ 283 (for r=45)
-                  strokeDashoffset={283 - 283 * (1 - (timeLeft ?? 0) / 120)} // Adjusted calculation with null check
+                  strokeDashoffset={isLocked ? 0 : 283 - 283 * (1 - (timeLeft ?? 0) / 120)} // Adjusted calculation with null check
                   transform="rotate(-90 50 50)"
                 />
 
@@ -732,13 +732,13 @@ export default function PredictionCards() {
                   className={`font-semibold text-[12px] sm:text-[16px] lg:text-[24px] ${theme === "dark" ? "text-white" : "text-gray-900"
                     }`}
                 >
-                  {formatTimeLeft(timeLeft)}
+                  {isLocked ? "Closing" : formatTimeLeft(timeLeft)}
                 </span>
                 <span
                   className={`text-[8px] sm:text-[10px] lg:text-[12px] ${theme === "dark" ? "text-[#D1D5DB]" : "text-gray-500"
                     }`}
                 >
-                  2m
+                  {config ? config.lockDuration / 60 : 2 }m
                 </span>
               </div>
             </div>

@@ -400,7 +400,7 @@ export default function PredictionCard({
       <>
         {isLocked ? (
          
-      <div className="flex-1 glass h-[300px] flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
+          <div className="flex-1 glass h-[300px] flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
              <div className="flex flex-col items-center gap-3 justify-center h-[250px]">
             <DotLoader
               color="#ffffff"
@@ -427,37 +427,37 @@ export default function PredictionCard({
                 className={`flex flex-col gap-[22px] font-semibold ${getContentTextStyle()}`}
               >
                 <div className="flex justify-between">
-  <NumberFlow
-    value={formattedRoundData.closePrice}
-    format={{
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 4,
-      maximumFractionDigits: 4
-    }}
-    className={`${getPriceTextStyle()} ${
-      priceDirection === "up" ? "text-green-500" : "text-red-500"
-    }`}
-    transformTiming={{
-      duration: 800,
-      easing: 'ease-out'
-    }}
-  />
-  <div
-    className={`${getPriceDirectionBg()} flex items-center gap-[4px] ${
-      priceDirection === "up"
-        ? "text-green-500"
-        : "text-red-500"
-    } px-[10px] py-[5px] rounded-[5px]`}
-  >
-    {priceDirection === "up" ? (
-      <ArrowUp size={12} />
-    ) : (
-      <ArrowDown size={12} />
-    )}
-    <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
-  </div>
-</div>
+                  <NumberFlow
+                    value={formattedRoundData.closePrice}
+                    format={{
+                      style: 'currency',
+                      currency: 'USD',
+                      minimumFractionDigits: 4,
+                      maximumFractionDigits: 4
+                    }}
+                    className={`${getPriceTextStyle()} ${
+                      priceDirection === "up" ? "text-green-500" : "text-red-500"
+                    }`}
+                    transformTiming={{
+                      duration: 800,
+                      easing: 'ease-out'
+                    }}
+                  />
+                  <div
+                    className={`${getPriceDirectionBg()} flex items-center gap-[4px] ${
+                      priceDirection === "up"
+                        ? "text-green-500"
+                        : "text-red-500"
+                    } px-[10px] py-[5px] rounded-[5px]`}
+                  >
+                    {priceDirection === "up" ? (
+                      <ArrowUp size={12} />
+                    ) : (
+                      <ArrowDown size={12} />
+                    )}
+                    <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
+                  </div>
+                </div>
                 <div
                   className={`flex justify-between items-center ${getLabelTextStyle()}`}
                 >
@@ -581,7 +581,7 @@ export default function PredictionCard({
             </div>
             <p>#{roundId}</p>
           </div>
-          {variant === "live" && (
+          {variant === "live" && !isLocked && (
             <div className="mt-1 w-full h-[6px] rounded-full overflow-hidden flex gap-[4px]">
               {[...Array(7)].map((_, i) => (
                 <div

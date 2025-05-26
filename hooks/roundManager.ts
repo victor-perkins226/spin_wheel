@@ -137,6 +137,7 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
   
     const calculateTimeLeft = () => {
       const now = Date.now() / 1000;
+      console.log({currentRoundNumber})
       
       let startTimeMs: number;
       const startTimeValue = currentRound.startTime as any;
@@ -241,7 +242,7 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
       const newConfig = await queryClient.fetchQuery({
         queryKey: ["config"],
         queryFn: () => fetchConfig(program),
-        staleTime: 10 * 1000, // Cache config for 10 seconds
+        staleTime: 1 * 1000, // Cache config for 1 seconds
       });
       
       const nextRoundNumber = currentRoundNumber + 1;
