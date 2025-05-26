@@ -224,7 +224,7 @@ function LiveBets({ currentRound }: LiveBetsProps) {
   };
 
   const getLeaderboardButtonStyle = () => {
-    return `glass py-[15px] px-[24px] rounded-[20px] font-semibold text-[20px] cursor-pointer transition-all duration-200 ${
+    return `glass py-[15px] px-[24px] rounded-[20px] mt-4 font-semibold text-[20px] cursor-pointer transition-all duration-200 ${
       theme === 'dark'
         ? 'hover:bg-white/10 text-foreground'
         : 'hover:bg-black/5 text-foreground shadow-sm'
@@ -234,7 +234,7 @@ function LiveBets({ currentRound }: LiveBetsProps) {
   return (
     <>
       <style jsx>{animationStyles}</style>
-      <div className="hidden xl:flex col-span-3 flex-col gap-[93px] items-end">
+      <div className="hidden mt-[3rem] xl:flex col-span-3 flex-col gap-[63px] items-end">
         {/* Theme Toggle Button */}
         <ThemeToggle />
         
@@ -243,7 +243,7 @@ function LiveBets({ currentRound }: LiveBetsProps) {
           className={getLeaderboardButtonStyle()}
           onClick={() => (window.location.href = "/leaderboard")}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex  items-center gap-2">
             <SVG iconName="medal" width={20} height={20} />
             Leaderboard
           </div>
