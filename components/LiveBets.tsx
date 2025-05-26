@@ -39,6 +39,21 @@ function LiveBets({ currentRound }: LiveBetsProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [newBetSignatures, setNewBetSignatures] = useState<Set<string>>(new Set());
+
+  // Animation styles
+  const animationStyles = `
+    @keyframes slideDownFade {
+      0% {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  `;
 
   // Ensure component is mounted to avoid hydration issues
   useEffect(() => {
@@ -119,6 +134,10 @@ function LiveBets({ currentRound }: LiveBetsProps) {
         if (prevBets.some((bet) => bet.signature === formattedBet.signature)) {
           return prevBets;
         }
+        
+        // Mark this bet as new for animation
+        setNewBetSignatures(prev => new Set(prev.add(formattedBet.signature)));
+        
         const updatedBets = [formattedBet, ...prevBets]
           .sort((a, b) => b.amount - a.amount) // Sort by amount descending
           .slice(0, 10); // Limit to 10 bets
@@ -147,6 +166,17 @@ function LiveBets({ currentRound }: LiveBetsProps) {
       socket.off("reconnect_attempt");
     };
   }, [currentRound]);
+
+  // Remove animation class after animation completes
+  useEffect(() => {
+    if (newBetSignatures.size > 0) {
+      const timer = setTimeout(() => {
+        setNewBetSignatures(new Set());
+      }, 400); // Match the CSS transition duration
+      
+      return () => clearTimeout(timer);
+    }
+  }, [newBetSignatures]);
 
   if (!mounted) {
     return null;
@@ -201,152 +231,159 @@ function LiveBets({ currentRound }: LiveBetsProps) {
   };
 
   return (
-    <div className="hidden xl:flex col-span-3 flex-col gap-[93px] items-end">
-      {/* Leaderboard Button */}
-      <div
-        className={getLeaderboardButtonStyle()}
-        onClick={() => (window.location.href = "/leaderboard")}
-      >
-        <div className="flex items-center gap-2">
-          <SVG iconName="medal" width={20} height={20} />
-          Leaderboard
-        </div>
-      </div>
-
-      {/* Live Bets Container */}
-      <div className="glass px-[30px] h-full max-h-[700px] py-[16px] rounded-[20px] w-full">
-        <div className="mb-4">
-          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${
-              theme === 'dark' ? 'bg-green-400' : 'bg-green-500'
-            } animate-pulse`}></div>
-            Live Bets
-            {currentRound ? (
-              <span className={`text-sm font-normal ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-              }`}>
-                Round #{currentRound}
-              </span>
-            ): ''}
-          </h3>
+    <>
+      <style jsx>{animationStyles}</style>
+      <div className="hidden xl:flex col-span-3 flex-col gap-[93px] items-end">
+        {/* Leaderboard Button */}
+        <div
+          className={getLeaderboardButtonStyle()}
+          onClick={() => (window.location.href = "/leaderboard")}
+        >
+          <div className="flex items-center gap-2">
+            <SVG iconName="medal" width={20} height={20} />
+            Leaderboard
+          </div>
         </div>
 
-        {/* Content */}
-        {error ? (
-          <div className={`${getStateMessageStyle()} ${getErrorStyle()}`}>
-            <div>
-              <SVG iconName="clock" width={24} height={24} />
-              <div className="mt-2">{error}</div>
-              <button 
-                onClick={() => window.location.reload()}
-                className="mt-2 text-sm underline hover:no-underline"
-              >
-                Try again
-              </button>
-            </div>
+        {/* Live Bets Container */}
+        <div className="glass px-[30px] h-full max-h-[700px] py-[16px] rounded-[20px] w-full">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${
+                theme === 'dark' ? 'bg-green-400' : 'bg-green-500'
+              } animate-pulse`}></div>
+              Live Bets
+              {currentRound ? (
+                <span className={`text-sm font-normal ${
+                  theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+                }`}>
+                  Round #{currentRound}
+                </span>
+              ): ''}
+            </h3>
           </div>
-        ) : isLoading ? (
-          <div className={`${getStateMessageStyle()} ${getLoadingStyle()}`}>
-            <div className="flex flex-col items-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
-              <div>Loading bets...</div>
-            </div>
-          </div>
-        ) : currentRound === null ? (
-          <div className={getStateMessageStyle()}>
-            <div>
-              <SVG iconName="clock" width={24} height={24} />
-              <div className="mt-2">No active round</div>
-            </div>
-          </div>
-        ) : liveBets.length === 0 ? (
-          <div className={getStateMessageStyle()}>
-            <div>
-              <div className="mt-2">No bets yet </div>
-              <div className="text-xs mt-1 opacity-60">
-                Be the first to place a prediction!
+
+          {/* Content */}
+          {error ? (
+            <div className={`${getStateMessageStyle()} ${getErrorStyle()}`}>
+              <div>
+                <SVG iconName="clock" width={24} height={24} />
+                <div className="mt-2">{error}</div>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="mt-2 text-sm underline hover:no-underline"
+                >
+                  Try again
+                </button>
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="overflow-y-auto max-h-[600px]">
-            <table className="w-full text-left">
-              <thead className="sticky top-0 bg-background/80 backdrop-blur-sm">
-                <tr>
-                  <th className={getTableHeaderStyle()}>User</th>
-                  <th className={getTableHeaderStyle()}>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {liveBets.map((bet, index) => (
-                  <tr 
-                    key={bet.signature} 
-                    className={`${getTableRowStyle()} ${
-                      index !== liveBets.length - 1 
-                        ? theme === 'dark' 
-                          ? 'border-b border-gray-700/50' 
-                          : 'border-b border-gray-200/50'
-                        : ''
-                    }`}
-                  >
-                    <td className="py-3">
-                      <div className="flex gap-[8px] items-center">
-                        <div className={`rounded-full p-1 ${
-                          theme === 'dark' 
-                            ? 'bg-gray-700/50' 
-                            : 'bg-gray-200/50'
-                        }`}>
-                          <SVG width={24} height={24} iconName="avatar" />
-                        </div>
-                        <span className={getUserTextStyle()}>
-                          {bet.user}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        <div className={`rounded-full p-1 ${
-                          theme === 'dark' 
-                            ? 'bg-gray-700/30' 
-                            : 'bg-gray-100'
-                        }`}>
-                          <Image
-                            className="w-[20px] h-auto object-contain"
-                            src="/assets/solana_logo.png"
-                            alt="Solana"
-                            width={20}
-                            height={20}
-                          />
-                        </div>
-                        <span className={getAmountTextStyle()}>
-                          {bet.amount.toFixed(2)} SOL
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* Show total stats */}
-            {liveBets.length > 0 && (
-              <div className={`mt-4 pt-3 border-t ${
-                theme === 'dark' ? 'border-gray-700/50' : 'border-gray-200/50'
-              }`}>
-                <div className="flex justify-between text-xs">
-                  <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
-                    Total Volume
-                  </span>
-                  <span className={`font-semibold ${getAmountTextStyle()}`}>
-                    {liveBets.reduce((sum, bet) => sum + bet.amount, 0).toFixed(2)} SOL
-                  </span>
+          ) : isLoading ? (
+            <div className={`${getStateMessageStyle()} ${getLoadingStyle()}`}>
+              <div className="flex flex-col items-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
+                <div>Loading bets...</div>
+              </div>
+            </div>
+          ) : currentRound === null ? (
+            <div className={getStateMessageStyle()}>
+              <div>
+                <SVG iconName="clock" width={24} height={24} />
+                <div className="mt-2">No active round</div>
+              </div>
+            </div>
+          ) : liveBets.length === 0 ? (
+            <div className={getStateMessageStyle()}>
+              <div>
+                <div className="mt-2">No bets yet </div>
+                <div className="text-xs mt-1 opacity-60">
+                  Be the first to place a prediction!
                 </div>
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          ) : (
+            <div className="overflow-y-auto max-h-[600px]">
+              <table className="w-full text-left">
+                
+                <tbody>
+                  {liveBets.map((bet, index) => (
+                    <tr 
+                      key={bet.signature} 
+                      className={`${getTableRowStyle()} ${
+                        index !== liveBets.length - 1 
+                          ? theme === 'dark' 
+                            ? 'border-b border-gray-700/50' 
+                            : 'border-b border-gray-200/50'
+                          : ''
+                      } transition-all duration-400 ease-out ${
+                        newBetSignatures.has(bet.signature) 
+                          ? 'opacity-0 -translate-y-2' 
+                          : 'opacity-100 translate-y-0'
+                      }`}
+                      style={{
+                        animation: newBetSignatures.has(bet.signature) 
+                          ? 'slideDownFade 0.4s ease-out forwards' 
+                          : undefined
+                      }}
+                    >
+                      <td className="py-3">
+                        <div className="flex gap-[8px] items-center">
+                          <div className={`rounded-full p-1 ${
+                            theme === 'dark' 
+                              ? 'bg-gray-700/50' 
+                              : 'bg-gray-200/50'
+                          }`}>
+                            <SVG width={24} height={24} iconName="avatar" />
+                          </div>
+                          <span className={getUserTextStyle()}>
+                            {bet.user}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3">
+                        <div className="flex items-center gap-2">
+                          <div className={`rounded-full p-1 ${
+                            theme === 'dark' 
+                              ? 'bg-gray-700/30' 
+                              : 'bg-gray-100'
+                          }`}>
+                            <Image
+                              className="w-[20px] h-auto object-contain"
+                              src="/assets/solana_logo.png"
+                              alt="Solana"
+                              width={20}
+                              height={20}
+                            />
+                          </div>
+                          <span className={getAmountTextStyle()}>
+                            {bet.amount.toFixed(2)} SOL
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Show total stats */}
+              {liveBets.length > 0 && (
+                <div className={`mt-4 pt-3 border-t ${
+                  theme === 'dark' ? 'border-gray-700/50' : 'border-gray-200/50'
+                }`}>
+                  <div className="flex justify-between text-xs">
+                    <span className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+                      Total Volume
+                    </span>
+                    <span className={`font-semibold ${getAmountTextStyle()}`}>
+                      {liveBets.reduce((sum, bet) => sum + bet.amount, 0).toFixed(2)} SOL
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

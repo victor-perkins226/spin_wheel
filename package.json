@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@number-flow/react": "^0.5.9",
     "@project-serum/anchor": "^0.26.0",
     "@pythnetwork/client": "^2.22.1",
     "@pythnetwork/price-service-client": "^1.9.0",

@@ -13,6 +13,7 @@ import "swiper/css/pagination";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Connection, LAMPORTS_PER_SOL, Transaction } from "@solana/web3.js";
 import { MobileLiveBets } from "./MobileBets";
+import NumberFlow from '@number-flow/react';
 import LiveBets from "./LiveBets";
 import { useRoundManager } from "@/hooks/roundManager";
 import { Round } from "@/types/round";
@@ -33,6 +34,8 @@ export default function PredictionCards() {
   const connectionRef = useRef<Connection | null>(null);
   const [userBalance, setUserBalance] = useState(0);
   const [liveRoundPrice, setLiveRoundPrice] = useState(50.5);
+  const [previousPrice, setPreviousPrice] = useState(liveRoundPrice);
+  const [priceColor, setPriceColor] = useState('text-gray-900');
   const [claimableRewards, setClaimableRewards] = useState(0);
   const {
     handlePlaceBet,
@@ -86,8 +89,8 @@ export default function PredictionCards() {
   useEffect(() => {
     const updateLivePrice = async () => {
       if (livePrice !== undefined) {
-      console.log("Live price fetched:", livePrice);
-      setLiveRoundPrice(livePrice!);
+        console.log("Live price fetched:", livePrice);
+        setLiveRoundPrice(livePrice!);
       }
     };
 
@@ -121,6 +124,25 @@ export default function PredictionCards() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (previousPrice !== liveRoundPrice) {
+      if (liveRoundPrice > previousPrice) {
+        setPriceColor('text-green-500'); // Price up - green
+      } else if (liveRoundPrice < previousPrice) {
+        setPriceColor('text-red-500'); // Price down - red
+      }
+
+      setPreviousPrice(liveRoundPrice);
+
+      // Reset color after animation
+      const timer = setTimeout(() => {
+        setPriceColor('text-gray-900');
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [liveRoundPrice, previousPrice]);
 
   useEffect(() => {
     if (!connected || !publicKey || !connectionRef.current) return;
@@ -640,8 +662,18 @@ export default function PredictionCards() {
                 <p className="text-[10px] pl-4 sm:text-[12px] lg:text-[20px]">
                   SOL/USDT
                 </p>
-                <p className="text-[10px] sm:text-[12px]">
-                  ${liveRoundPrice.toFixed(2)}
+                <p className={`text-[10px] sm:text-[12px] transition-colors duration-300 ${priceColor}`}>
+                  $<NumberFlow
+                    value={liveRoundPrice}
+                    format={{
+                      minimumFractionDigits: 4,
+                      maximumFractionDigits: 4
+                    }}
+                    transformTiming={{
+                      duration: 750,
+                      easing: 'ease-out'
+                    }}
+                  />
                 </p>
               </div>
             </div>
@@ -697,16 +729,14 @@ export default function PredictionCards() {
               {/* Time display in center */}
               <div className="absolute flex flex-col items-center justify-center z-10">
                 <span
-                  className={`font-semibold text-[12px] sm:text-[16px] lg:text-[24px] ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}
+                  className={`font-semibold text-[12px] sm:text-[16px] lg:text-[24px] ${theme === "dark" ? "text-white" : "text-gray-900"
+                    }`}
                 >
                   {formatTimeLeft(timeLeft)}
                 </span>
                 <span
-                  className={`text-[8px] sm:text-[10px] lg:text-[12px] ${
-                    theme === "dark" ? "text-[#D1D5DB]" : "text-gray-500"
-                  }`}
+                  className={`text-[8px] sm:text-[10px] lg:text-[12px] ${theme === "dark" ? "text-[#D1D5DB]" : "text-gray-500"
+                    }`}
                 >
                   2m
                 </span>
@@ -824,22 +854,22 @@ export default function PredictionCards() {
                     typeof round.startTime === "number" && !isNaN(round.startTime)
                       ? round.startTime * 1000
                       : round.startTime instanceof Date
-                      ? round.startTime.getTime()
-                      : 0;
+                        ? round.startTime.getTime()
+                        : 0;
                   const lockTime =
                     round.lockTime instanceof Date
                       ? round.lockTime.getTime() / 1000
                       : typeof round.lockTime === "string" &&
                         !isNaN(Number(round.lockTime))
-                      ? Number(round.lockTime)
-                      : startTimeMs / 1000 + 120;
+                        ? Number(round.lockTime)
+                        : startTimeMs / 1000 + 120;
                   const closeTime =
                     round.closeTime instanceof Date
                       ? round.closeTime.getTime() / 1000
                       : typeof round.closeTime === "string" &&
                         !isNaN(Number(round.closeTime))
-                      ? Number(round.closeTime)
-                      : lockTime + 120;
+                        ? Number(round.closeTime)
+                        : lockTime + 120;
 
                   // Get the variant for this card
                   const cardVariant = formatCardVariant(
@@ -872,12 +902,12 @@ export default function PredictionCards() {
                           ),
                           lockTimeRemaining:
                             timeLeft !== null &&
-                            roundNumber === Number(config?.currentRound)
+                              roundNumber === Number(config?.currentRound)
                               ? timeLeft
                               : Math.max(0, lockTime - Date.now() / 1000),
                           lockTime:
                             timeLeft !== null &&
-                            roundNumber === Number(config?.currentRound)
+                              roundNumber === Number(config?.currentRound)
                               ? Date.now() / 1000 + timeLeft
                               : lockTime,
                           closeTime,
@@ -917,7 +947,11 @@ export default function PredictionCards() {
           )}
         </div>
 
-        <LiveBets currentRound={Number(currentRound?.number) ?? null} />
+        <LiveBets 
+          currentRound={Number(currentRound?.number) ?? null} 
+          key={currentRound?.number} 
+          className="animate-fadeOut" 
+        />
       </div>
     </div>
   );
