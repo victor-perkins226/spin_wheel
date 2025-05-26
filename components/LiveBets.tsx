@@ -7,6 +7,7 @@ import SVG from "./svg.component";
 import io from "socket.io-client";
 import axios from "axios";
 import { useTheme } from "next-themes";
+import { ThemeToggle } from "./Themetoggle";
 
 // Define the Bet interface
 interface Bet {
@@ -234,6 +235,9 @@ function LiveBets({ currentRound }: LiveBetsProps) {
     <>
       <style jsx>{animationStyles}</style>
       <div className="hidden xl:flex col-span-3 flex-col gap-[93px] items-end">
+        {/* Theme Toggle Button */}
+        <ThemeToggle />
+        
         {/* Leaderboard Button */}
         <div
           className={getLeaderboardButtonStyle()}

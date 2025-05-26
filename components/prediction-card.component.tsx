@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import SolanaBg from "@/public/assets/solana_bg.png";
 import { ArrowDown, ArrowUp } from "lucide-react";
+import NumberFlow from '@number-flow/react';
 import { UserBet } from "@/types/round";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import toast from "react-hot-toast";
@@ -426,24 +427,37 @@ export default function PredictionCard({
                 className={`flex flex-col gap-[22px] font-semibold ${getContentTextStyle()}`}
               >
                 <div className="flex justify-between">
-                  <p className={getPriceTextStyle()}>
-                    ${formattedRoundData.closePrice.toFixed(4)}
-                  </p>
-                  <div
-                    className={`${getPriceDirectionBg()} flex items-center gap-[4px] ${
-                      priceDirection === "up"
-                        ? "text-green-500"
-                        : "text-red-500"
-                    } px-[10px] py-[5px] rounded-[5px]`}
-                  >
-                    {priceDirection === "up" ? (
-                      <ArrowUp size={12} />
-                    ) : (
-                      <ArrowDown size={12} />
-                    )}
-                    <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
-                  </div>
-                </div>
+  <NumberFlow
+    value={formattedRoundData.closePrice}
+    format={{
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 4,
+      maximumFractionDigits: 4
+    }}
+    className={`${getPriceTextStyle()} ${
+      priceDirection === "up" ? "text-green-500" : "text-red-500"
+    }`}
+    transformTiming={{
+      duration: 800,
+      easing: 'ease-out'
+    }}
+  />
+  <div
+    className={`${getPriceDirectionBg()} flex items-center gap-[4px] ${
+      priceDirection === "up"
+        ? "text-green-500"
+        : "text-red-500"
+    } px-[10px] py-[5px] rounded-[5px]`}
+  >
+    {priceDirection === "up" ? (
+      <ArrowUp size={12} />
+    ) : (
+      <ArrowDown size={12} />
+    )}
+    <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
+  </div>
+</div>
                 <div
                   className={`flex justify-between items-center ${getLabelTextStyle()}`}
                 >

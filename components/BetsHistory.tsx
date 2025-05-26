@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserBet } from '@/types/round';
 import { useTheme } from 'next-themes';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface BetsHistoryProps {
   userBets: UserBet[];
@@ -10,6 +11,14 @@ export function BetsHistory({ userBets }: BetsHistoryProps) {
   const { theme } = useTheme();
   const [sortedBets, setSortedBets] = useState<UserBet[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const betsPerPage = 10;
+
+  // Calculate pagination values
+  const indexOfLastBet = currentPage * betsPerPage;
+  const indexOfFirstBet = indexOfLastBet - betsPerPage;
+  const currentBets = sortedBets.slice(indexOfFirstBet, indexOfLastBet);
+  const totalPages = Math.ceil(sortedBets.length / betsPerPage);
 
   // Ensure component is mounted to avoid hydration issues
   useEffect(() => {
@@ -21,7 +30,21 @@ export function BetsHistory({ userBets }: BetsHistoryProps) {
     // Sort userBets by roundId in descending order (most recent first)
     const newSortedBets = [...userBets].sort((a, b) => b.roundId - a.roundId);
     setSortedBets(newSortedBets);
-  }, [userBets]); // Dependency array ensures this runs when userBets changes
+    // Reset to first page when bets change
+    setCurrentPage(1);
+  }, [userBets]);
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
 
   if (!mounted) {
     return null;
@@ -79,18 +102,34 @@ export function BetsHistory({ userBets }: BetsHistoryProps) {
     return theme === 'dark' ? 'text-gray-300' : 'text-gray-600';
   };
 
+  const getBackgroundColor = () => {
+    return theme === 'dark' ? 'bg-gray-900/50' : 'bg-white/50';
+  };
+
+  // Calculate stats (now based on all bets, not just current page)
+  const totalBets = sortedBets.length;
+  const wonBets = sortedBets.filter(bet => bet.status === 'WON' || bet.status === 'CLAIMED').length;
+  const lostBets = sortedBets.filter(bet => bet.status === 'LOST').length;
+  const settledBets = sortedBets.filter(bet => bet.status !== 'PENDING').length;
+  const winRate = settledBets > 0 ? Math.round((wonBets / settledBets) * 100) : 0;
+  const totalPayout = sortedBets
+    .filter(bet => bet.status === 'WON' || bet.status === 'CLAIMED')
+    .reduce((sum, bet) => sum + bet.payout, 0);
+  const totalWagered = sortedBets.reduce((sum, bet) => sum + bet.amount, 0);
+  const netProfit = totalPayout - totalWagered;
+
   return (
-    <div>
-      <div className="glass p-4 rounded-xl">
-        <h2 className="text-lg font-semibold mb-4 text-foreground">Your Predictions</h2>
-        
-        {sortedBets.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="text-muted-foreground text-sm">
-              No predictions yet. Place your first bet to see your history here.
-            </div>
+    <div className={`${getBackgroundColor()} backdrop-blur-sm rounded-xl p-6 shadow-sm`}>
+      <h2 className="text-lg font-semibold mb-4 text-foreground">Your Predictions</h2>
+      
+      {sortedBets.length === 0 ? (
+        <div className="text-center py-8">
+          <div className="text-muted-foreground text-sm">
+            No predictions yet. Place your first bet to see your history here.
           </div>
-        ) : (
+        </div>
+      ) : (
+        <>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -103,9 +142,9 @@ export function BetsHistory({ userBets }: BetsHistoryProps) {
                 </tr>
               </thead>
               <tbody>
-                {sortedBets.map((bet, index) => (
+                {currentBets.map((bet, index) => (
                   <tr 
-                    key={bet.id} 
+                    key={`${bet.id}-${index}`} 
                     className={`${getBorderColor()} ${
                       index !== 0 ? 'border-t' : ''
                     } hover:bg-muted/20 transition-colors`}
@@ -147,47 +186,107 @@ export function BetsHistory({ userBets }: BetsHistoryProps) {
               </tbody>
             </table>
           </div>
-        )}
-        
-        {/* Summary Stats */}
-        {sortedBets.length > 0 && (
-          <div className={`mt-6 pt-4 border-t ${getBorderColor()}`}>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">Total Bets</div>
-                <div className="text-sm font-semibold text-foreground">
-                  {sortedBets.length}
-                </div>
+
+          {/* Pagination Controls */}
+          <div className={`flex items-center justify-between mt-4 pt-4 border-t ${getBorderColor()}`}>
+            <div className="text-sm text-muted-foreground">
+              Showing {indexOfFirstBet + 1}-{Math.min(indexOfLastBet, sortedBets.length)} of {sortedBets.length} bets
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handlePrevPage}
+                disabled={currentPage === 1}
+                className={`p-2 rounded-md ${
+                  currentPage === 1 
+                    ? 'text-muted-foreground cursor-not-allowed' 
+                    : 'text-foreground hover:bg-muted/50'
+                }`}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              
+              <div className="text-sm text-foreground">
+                Page {currentPage} of {totalPages}
               </div>
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">Won</div>
-                <div className={`text-sm font-semibold ${
-                  theme === 'dark' ? 'text-green-400' : 'text-green-600'
-                }`}>
-                  {sortedBets.filter(bet => bet.status === 'WON' || bet.status === 'CLAIMED').length}
-                </div>
+              
+              <button
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+                className={`p-2 rounded-md ${
+                  currentPage === totalPages 
+                    ? 'text-muted-foreground cursor-not-allowed' 
+                    : 'text-foreground hover:bg-muted/50'
+                }`}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+      
+      {/* Summary Stats */}
+      {sortedBets.length > 0 && (
+        <div className={`mt-6 pt-4 border-t ${getBorderColor()}`}>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Total Bets</div>
+              <div className="text-sm font-semibold text-foreground">
+                {totalBets}
               </div>
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">Lost</div>
-                <div className={`text-sm font-semibold ${
-                  theme === 'dark' ? 'text-red-400' : 'text-red-600'
-                }`}>
-                  {sortedBets.filter(bet => bet.status === 'LOST').length}
-                </div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Won</div>
+              <div className={`text-sm font-semibold ${
+                theme === 'dark' ? 'text-green-400' : 'text-green-600'
+              }`}>
+                {wonBets}
               </div>
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">Win Rate</div>
-                <div className="text-sm font-semibold text-foreground">
-                  {sortedBets.length > 0 
-                    ? Math.round((sortedBets.filter(bet => bet.status === 'WON' || bet.status === 'CLAIMED').length / 
-                        sortedBets.filter(bet => bet.status !== 'PENDING').length) * 100) || 0
-                    : 0}%
-                </div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Lost</div>
+              <div className={`text-sm font-semibold ${
+                theme === 'dark' ? 'text-red-400' : 'text-red-600'
+              }`}>
+                {lostBets}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Win Rate</div>
+              <div className="text-sm font-semibold text-foreground">
+                {winRate}%
               </div>
             </div>
           </div>
-        )}
-      </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-muted">
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Total Wagered</div>
+              <div className="text-sm font-semibold text-foreground">
+                {totalWagered.toFixed(2)} SOL
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Total Payout</div>
+              <div className={`text-sm font-semibold ${
+                theme === 'dark' ? 'text-green-400' : 'text-green-600'
+              }`}>
+                {totalPayout.toFixed(2)} SOL
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Net Profit</div>
+              <div className={`text-sm font-semibold ${
+                netProfit >= 0 
+                  ? theme === 'dark' ? 'text-green-400' : 'text-green-600'
+                  : theme === 'dark' ? 'text-red-400' : 'text-red-600'
+              }`}>
+                {netProfit >= 0 ? '+' : ''}{netProfit.toFixed(2)} SOL
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
