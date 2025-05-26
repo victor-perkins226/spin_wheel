@@ -14,7 +14,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-// Define point data type for charts
+
 interface ChartPoint {
   x: number;
   y: number;
@@ -44,12 +44,19 @@ const COINGECKO_SIMPLE_PRICE =
   "https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids=solana&x_cg_demo_api_key=CG-EnQ2L2wvdfeMreh3qmY9eCqd";
 const COINGECKO_MARKETCHART_RANGE =
   "https://api.coingecko.com/api/v3/coins/solana/market_chart/range";
+  const PYTH_LATEST =
+  "https://hermes.pyth.network/v2/updates/price/latest?ids[]=0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
 
-const PYTH_LATEST =
-  "https://hermes.pyth.network/latest_price?ids%5B%5D=0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d4";
 const PYTH_HISTORY =
-  "";
+  "https://benchmarks.pyth.network/v1/shims/tradingview/history";
 
+  const MAX_DATA_POINTS = {
+    live: 50,    // 50 points for live mode (about 4+ minutes at 5-second intervals)
+    "1h": 60,    // 60 points for 1 hour
+    "12h": 48,   // 48 points for 12 hours  
+    "1d": 24     // 24 points for 1 day
+  };
+  
 // Define chart data type for Recharts
 interface ChartData {
   timestamp: number;
@@ -65,7 +72,7 @@ export const getPythHistoricalPrice = async (
   const btn = TIME_BUTTONS[buttonIndex];
   try {
     if (btn.pythRange === null) {
-      // LIVE
+      // LIVE - keep your existing logic
       const { data } = await axios.get<any>(PYTH_LATEST);
       if (!data?.parsed?.[0]?.price) {
         console.warn("Pyth live price data is invalid:", data);
@@ -80,11 +87,30 @@ export const getPythHistoricalPrice = async (
         },
       ];
     } else {
-     
+      // Historical data - fix the parameters and response parsing
+      const endTime = Math.floor(Date.now() / 1000);
+      let startTime: number;
+      let resolution: string;
+
+      if (buttonIndex === 1) {
+        // 1H
+        startTime = endTime - 3600; // 1 hour ago
+        resolution = "1"; // 1 minute intervals
+      } else if (buttonIndex === 2) {
+        // 12H  
+        startTime = endTime - 43200; // 12 hours ago
+        resolution = "15"; // 15 minute intervals
+      } else {
+        // 1D
+        startTime = endTime - 86400; // 1 day ago
+        resolution = "60"; // 1 hour intervals
+      }
 
       const params = {
-        range: btn.pythRange,
-        cluster: "pythnet",
+        symbol: "Crypto.SOL/USD", // Pass as query parameter
+        resolution: resolution,
+        from: startTime,
+        to: endTime,
       };
 
       console.log(`Fetching Pyth data for ${btn.id} with params:`, params);
@@ -100,17 +126,20 @@ export const getPythHistoricalPrice = async (
 
       const { data } = await axios.get<any>(PYTH_HISTORY, axiosConfig);
 
-      if (!data?.data || !Array.isArray(data.data) || data.data.length === 0) {
+      // TradingView format returns: {s: "ok", t: timestamps[], c: closes[], o: opens[], h: highs[], l: lows[], v: volumes[]}
+      if (!data || data.s !== "ok" || !Array.isArray(data.t) || !Array.isArray(data.c)) {
         console.warn(`Pyth historical data is invalid for ${btn.id}:`, data);
         return null;
       }
 
-      // Format Pyth data
-      const formattedData = data.data.map((item: any) => ({
-        timestamp: item.publish_time,
-        price: parseFloat(item.price.price) * Math.pow(10, item.price.expo),
+      // Format the TradingView response
+      const formattedData = data.t.map((timestamp: number, index: number) => ({
+        timestamp: timestamp * 1000, // Convert to milliseconds
+        price: data.c[index], // Close price
+        publish_time: timestamp,
       }));
 
+      console.log(`Pyth returned ${formattedData.length} data points for ${btn.id}`);
       return formattedData;
     }
   } catch (error) {
@@ -220,7 +249,7 @@ const TradingChart = () => {
         }),
       ]);
 
-      // Format data for Recharts
+      // Format data for Recharts with evenly spaced intervals
       let formattedData: ChartData[] = [];
 
       // Process CoinGecko data
@@ -260,24 +289,79 @@ const TradingChart = () => {
         });
       }
 
-      // If we have data from either source, create combined dataset
+      // Create evenly spaced data points
       if (Object.keys(cgData).length > 0 || Object.keys(pythData).length > 0) {
-        const allTimestamps = new Set([
-          ...Object.keys(cgData),
-          ...Object.keys(pythData),
-        ].map(Number));
-        const sortedTimestamps = Array.from(allTimestamps).sort((a, b) => a - b);
+        const btn = TIME_BUTTONS[activeIndex];
+        const maxPoints = MAX_DATA_POINTS[btn.id as keyof typeof MAX_DATA_POINTS] || 50;
+        
+        // Determine time range
+        const endTime = Date.now();
+        let startTime: number;
+        let interval: number;
 
-        formattedData = sortedTimestamps.map((timestamp) => {
+        if (activeIndex === 1) {
+          // 1H
+          startTime = endTime - 3600000; // 1 hour in ms
+          interval = 60000; // 1 minute intervals
+        } else if (activeIndex === 2) {
+          // 12H
+          startTime = endTime - 43200000; // 12 hours in ms
+          interval = 900000; // 15 minute intervals
+        } else {
+          // 1D
+          startTime = endTime - 86400000; // 1 day in ms
+          interval = 3600000; // 1 hour intervals
+        }
+
+        // Create evenly spaced timestamps
+        const evenTimestamps: number[] = [];
+        for (let t = startTime; t <= endTime; t += interval) {
+          evenTimestamps.push(t);
+        }
+
+        // Limit to maxPoints by adjusting interval if needed
+        if (evenTimestamps.length > maxPoints) {
+          const adjustedInterval = (endTime - startTime) / (maxPoints - 1);
+          evenTimestamps.length = 0;
+          for (let i = 0; i < maxPoints; i++) {
+            evenTimestamps.push(startTime + i * adjustedInterval);
+          }
+        }
+
+        // Interpolate data for each even timestamp
+        formattedData = evenTimestamps.map((timestamp) => {
           const date = new Date(timestamp);
+          
+          // Find closest CoinGecko price
+          let cgPrice = 0;
+          let minCgDiff = Infinity;
+          Object.keys(cgData).forEach(key => {
+            const diff = Math.abs(parseInt(key) - timestamp);
+            if (diff < minCgDiff) {
+              minCgDiff = diff;
+              cgPrice = cgData[parseInt(key)];
+            }
+          });
+
+          // Find closest Pyth price
+          let pythPrice = 0;
+          let minPythDiff = Infinity;
+          Object.keys(pythData).forEach(key => {
+            const diff = Math.abs(parseInt(key) - timestamp);
+            if (diff < minPythDiff) {
+              minPythDiff = diff;
+              pythPrice = pythData[parseInt(key)];
+            }
+          });
+
           return {
             timestamp,
             time: date.toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
             }),
-            coinGeckoPrice: cgData[timestamp] || 0,
-            pythPrice: pythData[timestamp] || 0,
+            coinGeckoPrice: cgPrice,
+            pythPrice: pythPrice,
           };
         });
 
@@ -292,13 +376,13 @@ const TradingChart = () => {
         });
       }
 
-      // If still no valid data, generate simulated data
+      // Generate simulated data if no API data available
       if (formattedData.length === 0) {
         console.log("No API data available, generating simulated data");
         const days = getDaysFromIndex(activeIndex);
         const interval = activeIndex === 1 ? 30000 : 60000;
-        const simulatedPyth = simulateHistoricalData(days, interval, false);
-        const simulatedCg = simulateHistoricalData(days, interval, true);
+        const simulatedPyth = simulateHistoricalData(days, interval, false, activeIndex);
+        const simulatedCg = simulateHistoricalData(days, interval, true, activeIndex);
 
         formattedData = simulatedPyth.map((point, index) => {
           const date = new Date(point.x);
@@ -334,8 +418,8 @@ const TradingChart = () => {
       // Generate fallback data even on error
       const days = getDaysFromIndex(activeIndex);
       const interval = activeIndex === 1 ? 30000 : 60000;
-      const pythSimulated = simulateHistoricalData(days, interval, false);
-      const cgSimulated = simulateHistoricalData(days, interval, true);
+      const pythSimulated = simulateHistoricalData(days, interval, false, activeIndex);
+      const cgSimulated = simulateHistoricalData(days, interval, true, activeIndex);
 
       const fallbackData: ChartData[] = pythSimulated.map((point, index) => {
         const date = new Date(point.x);
@@ -360,11 +444,12 @@ const TradingChart = () => {
     }
   };
 
+
   // Handle LIVE mode with Recharts
   useEffect(() => {
     if (activeIndex !== 0) return;
 
-    let basePrice = 165.0;
+    let basePrice = 175.0;
     let liveUpdateInterval: NodeJS.Timeout;
 
     const initialize = async () => {
@@ -373,24 +458,24 @@ const TradingChart = () => {
 
         // Initialize with some data points
         const now = Date.now();
-        const initialData: ChartData[] = [];
+      const maxPoints = MAX_DATA_POINTS.live;
+      const initialData: ChartData[] = [];
 
-        for (let i = 5; i >= 0; i--) {
-          const timestamp = now - i * 5000;
-          const date = new Date(timestamp);
-          const variation = (Math.random() - 0.5) * 2;
-          initialData.push({
-            timestamp,
-            time: date.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-            }),
-            pythPrice: basePrice + variation,
-            coinGeckoPrice: basePrice + variation * 0.8,
-          });
-        }
-
+      for (let i = maxPoints - 1; i >= 0; i--) {
+        const timestamp = now - i * 5000;
+        const date = new Date(timestamp);
+        const variation = (Math.random() - 0.5) * 2;
+        initialData.push({
+          timestamp,
+          time: date.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          }),
+          pythPrice: basePrice + variation,
+          coinGeckoPrice: basePrice + variation * 0.8,
+        });
+      }
         setChartData(initialData);
         setCurrentPrice(basePrice.toFixed(2));
         setIsLoading(false);
@@ -403,15 +488,14 @@ const TradingChart = () => {
               basePrice = newPrice;
               setCurrentPrice(newPrice.toFixed(2));
             } else {
-              // Small random variation if API fails
               basePrice = basePrice + (Math.random() - 0.5) * 0.5;
               setCurrentPrice(basePrice.toFixed(2));
             }
-
+  
             const timestamp = Date.now();
             const date = new Date(timestamp);
             const variation = (Math.random() - 0.5) * 1;
-
+  
             const newDataPoint: ChartData = {
               timestamp,
               time: date.toLocaleTimeString([], {
@@ -422,8 +506,12 @@ const TradingChart = () => {
               pythPrice: basePrice + variation,
               coinGeckoPrice: basePrice + variation * 0.9,
             };
-
-            setChartData((prev) => [...prev.slice(-299), newDataPoint]);
+  
+            setChartData((prev) => {
+              const updated = [...prev, newDataPoint];
+              // Keep only the last MAX_DATA_POINTS.live points
+              return updated.slice(-MAX_DATA_POINTS.live);
+            });
           } catch (error) {
             console.warn("Error updating live price:", error);
           }
@@ -431,10 +519,14 @@ const TradingChart = () => {
       } catch (error) {
         console.error("Error initializing live mode:", error);
         setIsLoading(false);
-        // Set fallback data
+        // Set fallback data with limited points
         const fallbackData: ChartData[] = [{
           timestamp: Date.now(),
-          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+          time: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          }),
           pythPrice: 165.0,
           coinGeckoPrice: 164.5,
         }];
@@ -593,38 +685,39 @@ const TradingChart = () => {
 function simulateHistoricalData(
   days: number,
   interval: number,
-  isCoinGecko: boolean
+  isCoinGecko: boolean,
+  activeIndex: number = 1
 ): ChartPoint[] {
-  // Base price around $165 with slight variation
   const basePrice = 165 + (Math.random() - 0.5) * 10;
   
-  // Calculate number of data points
-  const endTime = Date.now();
-  const startTime = endTime - days * 24 * 60 * 60 * 1000; // Convert days to ms
-  const points = Math.max(20, Math.ceil((endTime - startTime) / interval));
+  // Get max points based on current active button
+  const btn = TIME_BUTTONS.find((_, index) => index === activeIndex);
+  const maxPoints = btn ? MAX_DATA_POINTS[btn.id as keyof typeof MAX_DATA_POINTS] || 50 : 50;
   
-  // Generate simulated data points
+  const endTime = Date.now();
+  const startTime = endTime - days * 24 * 60 * 60 * 1000;
+  
+  // Use maxPoints instead of calculating from interval
+  const points = Math.min(maxPoints, Math.ceil((endTime - startTime) / interval));
+
   const data: ChartPoint[] = [];
   let lastPrice = basePrice;
-  
+
   for (let i = 0; i < points; i++) {
-    const timestamp = startTime + i * interval;
-    
-    // Add some volatility - CoinGecko prices tend to be slightly more volatile
+    const timestamp = startTime + (i * (endTime - startTime)) / (points - 1);
+
     const volatilityFactor = isCoinGecko ? 0.008 : 0.005;
     const change = lastPrice * volatilityFactor * (Math.random() * 2 - 1);
-    
-    // Add small trend bias (slight upward trend)
     const trendBias = lastPrice * 0.0003 * (Math.random() > 0.45 ? 1 : -1);
-    
-    lastPrice = Math.max(100, lastPrice + change + trendBias); // Ensure price doesn't go below $100
-    
+
+    lastPrice = Math.max(100, lastPrice + change + trendBias);
+
     data.push({
       x: timestamp,
       y: parseFloat(lastPrice.toFixed(2)),
     });
   }
-  
+
   return data;
 }
 
