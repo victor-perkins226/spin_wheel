@@ -547,7 +547,7 @@ export default function PredictionCards() {
       const baseTime = fallbackCurrentTime + i * 240;
 
       fallbackRounds.push({
-        number: roundNumber.toString(),
+        number: roundNumber,
         startTime: baseTime - 240,
         lockTime: baseTime - 120,
         closeTime: baseTime,
@@ -559,7 +559,7 @@ export default function PredictionCards() {
       } as unknown as Round);
     }
 
-    return fallbackRounds;
+    return fallbackRounds.filter(round => round.number);
   }, [computedDisplayRounds, currentRoundNumber]);
 
   // Add error handling for liveIndex calculation
