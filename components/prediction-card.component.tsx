@@ -36,7 +36,7 @@ interface IProps {
     direction: "up" | "down",
     amount: number,
     roundId: number
-  ) => void;
+  ) => Promise<void>;
   currentRoundId?: number;
   bufferTimeInSeconds?: number;
   isRoundBettable?: (roundId: number) => boolean;
@@ -68,8 +68,10 @@ export default function PredictionCard({
 }: IProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [mode, setMode] = useState<"up" | "down" | "">("");
-  const [amount, setAmount] = useState<number>(0.1);
+  const [inputValue, setInputValue] = useState("0.1");
+  const [amount, setAmount]       = useState(0.1); 
   const [maxAmount, setMaxAmount] = useState<number>(10);
+  const [justBet, setJustBet] = useState(false);
   const { connected, publicKey } = useWallet();
   const { connection } = useConnection();
 
@@ -123,6 +125,7 @@ export default function PredictionCard({
 
   const userBetStatus =
     userBets?.find((bet) => bet.roundId === roundId) || null;
+    const hasUserBet = userBetStatus !== null || justBet;
 
   const getPriceMovement = () => {
     if (!roundData) return { difference: 0, direction: "up" as "up" | "down" };
@@ -144,7 +147,8 @@ export default function PredictionCard({
     roundId === currentRoundId &&
     roundData?.isActive === true &&
     !isLocked &&
-    (timeLeft !== null ? timeLeft > bufferTimeInSeconds : false);
+    (timeLeft ?? 0) > bufferTimeInSeconds &&
+    !hasUserBet;
 
   const formatTimeLeft = (seconds: number | null) => {
     if (seconds === null || seconds <= 0) return "Locked";
@@ -243,11 +247,13 @@ export default function PredictionCard({
     }
    
     if (onPlaceBet && mode && roundId) {
-      onPlaceBet(mode, amount, roundId);
-      setIsFlipped(false);
-      setMode("");
-      setAmount(0.1);
-    }
+      setJustBet(true);
+      onPlaceBet(mode, amount, roundId).finally(() => {
+        setIsFlipped(false);
+        setMode("");
+        setAmount(0.1);
+      });
+     }
   };
 
   const handleCustomAmount = (percentage: number) => {
@@ -271,7 +277,7 @@ export default function PredictionCard({
 
   const renderNextRoundContent = () => {
     if (variant !== "next") return null;
-    const hasUserBet = userBetStatus !== null;
+    // const hasUserBet = userBetStatus !== null;
 
     let buttonDisabled = isLocked || hasUserBet;
     if (!roundData) {
@@ -324,7 +330,7 @@ export default function PredictionCard({
                 : "linear-gradient(90deg, #06C729 0%, #04801B 100%)",
             }}
             onClick={() =>
-              buttonDisabled ? null : handleEnterPrediction("up")
+              buttonDisabled ? undefined : handleEnterPrediction("up")
             }
             className={`glass flex flex-col gap-4 py-[16px] ${
               buttonDisabled
@@ -342,7 +348,7 @@ export default function PredictionCard({
                 : "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)",
             }}
             onClick={() =>
-              buttonDisabled ? null : handleEnterPrediction("down")
+              buttonDisabled ? undefined : handleEnterPrediction("down")
             }
             className={`glass flex flex-col gap-4 py-[16px] ${
               buttonDisabled
@@ -676,33 +682,32 @@ export default function PredictionCard({
             <p className="font-semibold text-[15px]">SOL</p>
           </div>
         </div>
-        <input
-          type="number"
-          min="0.01"
-          max={maxAmount.toFixed(2)}
-          step="0.01"
-          value={amount.toFixed(2)}
-          onChange={(e) => {
-            const value = parseFloat(e.target.value);
-
-            if (!isNaN(value)) {
-              // Clamp the value between 0.01 and maxAmount
-              const clampedValue = Math.max(0.01, Math.min(value, maxAmount));
-              setAmount(Math.round(clampedValue * 100) / 100);
+         <input
+          type="text"                              // allows any characters
+          value={inputValue}
+          placeholder="Enter Value:"
+          onChange={e => {
+            // only filter out totally invalid characters if you like:
+            const raw = e.target.value;
+            // allow digits, decimal point, optional leading dash if you ever allow negative
+            if (/^[\d]*\.?[\d]*$/.test(raw) || raw === "") {
+              setInputValue(raw);
             }
           }}
-          onBlur={(e) => {
-            const value = parseFloat(e.target.value);
-            if (!isNaN(value)) {
-              // Ensure it's within bounds and format to 2 decimal places
-              const clampedValue = Math.max(0.01, Math.min(value, maxAmount));
-              setAmount(Math.round(clampedValue * 100) / 100);
+          onBlur={() => {
+            // when they leave the field, parse and clamp to a valid number
+            const parsed = parseFloat(inputValue);
+            if (isNaN(parsed) || parsed <= 0) {
+              setAmount(0.01);
+              setInputValue("0.01");
             } else {
-              setAmount(0.01); // Set minimum value if invalid
+              const clamped = Math.min(parsed, maxAmount);
+              setAmount(clamped);
+              // format to two decimals for display
+              setInputValue(clamped.toFixed(2));
             }
           }}
           className="glass h-[65px] text-right rounded-[20px] pr-4 font-semibold text-[16px] text-white outline-0"
-          placeholder="Enter Value:"
         />
         <input
           type="range"

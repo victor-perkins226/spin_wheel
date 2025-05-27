@@ -180,6 +180,7 @@ export default function PredictionCards() {
       toast.success(
         `Bet placed: ${amount} SOL ${direction} on round ${roundId}`
       );
+      await fetchUserBets();
     } catch (error) {
       console.error("Failed to place bet:", error);
       toast.error("Failed to place bet");
@@ -539,6 +540,7 @@ export default function PredictionCards() {
     }
 
     // Fallback: create minimal dummy rounds if no data is available
+    if (typeof currentRoundNumber === 'number') {
     const fallbackCurrentTime = Math.floor(Date.now() / 1000);
     const fallbackRounds: Round[] = [];
 
@@ -558,8 +560,9 @@ export default function PredictionCards() {
         status: i === 0 ? "expired" : i === 1 ? "next" : "later",
       } as unknown as Round);
     }
+  }
 
-    return fallbackRounds;
+    return [];
   }, [computedDisplayRounds, currentRoundNumber]);
 
   // Add error handling for liveIndex calculation
@@ -707,6 +710,21 @@ export default function PredictionCards() {
       .toString()
       .padStart(2, "0")}`;
   };
+
+  if ( computedDisplayRounds.length === 0) {
+    return (
+      <div className="container px-3 sm:px-4 md:px-6 lg:px-8 mt-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className="h-64 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container px-3 sm:px-4 md:px-6 lg:px-8 mt-5 md:mt-6 lg:mt-[70px] flex flex-col gap-4 md:gap-6 lg:gap-[40px]">
@@ -892,26 +910,16 @@ export default function PredictionCards() {
             // Show cards only when wallet is connected
             <div className="relative">
               <Swiper
-                 onSwiper={(swiper) => {
-                  swiperRef.current = swiper;
-                  // Set swiper ready and immediately jump to live slide
-                  setTimeout(() => {
-                    setSwiperReady(true);
-                    // Immediately jump to live slide on initialization
-                    const currentLiveRound = finalDisplayRoundsForSwiper.find(
-                      (r) => formatCardVariant(r, currentRoundNumber) === "live"
-                    );
-                    if (currentLiveRound) {
-                      const liveIdx = finalDisplayRoundsForSwiper.findIndex(
-                        (r) => formatCardVariant(r, currentRoundNumber) === "live"
-                      );
-                      if (liveIdx >= 0) {
-                        swiper.slideTo(liveIdx, 0); // Immediate jump, no animation
-                        initialSlideJumped.current = true;
-                      }
-                    }
-                  }, 100);
+              key={liveIndex}
+                initialSlide={liveIndex}
+                onBeforeInit={(swiper) => {
+                  swiper.params.initialSlide = liveIndex;
                 }}
+                onSwiper={(swiper) => {
+                  swiperRef.current = swiper;
+                  setSwiperReady(true);
+                }}
+
                 onSlideChange={handleSlideChange}
                 effect="coverflow"
                 grabCursor={true}
@@ -1013,8 +1021,6 @@ export default function PredictionCards() {
                         userBets={connected ? userBets : []} // Only show user bets if connected
                         isLocked={isLocked}
                         timeLeft={timeLeft}
-                        // Pass wallet connection status to the card
-                        isWalletConnected={connected}
                       />
                     </SwiperSlide>
                   );
@@ -1039,11 +1045,14 @@ export default function PredictionCards() {
           )}
         </div>
 
-        <LiveBets
+        {/* <div           className="animate-fadeOut"> */}
+    <LiveBets
           currentRound={Number(currentRound?.number) ?? null}
           key={currentRound?.number}
-          className="animate-fadeOut"
+
         />
+        {/* </div> */}
+    
       </div>
     </div>
   );
