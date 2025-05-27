@@ -51,7 +51,7 @@ const PYTH_HISTORY =
   "https://benchmarks.pyth.network/v1/shims/tradingview/history";
 
   const MAX_DATA_POINTS = {
-    live: 50,    // 50 points for live mode (about 4+ minutes at 5-second intervals)
+    live: 20,    // 50 points for live mode (about 4+ minutes at 5-second intervals)
     "1h": 60,    // 60 points for 1 hour
     "12h": 48,   // 48 points for 12 hours  
     "1d": 24     // 24 points for 1 day
@@ -448,39 +448,39 @@ const TradingChart = () => {
   // Handle LIVE mode with Recharts
   useEffect(() => {
     if (activeIndex !== 0) return;
-
+  
     let basePrice = 175.0;
     let liveUpdateInterval: NodeJS.Timeout;
-
+  
     const initialize = async () => {
       try {
         basePrice = await initializeLiveMode();
-
-        // Initialize with some data points
+  
+        // Initialize with data points at 1-minute intervals for the last 5 minutes
         const now = Date.now();
-      const maxPoints = MAX_DATA_POINTS.live;
-      const initialData: ChartData[] = [];
-
-      for (let i = maxPoints - 1; i >= 0; i--) {
-        const timestamp = now - i * 5000;
-        const date = new Date(timestamp);
-        const variation = (Math.random() - 0.5) * 2;
-        initialData.push({
-          timestamp,
-          time: date.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          }),
-          pythPrice: basePrice + variation,
-          coinGeckoPrice: basePrice + variation * 0.8,
-        });
-      }
+        const maxPoints = MAX_DATA_POINTS.live;
+        const initialData: ChartData[] = [];
+  
+        for (let i = maxPoints - 1; i >= 0; i--) {
+          const timestamp = now - i * 60000; // 1-minute intervals (60000ms)
+          const date = new Date(timestamp);
+          const variation = (Math.random() - 0.5) * 2;
+          initialData.push({
+            timestamp,
+            time: date.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            pythPrice: basePrice + variation,
+            coinGeckoPrice: basePrice + variation * 0.8,
+          });
+        }
+  
         setChartData(initialData);
         setCurrentPrice(basePrice.toFixed(2));
         setIsLoading(false);
-
-        // Start live updates
+  
+        // Start live updates every minute
         liveUpdateInterval = setInterval(async () => {
           try {
             const newPrice = await fetchLivePrice();
@@ -501,7 +501,6 @@ const TradingChart = () => {
               time: date.toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
-                second: "2-digit",
               }),
               pythPrice: basePrice + variation,
               coinGeckoPrice: basePrice + variation * 0.9,
@@ -509,23 +508,22 @@ const TradingChart = () => {
   
             setChartData((prev) => {
               const updated = [...prev, newDataPoint];
-              // Keep only the last MAX_DATA_POINTS.live points
+              // Keep only the last MAX_DATA_POINTS.live points (5 minutes)
               return updated.slice(-MAX_DATA_POINTS.live);
             });
           } catch (error) {
             console.warn("Error updating live price:", error);
           }
-        }, 5000);
+        }, 60000); // Update every minute (60000ms)
       } catch (error) {
         console.error("Error initializing live mode:", error);
         setIsLoading(false);
-        // Set fallback data with limited points
+        // Set fallback data
         const fallbackData: ChartData[] = [{
           timestamp: Date.now(),
           time: new Date().toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
-            second: "2-digit",
           }),
           pythPrice: 165.0,
           coinGeckoPrice: 164.5,
@@ -534,14 +532,13 @@ const TradingChart = () => {
         setCurrentPrice("165.00");
       }
     };
-
+  
     initialize();
-
+  
     return () => {
       if (liveUpdateInterval) clearInterval(liveUpdateInterval);
     };
   }, [activeIndex]);
-
   // Fetch historical data when active index changes (except for LIVE mode)
   useEffect(() => {
     if (activeIndex === 0) return; // Skip for LIVE mode
@@ -634,20 +631,24 @@ const TradingChart = () => {
                   }
                 />
                 <XAxis
-                  dataKey="timestamp"
-                  type="number"
-                  scale="time"
-                  domain={["dataMin", "dataMax"]}
-                  tickFormatter={(value) => {
-                    const date = new Date(value);
-                    return date.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    });
-                  }}
-                  stroke={isDarkMode ? "#94a3b8" : "#475562"}
-                  fontSize={isMobile ? 9 : 11}
-                />
+  dataKey="timestamp"
+  type="number"
+  scale="time"
+  domain={["dataMin", "dataMax"]}
+  tickFormatter={(value) => {
+    const date = new Date(value);
+    // For Live mode, show time without seconds since it's 1-minute intervals
+    return date.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }}
+  stroke={isDarkMode ? "#94a3b8" : "#475562"}
+  fontSize={isMobile ? 9 : 11}
+  // For Live mode, ensure all ticks are shown
+  interval={activeIndex === 0 ? 0 : "preserveStartEnd"}
+/>
+
                 <YAxis
                   domain={["dataMin - 1", "dataMax + 1"]}
                   tickFormatter={(value) => `$${value.toFixed(2)}`}
