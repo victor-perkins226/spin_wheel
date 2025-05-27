@@ -13,7 +13,8 @@ import "swiper/css/pagination";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Connection, LAMPORTS_PER_SOL, Transaction } from "@solana/web3.js";
 import { MobileLiveBets } from "./MobileBets";
-import NumberFlow from '@number-flow/react';
+import Cheers from "@/public/assets/cheers.png";
+import NumberFlow from "@number-flow/react";
 import LiveBets from "./LiveBets";
 import { useRoundManager } from "@/hooks/roundManager";
 import { Round } from "@/types/round";
@@ -35,7 +36,7 @@ export default function PredictionCards() {
   const [userBalance, setUserBalance] = useState(0);
   const [liveRoundPrice, setLiveRoundPrice] = useState(50.5);
   const [previousPrice, setPreviousPrice] = useState(liveRoundPrice);
-  const [priceColor, setPriceColor] = useState('text-gray-900');
+  const [priceColor, setPriceColor] = useState("text-gray-900");
   const [claimableRewards, setClaimableRewards] = useState(0);
   const {
     handlePlaceBet,
@@ -47,7 +48,8 @@ export default function PredictionCards() {
   const claimableAmountRef = useRef<number>(0); // Store claimableAmount in useRef
   const { program } = useProgram();
   const initialSlideJumped = useRef(false);
-
+  const lastLiveRoundRef = useRef<number | null>(null);
+  const [swiperReady, setSwiperReady] = useState(false); 
   const { theme } = useTheme();
   const {
     config,
@@ -83,7 +85,11 @@ export default function PredictionCards() {
       fetchUserBets();
     }
   }, [connected, publicKey, fetchUserBets]);
-  const { price: livePrice, isLoading: priceLoading, error: priceError } = useLivePrice();
+  const {
+    price: livePrice,
+    isLoading: priceLoading,
+    error: priceError,
+  } = useLivePrice();
 
   // Fetch live price periodically
   useEffect(() => {
@@ -128,16 +134,16 @@ export default function PredictionCards() {
   useEffect(() => {
     if (previousPrice !== liveRoundPrice) {
       if (liveRoundPrice > previousPrice) {
-        setPriceColor('text-green-500'); // Price up - green
+        setPriceColor("text-green-500"); // Price up - green
       } else if (liveRoundPrice < previousPrice) {
-        setPriceColor('text-red-500'); // Price down - red
+        setPriceColor("text-red-500"); // Price down - red
       }
 
       setPreviousPrice(liveRoundPrice);
 
       // Reset color after animation
       const timer = setTimeout(() => {
-        setPriceColor('text-gray-900');
+        setPriceColor("text-gray-900");
       }, 1000);
 
       return () => clearTimeout(timer);
@@ -225,7 +231,23 @@ export default function PredictionCards() {
       setClaimableRewards(0);
 
       console.log(`Batched payout claimed successfully: ${signature}`);
-      toast.success(`Successfully claimed rewards for ${claimableBets.length} rounds!`);
+      toast.custom((t) => (
+        <div className="glass flex items-center flex-col p-4 rounded-lg shadow-lg">
+          <div className="w-full">
+            <Image
+              alt="Solana Background"
+              src={Cheers || "/placeholder.svg"}
+              className="rounded-[10px] w-full h-[182px] object-cover"
+              width={415}
+              height={242}
+            />
+          </div>
+          <div className="py-3">
+            <h2 className="text-xl font-semibold">Cheers to more withdrawals</h2>
+            <p className="mt-1 text-sm">You have withdrawn {claimableRewards} SOL</p>
+          </div>
+        </div>
+      ))
     } catch (error: any) {
       console.error("Failed to claim rewards:", error);
       let errorMessage = "Failed to claim rewards. Please try again.";
@@ -544,38 +566,80 @@ export default function PredictionCards() {
   const liveIndex = useMemo(() => {
     try {
       // Use finalDisplayRoundsForSwiper for calculating liveIndex
-      return finalDisplayRoundsForSwiper.findIndex(
+      
+      if (finalDisplayRoundsForSwiper.length > 0) {
+        const firstRound = finalDisplayRoundsForSwiper[0];
+        if (formatCardVariant(firstRound, currentRoundNumber) === "live") {
+          return 0; // Live round is at index 0
+        }
+      }
+      
+      const index = finalDisplayRoundsForSwiper.findIndex(
         (r) => formatCardVariant(r, currentRoundNumber) === "live"
       );
+      
+      if (index === -1) {
+        // If no live round, try to find next round
+        const nextIndex = finalDisplayRoundsForSwiper.findIndex(
+          (r) => formatCardVariant(r, currentRoundNumber) === "next"
+        );
+        return nextIndex >= 0 ? nextIndex : 0;
+      }
+      
+      return index;
     } catch (error) {
       console.error("Error finding live index:", error);
-      return -1; // Return -1 if there's an error
+      return 0; // Return 0 instead of -1 to show first slide
     }
-  }, [finalDisplayRoundsForSwiper, currentRoundNumber, formatCardVariant]); // Added formatCardVariant dependency
+  }, [finalDisplayRoundsForSwiper, currentRoundNumber, formatCardVariant]);
 
-  console.log(
-    "Final display rounds for Swiper:", finalDisplayRoundsForSwiper)
+  console.log("Final display rounds for Swiper:", finalDisplayRoundsForSwiper);
   useEffect(() => {
     const swiper = swiperRef.current;
-    if (swiper && liveIndex >= 0 && !initialSlideJumped.current) {
-      try {
-        swiper.slideTo(liveIndex, 0);
-        initialSlideJumped.current = true;
-      } catch (error) {
-        console.error("Error sliding to live index:", error);
-      }
-    }
+    if (!swiper || swiperReady ||  liveIndex < 0) return;
 
+    const currentLiveRound = finalDisplayRoundsForSwiper.find(
+      (r) => formatCardVariant(r, currentRoundNumber) === "live"
+    );
+
+    const currentLiveRoundNumber = currentLiveRound
+      ? Number(currentLiveRound.number)
+      : null;
+      const shouldJumpToLive =
+      (!initialSlideJumped.current && swiperReady) || // Initial load when swiper is ready
+      (currentLiveRoundNumber !== null &&
+        currentLiveRoundNumber !== lastLiveRoundRef.current) ||
+      timeLeft === 0;
+
+      if (shouldJumpToLive && currentLiveRound) {
+        try {
+          console.log(
+            `Jumping to live slide at index ${liveIndex}, round ${currentLiveRoundNumber}`
+          );
+          // Use immediate jump (0ms) for initial load, smooth for updates
+          const duration = initialSlideJumped.current ? 300 : 0;
+          swiper.slideTo(liveIndex, duration);
+          initialSlideJumped.current = true;
+          lastLiveRoundRef.current = currentLiveRoundNumber;
+        } catch (error) {
+          console.error("Error sliding to live index:", error);
+        }
+      }
+    }, [
+    liveIndex,
+    finalDisplayRoundsForSwiper,
+    currentRoundNumber,
+    timeLeft,
+    formatCardVariant,
+    swiperReady,
+  ]);
+
+  useEffect(() => {
     if (timeLeft === 0) {
       initialSlideJumped.current = false;
-      // Protect with try/catch to prevent crashes
-      try {
-        safeFetchMoreRounds();
-      } catch (error) {
-        console.error("Error refreshing rounds:", error);
-      }
+      safeFetchMoreRounds();
     }
-  }, [liveIndex, timeLeft, safeFetchMoreRounds]);
+  }, [timeLeft, safeFetchMoreRounds]);
 
   // Improve visibility change handler with better API error handling
   useEffect(() => {
@@ -584,12 +648,12 @@ export default function PredictionCards() {
     const handleVisibility = async () => {
       if (document.visibilityState === "visible" && !isRefreshing) {
         isRefreshing = true;
+        
+        initialSlideJumped.current = false;
 
         try {
-          // Run these in parallel but handle errors independently
           const tasks = [];
 
-          // fetchMoreRounds is always defined from the hook
           tasks.push(
             safeFetchMoreRounds().catch((err) => {
               console.error(
@@ -618,12 +682,10 @@ export default function PredictionCards() {
             );
           }
 
-          // Use Promise.allSettled to ensure all promises complete regardless of success/failure
           await Promise.allSettled(tasks);
         } catch (error) {
           console.error("Error during visibility change refresh:", error);
         } finally {
-          // Add a small delay before allowing refreshes again to prevent hammering the server
           setTimeout(() => {
             isRefreshing = false;
           }, 2000);
@@ -635,6 +697,7 @@ export default function PredictionCards() {
     return () =>
       document.removeEventListener("visibilitychange", handleVisibility);
   }, [fetchMoreRounds, fetchUserBets, safeFetchMoreRounds]);
+
 
   const formatTimeLeft = (seconds: number | null) => {
     if (seconds === null || seconds <= 0) return "Locked";
@@ -662,16 +725,19 @@ export default function PredictionCards() {
                 <p className="text-[10px] pl-4 sm:text-[12px] lg:text-[20px]">
                   SOL/USDT
                 </p>
-                <p className={`text-[10px] sm:text-[12px] transition-colors duration-300 ${priceColor}`}>
-                  $<NumberFlow
+                <p
+                  className={`text-[10px] sm:text-[12px] transition-colors duration-300 ${priceColor}`}
+                >
+                  $
+                  <NumberFlow
                     value={liveRoundPrice}
                     format={{
                       minimumFractionDigits: 4,
-                      maximumFractionDigits: 4
+                      maximumFractionDigits: 4,
                     }}
                     transformTiming={{
                       duration: 750,
-                      easing: 'ease-out'
+                      easing: "ease-out",
                     }}
                   />
                 </p>
@@ -700,7 +766,9 @@ export default function PredictionCards() {
                   strokeWidth="5"
                   strokeLinecap="round"
                   strokeDasharray="283" // 2πr ≈ 283 (for r=45)
-                  strokeDashoffset={isLocked ? 0 : 283 - 283 * (1 - (timeLeft ?? 0) / 120)} // Adjusted calculation with null check
+                  strokeDashoffset={
+                    isLocked ? 0 : 283 - 283 * (1 - (timeLeft ?? 0) / 120)
+                  } // Adjusted calculation with null check
                   transform="rotate(-90 50 50)"
                 />
 
@@ -729,16 +797,18 @@ export default function PredictionCards() {
               {/* Time display in center */}
               <div className="absolute flex flex-col items-center justify-center z-10">
                 <span
-                  className={`font-semibold text-[12px] sm:text-[16px] lg:text-[24px] ${theme === "dark" ? "text-white" : "text-gray-900"
-                    }`}
+                  className={`font-semibold text-[12px] sm:text-[16px] lg:text-[24px] ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}
                 >
                   {isLocked ? "Closing" : formatTimeLeft(timeLeft)}
                 </span>
                 <span
-                  className={`text-[8px] sm:text-[10px] lg:text-[12px] ${theme === "dark" ? "text-[#D1D5DB]" : "text-gray-500"
-                    }`}
+                  className={`text-[8px] sm:text-[10px] lg:text-[12px] ${
+                    theme === "dark" ? "text-[#D1D5DB]" : "text-gray-500"
+                  }`}
                 >
-                  {config ? config.lockDuration / 60 : 2 }m
+                  {config ? config.lockDuration / 60 : 2}m
                 </span>
               </div>
             </div>
@@ -807,7 +877,8 @@ export default function PredictionCards() {
                 />
                 <h3 className="text-xl font-semibold">Connect Your Wallet</h3>
                 <p className="text-sm opacity-70">
-                  To start predicting SOL price movements and placing bets, please connect your Solana wallet.
+                  To start predicting SOL price movements and placing bets,
+                  please connect your Solana wallet.
                 </p>
                 <div className="flex flex-col gap-2 text-xs opacity-60">
                   <p>• View live prediction rounds</p>
@@ -821,8 +892,25 @@ export default function PredictionCards() {
             // Show cards only when wallet is connected
             <div className="relative">
               <Swiper
-                onSwiper={(swiper) => {
+                 onSwiper={(swiper) => {
                   swiperRef.current = swiper;
+                  // Set swiper ready and immediately jump to live slide
+                  setTimeout(() => {
+                    setSwiperReady(true);
+                    // Immediately jump to live slide on initialization
+                    const currentLiveRound = finalDisplayRoundsForSwiper.find(
+                      (r) => formatCardVariant(r, currentRoundNumber) === "live"
+                    );
+                    if (currentLiveRound) {
+                      const liveIdx = finalDisplayRoundsForSwiper.findIndex(
+                        (r) => formatCardVariant(r, currentRoundNumber) === "live"
+                      );
+                      if (liveIdx >= 0) {
+                        swiper.slideTo(liveIdx, 0); // Immediate jump, no animation
+                        initialSlideJumped.current = true;
+                      }
+                    }
+                  }, 100);
                 }}
                 onSlideChange={handleSlideChange}
                 effect="coverflow"
@@ -851,25 +939,26 @@ export default function PredictionCards() {
                   }
                   const roundNumber = Number(round.number);
                   const startTimeMs =
-                    typeof round.startTime === "number" && !isNaN(round.startTime)
+                    typeof round.startTime === "number" &&
+                    !isNaN(round.startTime)
                       ? round.startTime * 1000
                       : round.startTime instanceof Date
-                        ? round.startTime.getTime()
-                        : 0;
+                      ? round.startTime.getTime()
+                      : 0;
                   const lockTime =
                     round.lockTime instanceof Date
                       ? round.lockTime.getTime() / 1000
                       : typeof round.lockTime === "string" &&
                         !isNaN(Number(round.lockTime))
-                        ? Number(round.lockTime)
-                        : startTimeMs / 1000 + 120;
+                      ? Number(round.lockTime)
+                      : startTimeMs / 1000 + 120;
                   const closeTime =
                     round.closeTime instanceof Date
                       ? round.closeTime.getTime() / 1000
                       : typeof round.closeTime === "string" &&
                         !isNaN(Number(round.closeTime))
-                        ? Number(round.closeTime)
-                        : lockTime + 120;
+                      ? Number(round.closeTime)
+                      : lockTime + 120;
 
                   // Get the variant for this card
                   const cardVariant = formatCardVariant(
@@ -891,9 +980,12 @@ export default function PredictionCards() {
                             ? round.endPrice / 1e8
                             : liveRoundPrice,
                           currentPrice:
-                            liveRoundPrice || (round.lockPrice || 50 * 1e8) / 1e8,
-                          prizePool: (round.totalAmount || 0) / LAMPORTS_PER_SOL,
-                          upBets: (round.totalBullAmount || 0) / LAMPORTS_PER_SOL,
+                            liveRoundPrice ||
+                            (round.lockPrice || 50 * 1e8) / 1e8,
+                          prizePool:
+                            (round.totalAmount || 0) / LAMPORTS_PER_SOL,
+                          upBets:
+                            (round.totalBullAmount || 0) / LAMPORTS_PER_SOL,
                           downBets:
                             (round.totalBearAmount || 0) / LAMPORTS_PER_SOL,
                           timeRemaining: Math.max(
@@ -902,12 +994,12 @@ export default function PredictionCards() {
                           ),
                           lockTimeRemaining:
                             timeLeft !== null &&
-                              roundNumber === Number(config?.currentRound)
+                            roundNumber === Number(config?.currentRound)
                               ? timeLeft
                               : Math.max(0, lockTime - Date.now() / 1000),
                           lockTime:
                             timeLeft !== null &&
-                              roundNumber === Number(config?.currentRound)
+                            roundNumber === Number(config?.currentRound)
                               ? Date.now() / 1000 + timeLeft
                               : lockTime,
                           closeTime,
@@ -947,10 +1039,10 @@ export default function PredictionCards() {
           )}
         </div>
 
-        <LiveBets 
-          currentRound={Number(currentRound?.number) ?? null} 
-          key={currentRound?.number} 
-          className="animate-fadeOut" 
+        <LiveBets
+          currentRound={Number(currentRound?.number) ?? null}
+          key={currentRound?.number}
+          className="animate-fadeOut"
         />
       </div>
     </div>

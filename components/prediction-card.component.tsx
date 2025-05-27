@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react";
 import Button from "./button.component";
 import SVG from "./svg.component";
+import BigBet from "@/public/assets/Big-Bet.png";
 import Image from "next/image";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import SolanaBg from "@/public/assets/solana_bg.png";
 import { ArrowDown, ArrowUp } from "lucide-react";
-import NumberFlow from '@number-flow/react';
+import NumberFlow from "@number-flow/react";
 import { UserBet } from "@/types/round";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import toast from "react-hot-toast";
@@ -199,6 +200,10 @@ export default function PredictionCard({
       toast("Betting is not available for this round");
       return;
     }
+    if (userBetStatus !== null) {
+      toast("You have already placed a bet on this round");
+      return;
+    }
     setIsFlipped(true);
     setMode(mode);
   };
@@ -216,6 +221,27 @@ export default function PredictionCard({
       toast("Betting is not available for this round");
       return;
     }
+
+    if (amount > 1) {
+      toast.custom((t) => (
+        <div className="glass flex flex-col p-4 rounded-lg shadow-lg">
+          <div className="w-full">
+            <Image
+              alt="Solana Background"
+              src={BigBet || "/placeholder.svg"}
+              className="rounded-[10px] w-full h-[182px] object-cover"
+              width={415}
+              height={242}
+            />
+          </div>
+          <div className="py-3">
+            <h2 className="text-xl font-semibold">Big Bet Notification</h2>
+            <p className="mt-1 text-sm">John Doe made a {amount} SOL bet</p>
+          </div>
+        </div>
+      ))
+    }
+   
     if (onPlaceBet && mode && roundId) {
       onPlaceBet(mode, amount, roundId);
       setIsFlipped(false);
@@ -225,7 +251,9 @@ export default function PredictionCard({
   };
 
   const handleCustomAmount = (percentage: number) => {
-    setAmount(Number((maxAmount * percentage).toFixed(2)));
+    const calculatedAmount = maxAmount * percentage;
+    const clampedAmount = Math.max(0.01, Math.min(calculatedAmount, maxAmount));
+    setAmount(Math.round(clampedAmount * 100) / 100);
   };
 
   const getButtonStyle = (direction: "up" | "down") => {
@@ -243,7 +271,9 @@ export default function PredictionCard({
 
   const renderNextRoundContent = () => {
     if (variant !== "next") return null;
+    const hasUserBet = userBetStatus !== null;
 
+    let buttonDisabled = isLocked || hasUserBet;
     if (!roundData) {
       return (
         <div className="flex-1 glass h-[300px] flex flex-col items-center justify-center rounded-[20px] px-[19px] py-[8.5px]">
@@ -268,79 +298,62 @@ export default function PredictionCard({
 
     return (
       <div className="flex-1 glass h-[300px] flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
-        {!canBet ? (
-          <div className="flex flex-col items-center gap-3 justify-center h-[250px]">
-            {isLocked ? (
-              <>
-                <p className="text-xl font-semibold text-center">Locked</p>
-                <p className="text-sm opacity-70 text-center">
-                  This round is now live
-                </p>
-              </>
-            ) : (
-              <>
-                <DotLoader
-                  color="#ffffff"
-                  size={40}
-                  aria-label="Loading Spinner"
-                  data-testid="loader"
-                />
-                <h2 className="text-2xl font-semibold mt-4 text-center">
-                  Preparing Round...
-                </h2>
-              </>
-            )}
+        <div className="flex flex-col items-center gap-[7px]">
+          <Image
+            alt="Solana Background"
+            src={SolanaBg || "/placeholder.svg"}
+            className="rounded-[10px] w-[215px] h-[142px] object-cover"
+            width={215}
+            height={142}
+          />
+          <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
+            <p>Prize Pool</p>
+            <p>{roundData.prizePool.toFixed(4)} SOL</p>
           </div>
-        ) : (
-          <>
-            <div className="flex flex-col items-center gap-[7px]">
-              <Image
-                alt="Solana Background"
-                src={SolanaBg || "/placeholder.svg"}
-                className="rounded-[10px] w-[215px] h-[142px] object-cover"
-                width={215}
-                height={142}
-              />
-              <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
-                <p>Prize Pool</p>
-                <p>{roundData.prizePool.toFixed(4)} SOL</p>
-              </div>
-              <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
-                <p>Time Left</p>
-                <p>{formatTimeLeft(timeLeft)}</p>
-              </div>
-            </div>
+          <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
+            <p>Time Left</p>
+            <p>{formatTimeLeft(timeLeft)}</p>
+          </div>
+        </div>
 
-            {canBet ? (
-              <>
-                <Button
-                  style={{
-                    background:
-                      "linear-gradient(90deg, #06C729 0%, #04801B 100%)",
-                  }}
-                  onClick={() => handleEnterPrediction("up")}
-                  className="cursor-pointer"
-                >
-                  Enter UP
-                </Button>
-                <Button
-                  style={{
-                    background:
-                      "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)",
-                  }}
-                  onClick={() => handleEnterPrediction("down")}
-                  className="cursor-pointer"
-                >
-                  Enter DOWN
-                </Button>
-              </>
-            ) : (
-              <div className="text-center py-3 font-semibold opacity-70">
-                {isLocked ? "Round Locked" : "Betting Unavailable"}
-              </div>
-            )}
-          </>
-        )}
+        <>
+          <Button
+            style={{
+              background: buttonDisabled
+                ? "#9CA3AF"
+                : "linear-gradient(90deg, #06C729 0%, #04801B 100%)",
+            }}
+            onClick={() =>
+              buttonDisabled ? null : handleEnterPrediction("up")
+            }
+            className={`glass flex flex-col gap-4 py-[16px] ${
+              buttonDisabled
+                ? "opacity-50 cursor-not-allowed"
+                : "cursor-pointer hover:opacity-80"
+            }`}
+            disabled={buttonDisabled}
+          >
+            Enter UP
+          </Button>
+          <Button
+            style={{
+              background: buttonDisabled
+                ? "#9CA3AF"
+                : "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)",
+            }}
+            onClick={() =>
+              buttonDisabled ? null : handleEnterPrediction("down")
+            }
+            className={`glass flex flex-col gap-4 py-[16px] ${
+              buttonDisabled
+                ? "opacity-50 cursor-not-allowed"
+                : "cursor-pointer hover:opacity-80"
+            }`}
+            disabled={buttonDisabled}
+          >
+            Enter DOWN
+          </Button>
+        </>
       </div>
     );
   };
@@ -399,18 +412,17 @@ export default function PredictionCard({
     return (
       <>
         {isLocked ? (
-         
           <div className="flex-1 glass h-[300px] flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
-             <div className="flex flex-col items-center gap-3 justify-center h-[250px]">
-            <DotLoader
-              color="#ffffff"
-              size={40}
-              aria-label="Loading Spinner"
-              data-testid="loader"
-            />
-            <h2 className="text-2xl font-semibold mt-4 text-center">
-              Calculating...
-            </h2>
+            <div className="flex flex-col items-center gap-3 justify-center h-[250px]">
+              <DotLoader
+                color="#ffffff"
+                size={40}
+                aria-label="Loading Spinner"
+                data-testid="loader"
+              />
+              <h2 className="text-2xl font-semibold mt-4 text-center">
+                Calculating...
+              </h2>
             </div>
           </div>
         ) : (
@@ -430,17 +442,19 @@ export default function PredictionCard({
                   <NumberFlow
                     value={formattedRoundData.closePrice}
                     format={{
-                      style: 'currency',
-                      currency: 'USD',
+                      style: "currency",
+                      currency: "USD",
                       minimumFractionDigits: 4,
-                      maximumFractionDigits: 4
+                      maximumFractionDigits: 4,
                     }}
                     className={`${getPriceTextStyle()} ${
-                      priceDirection === "up" ? "text-green-500" : "text-red-500"
+                      priceDirection === "up"
+                        ? "text-green-500"
+                        : "text-red-500"
                     }`}
                     transformTiming={{
                       duration: 800,
-                      easing: 'ease-out'
+                      easing: "ease-out",
                     }}
                   />
                   <div
@@ -664,19 +678,43 @@ export default function PredictionCard({
         </div>
         <input
           type="number"
-          max={maxAmount}
-          value={amount}
-          onChange={(e) => setAmount(Number(e.target.value))}
+          min="0.01"
+          max={maxAmount.toFixed(2)}
+          step="0.01"
+          value={amount.toFixed(2)}
+          onChange={(e) => {
+            const value = parseFloat(e.target.value);
+
+            if (!isNaN(value)) {
+              // Clamp the value between 0.01 and maxAmount
+              const clampedValue = Math.max(0.01, Math.min(value, maxAmount));
+              setAmount(Math.round(clampedValue * 100) / 100);
+            }
+          }}
+          onBlur={(e) => {
+            const value = parseFloat(e.target.value);
+            if (!isNaN(value)) {
+              // Ensure it's within bounds and format to 2 decimal places
+              const clampedValue = Math.max(0.01, Math.min(value, maxAmount));
+              setAmount(Math.round(clampedValue * 100) / 100);
+            } else {
+              setAmount(0.01); // Set minimum value if invalid
+            }
+          }}
           className="glass h-[65px] text-right rounded-[20px] pr-4 font-semibold text-[16px] text-white outline-0"
           placeholder="Enter Value:"
         />
         <input
           type="range"
-          min="0"
+          min="0.01"
           max={maxAmount}
           step="0.01"
-          value={amount}
-          onChange={(e) => setAmount(Number.parseFloat(e.target.value))}
+          value={Math.min(amount, maxAmount)} // Ensure value doesn't exceed max
+          onChange={(e) => {
+            const value = parseFloat(e.target.value);
+            const clampedValue = Math.max(0.01, Math.min(value, maxAmount));
+            setAmount(Math.round(clampedValue * 100) / 100);
+          }}
           className="w-full h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer my-5 accent-gray-500 custom-slider"
         />
         <div className="flex gap-y-[12px] gap-x-[4px] justify-between flex-wrap">
