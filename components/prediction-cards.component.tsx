@@ -222,7 +222,9 @@ export default function PredictionCards() {
     }
 
     try {
-      await handlePlaceBet(roundId, direction === "up", amount);
+
+      const ok = await handlePlaceBet(roundId, direction==="up", amount);
+      if (ok) {
       toast.custom(
         (t) => (
           <div
@@ -255,6 +257,38 @@ export default function PredictionCards() {
         { position: "top-center" }
       );
       await fetchUserBets();
+    }else{
+      toast.custom(
+        (t) => (
+          <div
+            className={`
+             w-full glass text-center  max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+            flex flex-col items-center p-4 mt-12
+             ${
+               theme === "dark"
+                 ? "bg-gray-800 text-white"
+                 : "bg-white text-black"
+             }
+          `}
+            style={{
+              // slide in/out from top
+              animation: t.visible
+                ? "fadeInDown 200ms ease-out forwards"
+                : "fadeOutUp 150ms ease-in forwards",
+            }}
+          >
+            <p className=" max-w-sm mx-auto  text-lg font-semibold">
+              Bet Failed. Please try again
+            </p>
+          </div>
+        ),
+        {
+          position: "top-center",
+        }
+      );
+    }
+    
     } catch (error) {
       console.error("Failed to place bet:", error);
       // toast.error("Failed to place bet");
@@ -329,46 +363,7 @@ export default function PredictionCards() {
       return;
     }
 
-    toast.custom(
-      (t) => (
-        <div
-          className={`
-           w-full glass text-center h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
-          shadow-xl animate-toast-bounce ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
-          flex flex-col items-center p-4 pb-12 mt-16
-           ${
-             theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"
-           }
-        `}
-          style={{
-            // slide in/out from top
-            animation: t.visible
-              ? "fadeInDown 200ms ease-out forwards"
-              : "fadeOutUp 150ms ease-in forwards",
-          }}
-        >
-          <div className="w-full animate-vibrate h-[280px] relative mb-4">
-            <Image
-              src={Cheers}
-              alt="Cheers"
-              fill
-              className="object-contain rounded-xl"
-            />
-          </div>
-
-          <h3 className="font-bold text-2xl animate-toast-pulse mb-2">
-            Cheers to more withdrawals
-          </h3>
-
-          <p className=" max-w-sm mx-auto  text-sm">
-            You have withdrawn {claimableAmountRef.current.toFixed(4)} SOL
-          </p>
-        </div>
-      ),
-      {
-        position: "top-center",
-      }
-    );
+  
 
     setIsClaiming(true);
     try {
@@ -396,8 +391,49 @@ export default function PredictionCards() {
           skipPreflight: false, // Run preflight checks
         }
       );
-      await connectionRef.current.confirmTransaction(signature, "confirmed");
 
+
+      await connectionRef.current.confirmTransaction(signature, "confirmed");
+      toast.custom(
+        (t) => (
+          <div
+            className={`
+             w-full glass text-center h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+            shadow-xl animate-toast-bounce ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+            flex flex-col items-center p-4 pb-12 mt-16
+             ${
+               theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"
+             }
+          `}
+            style={{
+              // slide in/out from top
+              animation: t.visible
+                ? "fadeInDown 200ms ease-out forwards"
+                : "fadeOutUp 150ms ease-in forwards",
+            }}
+          >
+            <div className="w-full animate-vibrate h-[280px] relative mb-4">
+              <Image
+                src={Cheers}
+                alt="Cheers"
+                fill
+                className="object-contain rounded-xl"
+              />
+            </div>
+  
+            <h3 className="font-bold text-2xl animate-toast-pulse mb-2">
+              Cheers to more withdrawals
+            </h3>
+  
+            <p className=" max-w-sm mx-auto  text-sm">
+              You have withdrawn {claimableAmountRef.current.toFixed(4)} SOL
+            </p>
+          </div>
+        ),
+        {
+          position: "top-center",
+        }
+      );
       // Refresh bets after claiming
       await fetchUserBets();
 
