@@ -12,7 +12,7 @@ import NumberFlow from "@number-flow/react";
 import { UserBet } from "@/types/round";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import toast from "react-hot-toast";
-import { DotLoader } from "react-spinners";
+import { DotLoader, PuffLoader } from "react-spinners";
 import { useTheme } from "next-themes";
 
 interface IProps {
@@ -72,12 +72,13 @@ export default function PredictionCard({
   const [amount, setAmount] = useState(0.1);
   const [maxAmount, setMaxAmount] = useState<number>(10);
   const [justBet, setJustBet] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { connected, publicKey } = useWallet();
   const { connection } = useConnection();
 
   const { theme } = useTheme();
 
-  console.log("PredictionCard Props:", roundData);
+
 
   const calculateMultipliers = () => {
     if (!roundData) return { bullMultiplier: "0.00", bearMultiplier: "0.00" };
@@ -193,7 +194,7 @@ export default function PredictionCard({
         status: "ENDED" as const,
       };
 
-  console.log("Formatted Round Data:", formattedRoundData);
+
 
   const handleEnterPrediction = (mode: "up" | "down") => {
     if (!connected) {
@@ -301,7 +302,7 @@ export default function PredictionCard({
     setMode(mode);
   };
 
-  const handlePlaceBet = () => {
+  const handlePlaceBet = async () => {
     if (!connected) {
       toast.custom(
         (t) => (
@@ -408,7 +409,7 @@ export default function PredictionCard({
           <div
             className={`
                             w-full glass text-center h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
-                           shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+                           shadow-xl animate-toast-bounce ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
                            flex flex-col items-start p-4 pb-8 mt-16
                             ${
                               theme === "dark"
@@ -423,7 +424,7 @@ export default function PredictionCard({
                 : "fadeOutUp 150ms ease-in forwards",
             }}
           >
-            <div className="w-full h-[280px] relative mb-4">
+            <div className="w-full animate-vibrate h-[280px] relative mb-4">
               <Image
                 src={BigBet}
                 alt="big bet"
@@ -432,7 +433,7 @@ export default function PredictionCard({
               />
             </div>
 
-            <h3 className="font-bold text-2xl  mb-2">Big Bet Notification</h3>
+            <h3 className="font-bold text-2xl animate-toast-pulse  mb-2">Big Bet Notification</h3>
 
             <p className=" text-sm">John Doe made a {amount} SOL bet</p>
           </div>
@@ -444,12 +445,17 @@ export default function PredictionCard({
     }
 
     if (onPlaceBet && mode && roundId) {
-      setJustBet(true);
-      onPlaceBet(mode, amount, roundId).finally(() => {
+      setIsSubmitting(true);
+      try {
+        setJustBet(true);
+        await onPlaceBet(mode, amount, roundId);
+      } finally {
+        setIsSubmitting(false);
         setIsFlipped(false);
         setMode("");
         setAmount(0.1);
-      });
+        setInputValue("0.10");
+      }
     }
   };
 
@@ -629,7 +635,7 @@ export default function PredictionCard({
             </div>
           </div>
         ) : (
-          <div className="flex flex-col h-[300px] glass p-[10px] rounded-[20px] items-center">
+          <div className="flex flex-col h-[350px] glass p-[10px] rounded-[20px] items-center">
             <div className="max-w-[215px] flex flex-col gap-[33px] justify-between flex-1">
               <Image
                 alt="Solana Background"
@@ -665,7 +671,7 @@ export default function PredictionCard({
                       priceDirection === "up"
                         ? "text-green-500"
                         : "text-red-500"
-                    } px-[10px] py-[5px] rounded-[5px]`}
+                    } px-[10px] py-[10px] rounded-[5px]`}
                   >
                     {priceDirection === "up" ? (
                       <ArrowUp size={12} />
@@ -887,7 +893,10 @@ export default function PredictionCard({
             // only filter out totally invalid characters if you like:
             const raw = e.target.value;
             // allow digits, decimal point, optional leading dash if you ever allow negative
-            if (/^[\d]*\.?[\d]*$/.test(raw) || raw === "") {
+            if (
+              raw === "" ||
+              /^(?:0|[1-9]\d*)(?:\.\d*)?$/.test(raw)
+            ) {
               setInputValue(raw);
             }
           }}
@@ -930,8 +939,12 @@ export default function PredictionCard({
             </div>
           ))}
         </div>
-        <Button className="cursor-pointer" onClick={handlePlaceBet}>
-          Buy {mode?.toUpperCase()} for {amount} SOL
+        <Button  className="cursor-pointer flex items-center justify-center" 
+  disabled={isSubmitting} onClick={handlePlaceBet}>
+           {isSubmitting
+    ? <PuffLoader color="#ffffff" size={20} />
+    : `Buy ${mode?.toUpperCase()} for ${amount} SOL`
+  }
         </Button>
       </div>
     </div>
