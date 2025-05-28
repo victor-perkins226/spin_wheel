@@ -27,7 +27,7 @@ import { useLivePrice } from "@/lib/price-utils";
 import { useProgram } from "@/hooks/useProgram";
 import toast from "react-hot-toast";
 import { useTheme } from "next-themes";
-import { DotLoader } from "react-spinners";
+import { DotLoader, PuffLoader } from "react-spinners";
 
 export default function PredictionCards() {
   const [screenWidth, setScreenWidth] = useState(0);
@@ -40,6 +40,7 @@ export default function PredictionCards() {
   const [previousPrice, setPreviousPrice] = useState(liveRoundPrice);
   const [priceColor, setPriceColor] = useState("text-gray-900");
   const [claimableRewards, setClaimableRewards] = useState(0);
+  const [isClaiming, setIsClaiming] = useState(false);
   const {
     handlePlaceBet,
     handleClaimPayout,
@@ -178,7 +179,7 @@ export default function PredictionCards() {
         (t) => (
           <div
             className={`
-             w-full glass text-center h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+             w-full glass text-center animate-toast-bounce h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
             shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
             flex flex-col items-center p-4 pb-8 mt-16
              ${
@@ -194,7 +195,7 @@ export default function PredictionCards() {
                 : "fadeOutUp 150ms ease-in forwards",
             }}
           >
-            <div className="w-full h-[280px] relative mb-4">
+            <div className="w-full animate-pulse h-[280px] relative mb-4">
               <Image
                 src={Lock}
                 alt="lock"
@@ -203,12 +204,14 @@ export default function PredictionCards() {
               />
             </div>
 
-            <h3 className="font-bold text-2xl text-center  mb-2">
-            Access is restricted in your region.
+            <h3 className="font-bold text-2xl text-center animate-toast-pulse   mb-2">
+              Access is restricted in your region.
             </h3>
 
-            <p className=" text-sm">We can't provide service in your area because of local rules. 
-            Please try from another location or check your settings</p>
+            <p className=" text-sm">
+              We can't provide service in your area because of local rules.
+              Please try from another location or check your settings
+            </p>
           </div>
         ),
         {
@@ -224,23 +227,18 @@ export default function PredictionCards() {
         (t) => (
           <div
             className={`
-             w-full glass text-center h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
-            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
-            flex flex-col items-center p-4 pb-12 mt-16
-             ${
-               theme === "dark"
-                 ? "bg-gray-800 text-white"
-                 : "bg-white text-black"
-             }
-          `}
+              animate-toast-bounce-in w-full glass text-center h-[400px] max-w-[600px] 
+              bg-white dark:bg-gray-800 rounded-2xl shadow-xl ring-1 ring-black ring-opacity-5 
+              overflow-hidden flex flex-col items-center p-4 pb-12 mt-16
+              ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
+            `}
             style={{
-              // slide in/out from top
               animation: t.visible
                 ? "fadeInDown 200ms ease-out forwards"
                 : "fadeOutUp 150ms ease-in forwards",
             }}
           >
-            <div className="w-full h-[280px] relative mb-4">
+            <div className="animate-vibrate w-full h-[280px] relative mb-4">
               <Image
                 src={Success}
                 alt="Big Bet"
@@ -248,17 +246,13 @@ export default function PredictionCards() {
                 className="object-contain rounded-xl"
               />
             </div>
-
-            <h3 className="font-bold text-2xl  mb-2">Bet successful</h3>
-
-            <p className=" max-w-sm mx-auto  text-sm">
+            <h3 className="font-bold text-2xl mb-2 animate-toast-pulse">Bet successful</h3>
+            <p className="max-w-sm mx-auto text-sm">
               You have successfully placed a bet, cheers to potential wins
             </p>
           </div>
         ),
-        {
-          position: "top-center",
-        }
+        { position: "top-center" }
       );
       await fetchUserBets();
     } catch (error) {
@@ -291,14 +285,13 @@ export default function PredictionCards() {
             }}
           >
             <p className=" max-w-sm mx-auto  text-lg font-semibold">
-            Please connect your wallet to claim rewards
+              Please connect your wallet to claim rewards
             </p>
           </div>
         ),
         {
           position: "top-center",
         }
-      
       );
       return;
     }
@@ -332,11 +325,52 @@ export default function PredictionCards() {
         {
           position: "top-center",
         }
-      
       );
       return;
     }
 
+    toast.custom(
+      (t) => (
+        <div
+          className={`
+           w-full glass text-center h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+          shadow-xl animate-toast-bounce ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+          flex flex-col items-center p-4 pb-12 mt-16
+           ${
+             theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"
+           }
+        `}
+          style={{
+            // slide in/out from top
+            animation: t.visible
+              ? "fadeInDown 200ms ease-out forwards"
+              : "fadeOutUp 150ms ease-in forwards",
+          }}
+        >
+          <div className="w-full animate-vibrate h-[280px] relative mb-4">
+            <Image
+              src={Cheers}
+              alt="Cheers"
+              fill
+              className="object-contain rounded-xl"
+            />
+          </div>
+
+          <h3 className="font-bold text-2xl animate-toast-pulse mb-2">
+            Cheers to more withdrawals
+          </h3>
+
+          <p className=" max-w-sm mx-auto  text-sm">
+            You have withdrawn {claimableAmountRef.current.toFixed(4)} SOL
+          </p>
+        </div>
+      ),
+      {
+        position: "top-center",
+      }
+    );
+
+    setIsClaiming(true);
     try {
       // Collect instructions for all claimable bets
       const instructions = await Promise.all(
@@ -371,46 +405,6 @@ export default function PredictionCards() {
       setClaimableRewards(0);
 
       console.log(`Batched payout claimed successfully: ${signature}`);
-      toast.custom(
-        (t) => (
-          <div
-            className={`
-             w-full glass text-center h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
-            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
-            flex flex-col items-center p-4 pb-12 mt-16
-             ${
-               theme === "dark"
-                 ? "bg-gray-800 text-white"
-                 : "bg-white text-black"
-             }
-          `}
-            style={{
-              // slide in/out from top
-              animation: t.visible
-                ? "fadeInDown 200ms ease-out forwards"
-                : "fadeOutUp 150ms ease-in forwards",
-            }}
-          >
-            <div className="w-full h-[280px] relative mb-4">
-              <Image
-                src={Cheers}
-                alt="Cheers"
-                fill
-                className="object-contain rounded-xl"
-              />
-            </div>
-
-            <h3 className="font-bold text-2xl  mb-2">
-              Cheers to more withdrawals
-            </h3>
-
-            <p className=" max-w-sm mx-auto  text-sm">You have withdrawn {claimableAmountRef.current.toFixed(4)} SOL</p>
-          </div>
-        ),
-        {
-          position: "top-center",
-        }
-      );
     } catch (error: any) {
       console.error("Failed to claim rewards:", error);
       let errorMessage = "Failed to claim rewards. Please try again.";
@@ -432,6 +426,8 @@ export default function PredictionCards() {
         errorMessage = "Transaction was not signed.";
       }
       // toast.error(errorMessage);
+    } finally {
+      setIsClaiming(false);
     }
   }, [
     connected,
@@ -509,7 +505,6 @@ export default function PredictionCards() {
       if (error?.name === "AxiosError") {
         console.error("API error when fetching rounds:", error.message);
         // Don't crash the app, just show a toast message
-       
       } else {
         console.error("Error fetching rounds:", error);
       }
@@ -920,7 +915,8 @@ export default function PredictionCards() {
                 </p>
               </div>
             </div>
-           
+
+      
             <div className="relative flex items-center justify-center w-[60px] sm:w-[80px] lg:w-[120px] h-[60px] sm:h-[80px] lg:h-[120px]">
               {/* Circular progress background */}
               <svg className="absolute w-full h-full" viewBox="0 0 100 100">
@@ -1023,11 +1019,15 @@ export default function PredictionCards() {
                     </div>
                   </div>
                   <button
-                    className="glass bg-green-500 py-2 px-4  cursor-pointer rounded-lg font-semibold hover:bg-green-600 transition-colors"
+                    className="glass bg-green-500 py-2 px-4 rounded-lg font-semibold flex items-center justify-center"
                     onClick={handleClaimRewards}
-                    disabled={claimableAmountRef.current === 0}
+                    disabled={claimableAmountRef.current === 0 || isClaiming}
                   >
-                    Claim
+                    {isClaiming ? (
+                      <PuffLoader size={20} color="#fff" />
+                    ) : (
+                      "Claim"
+                    )}
                   </button>
                 </div>
               )}
@@ -1090,7 +1090,7 @@ export default function PredictionCards() {
                   stretch: 0,
                   depth: mounted && screenWidth < 640 ? 50 : 100,
                   modifier: 1,
-                  slideShadows: true,
+                  slideShadows: false,
                 }}
                 modules={[Pagination, EffectCoverflow]}
                 className="w-full px-4 sm:px-0"

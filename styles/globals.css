@@ -223,3 +223,44 @@ input[type="number"] {
   from { opacity: 1; transform: translateY(0); }
   to   { opacity: 0; transform: translateY(-10px); }
 }
+
+@keyframes vibrate {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  20%  { transform: translate(-2px, 2px) rotate(-1deg); }
+  40%  { transform: translate(-2px, -2px) rotate(1deg); }
+  60%  { transform: translate(2px, 2px) rotate(-1deg); }
+  80%  { transform: translate(2px, -2px) rotate(1deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+.animate-vibrate {
+  animation: vibrate 0.4s linear infinite;
+}
+
+@keyframes toast-bounce-in {
+  0%   { transform: scale(0.8); opacity: 0; }
+  60%  { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+.animate-toast-bounce-in {
+  animation: toast-bounce-in 300ms ease-out forwards;
+}
+
+@keyframes toast-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.8; transform: scale(1.05); }
+}
+
+.animate-toast-pulse {
+  animation: toast-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes toast-spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-toast-spin {
+  animation: toast-spin 2s linear infinite;
+}

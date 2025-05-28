@@ -271,7 +271,7 @@ function LiveBets({ currentRound }: LiveBetsProps) {
           {error ? (
             <div className={`${getStateMessageStyle()} ${getErrorStyle()}`}>
               <div>
-                <SVG iconName="clock" width={24} height={24} />
+
                 <div className="mt-2">{error}</div>
                 <button 
                   onClick={() => window.location.reload()}
