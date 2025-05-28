@@ -7,11 +7,12 @@ import { BN, ProgramError } from "@project-serum/anchor";
 import { useProgram } from "./useProgram";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { UserBet, ClaimableBet, UserBetAccount } from "@/types/round";
+import Success from "@/public/assets/success-bet.png";
 import toast from "react-hot-toast";
 
 // Define the return type for the hook
 interface SolPredictorHook {
-    handlePlaceBet: (roundId: number, isBull: boolean, amount: number) => Promise<void>;
+    handlePlaceBet: (roundId: number, isBull: boolean, amount: number) => Promise<boolean>;
     handleClaimPayout: (roundId: number) => Promise<any>;
     fetchUserBets: () => Promise<ClaimableBet[]>;
     claimableBets: ClaimableBet[];
@@ -136,35 +137,35 @@ export const useSolPredictor = (): SolPredictorHook => {
     const handlePlaceBet = useCallback(async (roundId: number, isBull: boolean, amount: number) => {
         if (!publicKey) {
             // toast("Please connect your wallet.");
-            return;
+            return false;
         }
 
         if (!connected || !program) {
             // toast("Please connect your wallet and ensure program is loaded.");
-            return;
+            return false;
         }
 
         if (amount <= 0) {
             // toast("Please enter a valid bet amount.");
-            return;
+            return false;
         }
 
         if (amount < 0.001) {
             // toast("Minimum bet amount is 0.001 SOL.");
-            return;
+            return false;
         }
 
         // Prevent duplicate submissions
         if (isPlacingBet) {
             // toast("Transaction in progress, please wait...");
-            return;
+            return false;
         }
 
         // Create unique transaction identifier
         const transactionId = `${roundId}-${isBull}-${amount}-${Date.now()}`;
         if (pendingTransactionRef.current === transactionId) {
             // toast("Duplicate transaction detected, please wait...");
-            return;
+            return false;
         }
 
         setIsPlacingBet(true);
@@ -182,19 +183,19 @@ export const useSolPredictor = (): SolPredictorHook => {
                     const lockTime = Number(roundAccount.lockTime);
                     if (now >= lockTime) {
                         // toast("This round is no longer accepting bets.");
-                        return;
+                        return false;
                     }
 
                     if (!roundAccount.isActive) {
                         // toast("This round is not active.");
-                        return;
+                        return false;
                     }
                 }
             } catch (roundError: any) {
                 if (!roundError.message?.includes("Account does not exist")) {
                     console.error("Error validating round:", roundError);
                     // toast("Failed to validate round. Please try again.");
-                    return;
+                    return false;
                 }
                 console.log(`Round ${roundId} account doesn't exist yet, proceeding with bet placement`);
             }
@@ -226,9 +227,8 @@ export const useSolPredictor = (): SolPredictorHook => {
                     .rpc();
 
                 await fetchUserBets();
-                console.log(`Bet placed successfully: ${tx}`);
-                // toast("Bet placed successfully!");
-
+                return true;
+                
             } catch (rpcError: any) {
                 console.error("RPC Error details:", rpcError);
                 
@@ -263,39 +263,39 @@ export const useSolPredictor = (): SolPredictorHook => {
                             // toast(`Program error: ${rpcError.msg || `Code ${errorCode}`}`);
                             break;
                     }
-                    return;
+                    return false;
                 }
 
                 // Handle other RPC errors
                 if (rpcError.message?.includes("This transaction has already been processed")) {
                     // toast("Transaction already processed. Please check your bets.");
                     await fetchUserBets();
-                    return;
+                    return false;
                 }
 
                 if (rpcError.message?.includes("Transaction was not confirmed")) {
                     // toast("Transaction failed to confirm. Please try again with a new transaction.");
-                    return;
+                    return false;
                 }
 
                 if (rpcError.message?.includes("Blockhash not found")) {
                     // toast("Transaction expired. Please try again.");
-                    return;
+                    return false;
                 }
 
                 if (rpcError.message?.includes("User rejected") || rpcError.message?.includes("User denied")) {
                     // toast("Transaction was cancelled.");
-                    return;
+                    return false;
                 }
 
                 if (rpcError.message?.includes("insufficient funds")) {
                     // toast("Insufficient SOL balance to place bet.");
-                    return;
+                    return false;
                 }
 
                 if (rpcError.message?.includes("Account does not exist")) {
                     // toast("Round not yet initialized. Please try again in a moment.");
-                    return;
+                    return false;
                 }
 
                 // Log detailed error for debugging
@@ -304,12 +304,13 @@ export const useSolPredictor = (): SolPredictorHook => {
                     console.error("Error logs:", rpcError.logs);
                 }
 
-                // Generic error fallback
                 // toast(`Failed to place bet: ${rpcError.message || "Unknown error"}`);
+                return false;
             }
             
         } catch (error: any) {
             console.error("Place bet failed", error);
+            return false;
             
             // Final fallback error handling
             // toast(`An unexpected error occurred: ${error.message || "Unknown error"}`);
