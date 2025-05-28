@@ -133,7 +133,7 @@ export async function placeBet(
       // Handle specific duplicate transaction error
       if (sendError.message?.includes("This transaction has already been processed")) {
         console.log("Transaction already processed, checking if it was successful");
-        toast("Transaction already processed. Please check your bets.");
+        // toast("Transaction already processed. Please check your bets.");
         return null;
       }
       throw sendError;

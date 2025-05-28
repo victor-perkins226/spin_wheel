@@ -69,7 +69,7 @@ export default function PredictionCard({
   const [isFlipped, setIsFlipped] = useState(false);
   const [mode, setMode] = useState<"up" | "down" | "">("");
   const [inputValue, setInputValue] = useState("0.1");
-  const [amount, setAmount]       = useState(0.1); 
+  const [amount, setAmount] = useState(0.1);
   const [maxAmount, setMaxAmount] = useState<number>(10);
   const [justBet, setJustBet] = useState(false);
   const { connected, publicKey } = useWallet();
@@ -125,7 +125,7 @@ export default function PredictionCard({
 
   const userBetStatus =
     userBets?.find((bet) => bet.roundId === roundId) || null;
-    const hasUserBet = userBetStatus !== null || justBet;
+  const hasUserBet = userBetStatus !== null || justBet;
 
   const getPriceMovement = () => {
     if (!roundData) return { difference: 0, direction: "up" as "up" | "down" };
@@ -197,15 +197,104 @@ export default function PredictionCard({
 
   const handleEnterPrediction = (mode: "up" | "down") => {
     if (!connected) {
-      toast("Please connect your wallet first");
+      toast.custom(
+        (t) => (
+          <div
+            className={`
+             w-full glass text-center  max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+            flex flex-col items-center p-4 mt-12
+             ${
+               theme === "dark"
+                 ? "bg-gray-800 text-white"
+                 : "bg-white text-black"
+             }
+          `}
+            style={{
+              // slide in/out from top
+              animation: t.visible
+                ? "fadeInDown 200ms ease-out forwards"
+                : "fadeOutUp 150ms ease-in forwards",
+            }}
+          >
+            <p className=" max-w-sm mx-auto  text-lg font-semibold">
+            Please connect your wallet first
+            </p>
+          </div>
+        ),
+        {
+          position: "top-center",
+        }
+      
+      );
       return;
     }
     if (!canBet) {
-      toast("Betting is not available for this round");
+      // toast("Betting is not available for this round");
+       toast.custom(
+              (t) => (
+                <div
+                  className={`
+                   w-full glass text-center  max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+                  shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+                  flex flex-col items-center p-4 mt-12
+                   ${
+                     theme === "dark"
+                       ? "bg-gray-800 text-white"
+                       : "bg-white text-black"
+                   }
+                `}
+                  style={{
+                    // slide in/out from top
+                    animation: t.visible
+                      ? "fadeInDown 200ms ease-out forwards"
+                      : "fadeOutUp 150ms ease-in forwards",
+                  }}
+                >
+                  <p className=" max-w-sm mx-auto  text-lg font-semibold">
+                  Betting is not available for this round
+                  </p>
+                </div>
+              ),
+              {
+                position: "top-center",
+              }
+            
+            );
       return;
     }
     if (userBetStatus !== null) {
-      toast("You have already placed a bet on this round");
+      // toast("You have already placed a bet on this round");
+      toast.custom(
+        (t) => (
+          <div
+            className={`
+             w-full glass text-center  max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+            flex flex-col items-center p-4 mt-12
+             ${
+               theme === "dark"
+                 ? "bg-gray-800 text-white"
+                 : "bg-white text-black"
+             }
+          `}
+            style={{
+              // slide in/out from top
+              animation: t.visible
+                ? "fadeInDown 200ms ease-out forwards"
+                : "fadeOutUp 150ms ease-in forwards",
+            }}
+          >
+            <p className=" max-w-sm mx-auto  text-lg font-semibold">
+            You have already placed a bet on this round.
+            </p>
+          </div>
+        ),
+        {
+          position: "top-center",
+        }
+      
+      );
       return;
     }
     setIsFlipped(true);
@@ -214,38 +303,146 @@ export default function PredictionCard({
 
   const handlePlaceBet = () => {
     if (!connected) {
-      toast("Please connect your wallet first");
+      toast.custom(
+        (t) => (
+          <div
+            className={`
+             w-full glass text-center  max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+            flex flex-col items-center p-4 mt-12
+             ${
+               theme === "dark"
+                 ? "bg-gray-800 text-white"
+                 : "bg-white text-black"
+             }
+          `}
+            style={{
+              // slide in/out from top
+              animation: t.visible
+                ? "fadeInDown 200ms ease-out forwards"
+                : "fadeOutUp 150ms ease-in forwards",
+            }}
+          >
+            <p className=" max-w-sm mx-auto  text-lg font-semibold">
+            Please connect your wallet first
+            </p>
+          </div>
+        ),
+        {
+          position: "top-center",
+        }
+      
+      );
       return;
     }
     if (amount <= 0) {
-      toast("Please enter a valid amount");
+      toast.custom(
+        (t) => (
+          <div
+            className={`
+             w-full glass text-center  max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+            flex flex-col items-center p-4 mt-12
+             ${
+               theme === "dark"
+                 ? "bg-gray-800 text-white"
+                 : "bg-white text-black"
+             }
+          `}
+            style={{
+              // slide in/out from top
+              animation: t.visible
+                ? "fadeInDown 200ms ease-out forwards"
+                : "fadeOutUp 150ms ease-in forwards",
+            }}
+          >
+            <p className=" max-w-sm mx-auto  text-lg font-semibold">
+            Please enter a valid amount
+            </p>
+          </div>
+        ),
+        {
+          position: "top-center",
+        }
+      
+      );
       return;
     }
     if (!canBet) {
-      toast("Betting is not available for this round");
+      toast.custom(
+        (t) => (
+          <div
+            className={`
+             w-full glass text-center  max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+            flex flex-col items-center p-4 mt-12
+             ${
+               theme === "dark"
+                 ? "bg-gray-800 text-white"
+                 : "bg-white text-black"
+             }
+          `}
+            style={{
+              // slide in/out from top
+              animation: t.visible
+                ? "fadeInDown 200ms ease-out forwards"
+                : "fadeOutUp 150ms ease-in forwards",
+            }}
+          >
+            <p className=" max-w-sm mx-auto  text-lg font-semibold">
+            Betting is not available for this round
+            </p>
+          </div>
+        ),
+        {
+          position: "top-center",
+        }
+      
+      );
       return;
     }
 
     if (amount > 1) {
-      toast.custom((t) => (
-        <div className="glass flex flex-col p-4 rounded-lg shadow-lg">
-          <div className="w-full">
-            <Image
-              alt="Solana Background"
-              src={BigBet || "/placeholder.svg"}
-              className="rounded-[10px] w-full h-[182px] object-cover"
-              width={415}
-              height={242}
-            />
+      toast.custom(
+        (t) => (
+          <div
+            className={`
+                            w-full glass text-center h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+                           shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+                           flex flex-col items-start p-4 pb-8 mt-16
+                            ${
+                              theme === "dark"
+                                ? "bg-gray-800 text-white"
+                                : "bg-white text-black"
+                            }
+                         `}
+            style={{
+              // slide in/out from top
+              animation: t.visible
+                ? "fadeInDown 200ms ease-out forwards"
+                : "fadeOutUp 150ms ease-in forwards",
+            }}
+          >
+            <div className="w-full h-[280px] relative mb-4">
+              <Image
+                src={BigBet}
+                alt="big bet"
+                fill
+                className="object-cover rounded-xl"
+              />
+            </div>
+
+            <h3 className="font-bold text-2xl  mb-2">Big Bet Notification</h3>
+
+            <p className=" text-sm">John Doe made a {amount} SOL bet</p>
           </div>
-          <div className="py-3">
-            <h2 className="text-xl font-semibold">Big Bet Notification</h2>
-            <p className="mt-1 text-sm">John Doe made a {amount} SOL bet</p>
-          </div>
-        </div>
-      ))
+        ),
+        {
+          position: "top-center",
+        }
+      );
     }
-   
+
     if (onPlaceBet && mode && roundId) {
       setJustBet(true);
       onPlaceBet(mode, amount, roundId).finally(() => {
@@ -253,7 +450,7 @@ export default function PredictionCard({
         setMode("");
         setAmount(0.1);
       });
-     }
+    }
   };
 
   const handleCustomAmount = (percentage: number) => {
@@ -682,11 +879,11 @@ export default function PredictionCard({
             <p className="font-semibold text-[15px]">SOL</p>
           </div>
         </div>
-         <input
-          type="text"                              // allows any characters
+        <input
+          type="text" // allows any characters
           value={inputValue}
           placeholder="Enter Value:"
-          onChange={e => {
+          onChange={(e) => {
             // only filter out totally invalid characters if you like:
             const raw = e.target.value;
             // allow digits, decimal point, optional leading dash if you ever allow negative

@@ -135,35 +135,35 @@ export const useSolPredictor = (): SolPredictorHook => {
 
     const handlePlaceBet = useCallback(async (roundId: number, isBull: boolean, amount: number) => {
         if (!publicKey) {
-            toast("Please connect your wallet.");
+            // toast("Please connect your wallet.");
             return;
         }
 
         if (!connected || !program) {
-            toast("Please connect your wallet and ensure program is loaded.");
+            // toast("Please connect your wallet and ensure program is loaded.");
             return;
         }
 
         if (amount <= 0) {
-            toast("Please enter a valid bet amount.");
+            // toast("Please enter a valid bet amount.");
             return;
         }
 
         if (amount < 0.001) {
-            toast("Minimum bet amount is 0.001 SOL.");
+            // toast("Minimum bet amount is 0.001 SOL.");
             return;
         }
 
         // Prevent duplicate submissions
         if (isPlacingBet) {
-            toast("Transaction in progress, please wait...");
+            // toast("Transaction in progress, please wait...");
             return;
         }
 
         // Create unique transaction identifier
         const transactionId = `${roundId}-${isBull}-${amount}-${Date.now()}`;
         if (pendingTransactionRef.current === transactionId) {
-            toast("Duplicate transaction detected, please wait...");
+            // toast("Duplicate transaction detected, please wait...");
             return;
         }
 
@@ -181,19 +181,19 @@ export const useSolPredictor = (): SolPredictorHook => {
                     const now = Date.now() / 1000;
                     const lockTime = Number(roundAccount.lockTime);
                     if (now >= lockTime) {
-                        toast("This round is no longer accepting bets.");
+                        // toast("This round is no longer accepting bets.");
                         return;
                     }
 
                     if (!roundAccount.isActive) {
-                        toast("This round is not active.");
+                        // toast("This round is not active.");
                         return;
                     }
                 }
             } catch (roundError: any) {
                 if (!roundError.message?.includes("Account does not exist")) {
                     console.error("Error validating round:", roundError);
-                    toast("Failed to validate round. Please try again.");
+                    // toast("Failed to validate round. Please try again.");
                     return;
                 }
                 console.log(`Round ${roundId} account doesn't exist yet, proceeding with bet placement`);
@@ -227,7 +227,7 @@ export const useSolPredictor = (): SolPredictorHook => {
 
                 await fetchUserBets();
                 console.log(`Bet placed successfully: ${tx}`);
-                toast("Bet placed successfully!");
+                // toast("Bet placed successfully!");
 
             } catch (rpcError: any) {
                 console.error("RPC Error details:", rpcError);
@@ -239,28 +239,28 @@ export const useSolPredictor = (): SolPredictorHook => {
                     
                     switch (errorCode) {
                         case 6012:
-                            toast("Contract is paused.");
+                            // toast("Contract is paused.");
                             break;
                         case 6013:
-                            toast("Bet amount must be at least 0.001 SOL.");
+                            // toast("Bet amount must be at least 0.001 SOL.");
                             break;
                         case 6014:
-                            toast("You have already bet in this round.");
+                            // toast("You have already bet in this round.");
                             break;
                         case 6022:
-                            toast("Round is locked for betting.");
+                            // toast("Round is locked for betting.");
                             break;
                         case 6001:
-                            toast("Round is not active.");
+                            // toast("Round is not active.");
                             break;
                         case 6007:
-                            toast("Invalid round number.");
+                            // toast("Invalid round number.");
                             break;
                         case 6010:
-                            toast("Insufficient funds in escrow.");
+                            // toast("Insufficient funds in escrow.");
                             break;
                         default:
-                            toast(`Program error: ${rpcError.msg || `Code ${errorCode}`}`);
+                            // toast(`Program error: ${rpcError.msg || `Code ${errorCode}`}`);
                             break;
                     }
                     return;
@@ -268,33 +268,33 @@ export const useSolPredictor = (): SolPredictorHook => {
 
                 // Handle other RPC errors
                 if (rpcError.message?.includes("This transaction has already been processed")) {
-                    toast("Transaction already processed. Please check your bets.");
+                    // toast("Transaction already processed. Please check your bets.");
                     await fetchUserBets();
                     return;
                 }
 
                 if (rpcError.message?.includes("Transaction was not confirmed")) {
-                    toast("Transaction failed to confirm. Please try again with a new transaction.");
+                    // toast("Transaction failed to confirm. Please try again with a new transaction.");
                     return;
                 }
 
                 if (rpcError.message?.includes("Blockhash not found")) {
-                    toast("Transaction expired. Please try again.");
+                    // toast("Transaction expired. Please try again.");
                     return;
                 }
 
                 if (rpcError.message?.includes("User rejected") || rpcError.message?.includes("User denied")) {
-                    toast("Transaction was cancelled.");
+                    // toast("Transaction was cancelled.");
                     return;
                 }
 
                 if (rpcError.message?.includes("insufficient funds")) {
-                    toast("Insufficient SOL balance to place bet.");
+                    // toast("Insufficient SOL balance to place bet.");
                     return;
                 }
 
                 if (rpcError.message?.includes("Account does not exist")) {
-                    toast("Round not yet initialized. Please try again in a moment.");
+                    // toast("Round not yet initialized. Please try again in a moment.");
                     return;
                 }
 
@@ -305,14 +305,14 @@ export const useSolPredictor = (): SolPredictorHook => {
                 }
 
                 // Generic error fallback
-                toast(`Failed to place bet: ${rpcError.message || "Unknown error"}`);
+                // toast(`Failed to place bet: ${rpcError.message || "Unknown error"}`);
             }
             
         } catch (error: any) {
             console.error("Place bet failed", error);
             
             // Final fallback error handling
-            toast(`An unexpected error occurred: ${error.message || "Unknown error"}`);
+            // toast(`An unexpected error occurred: ${error.message || "Unknown error"}`);
         } finally {
             setIsPlacingBet(false);
             pendingTransactionRef.current = null;

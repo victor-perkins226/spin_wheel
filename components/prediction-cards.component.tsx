@@ -14,6 +14,8 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { Connection, LAMPORTS_PER_SOL, Transaction } from "@solana/web3.js";
 import { MobileLiveBets } from "./MobileBets";
 import Cheers from "@/public/assets/cheers.png";
+import Success from "@/public/assets/success-bet.png";
+import Lock from "@/public/assets/lock.png";
 import NumberFlow from "@number-flow/react";
 import LiveBets from "./LiveBets";
 import { useRoundManager } from "@/hooks/roundManager";
@@ -49,7 +51,7 @@ export default function PredictionCards() {
   const { program } = useProgram();
   const initialSlideJumped = useRef(false);
   const lastLiveRoundRef = useRef<number | null>(null);
-  const [swiperReady, setSwiperReady] = useState(false); 
+  const [swiperReady, setSwiperReady] = useState(false);
   const { theme } = useTheme();
   const {
     config,
@@ -171,30 +173,167 @@ export default function PredictionCards() {
     roundId: number
   ) => {
     if (!connected || !publicKey || !connectionRef.current) {
-      toast.error("Please connect your wallet to place a bet");
+      // toast.error("Please connect your wallet to place a bet");
+      toast.custom(
+        (t) => (
+          <div
+            className={`
+             w-full glass text-center h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+            flex flex-col items-center p-4 pb-8 mt-16
+             ${
+               theme === "dark"
+                 ? "bg-gray-800 text-white"
+                 : "bg-white text-black"
+             }
+          `}
+            style={{
+              // slide in/out from top
+              animation: t.visible
+                ? "fadeInDown 200ms ease-out forwards"
+                : "fadeOutUp 150ms ease-in forwards",
+            }}
+          >
+            <div className="w-full h-[280px] relative mb-4">
+              <Image
+                src={Lock}
+                alt="lock"
+                fill
+                className="object-contain rounded-xl"
+              />
+            </div>
+
+            <h3 className="font-bold text-2xl text-center  mb-2">
+            Access is restricted in your region.
+            </h3>
+
+            <p className=" text-sm">We can't provide service in your area because of local rules. 
+            Please try from another location or check your settings</p>
+          </div>
+        ),
+        {
+          position: "top-center",
+        }
+      );
       return;
     }
 
     try {
       await handlePlaceBet(roundId, direction === "up", amount);
-      toast.success(
-        `Bet placed: ${amount} SOL ${direction} on round ${roundId}`
+      toast.custom(
+        (t) => (
+          <div
+            className={`
+             w-full glass text-center h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+            flex flex-col items-center p-4 pb-12 mt-16
+             ${
+               theme === "dark"
+                 ? "bg-gray-800 text-white"
+                 : "bg-white text-black"
+             }
+          `}
+            style={{
+              // slide in/out from top
+              animation: t.visible
+                ? "fadeInDown 200ms ease-out forwards"
+                : "fadeOutUp 150ms ease-in forwards",
+            }}
+          >
+            <div className="w-full h-[280px] relative mb-4">
+              <Image
+                src={Success}
+                alt="Big Bet"
+                fill
+                className="object-contain rounded-xl"
+              />
+            </div>
+
+            <h3 className="font-bold text-2xl  mb-2">Bet successful</h3>
+
+            <p className=" max-w-sm mx-auto  text-sm">
+              You have successfully placed a bet, cheers to potential wins
+            </p>
+          </div>
+        ),
+        {
+          position: "top-center",
+        }
       );
       await fetchUserBets();
     } catch (error) {
       console.error("Failed to place bet:", error);
-      toast.error("Failed to place bet");
+      // toast.error("Failed to place bet");
     }
   };
 
   const handleClaimRewards = useCallback(async () => {
     if (!connected || !publicKey || !connectionRef.current || !program) {
-      toast.error("Please connect your wallet to claim rewards");
+      // toast.error("Please connect your wallet to claim rewards");
+      toast.custom(
+        (t) => (
+          <div
+            className={`
+             w-full glass text-center  max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+            flex flex-col items-center p-4 mt-12
+             ${
+               theme === "dark"
+                 ? "bg-gray-800 text-white"
+                 : "bg-white text-black"
+             }
+          `}
+            style={{
+              // slide in/out from top
+              animation: t.visible
+                ? "fadeInDown 200ms ease-out forwards"
+                : "fadeOutUp 150ms ease-in forwards",
+            }}
+          >
+            <p className=" max-w-sm mx-auto  text-lg font-semibold">
+            Please connect your wallet to claim rewards
+            </p>
+          </div>
+        ),
+        {
+          position: "top-center",
+        }
+      
+      );
       return;
     }
 
     if (claimableBets.length === 0) {
-      toast.error("No claimable bets available");
+      toast.custom(
+        (t) => (
+          <div
+            className={`
+             w-full glass text-center  max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+            flex flex-col items-center p-4 mt-12
+             ${
+               theme === "dark"
+                 ? "bg-gray-800 text-white"
+                 : "bg-white text-black"
+             }
+          `}
+            style={{
+              // slide in/out from top
+              animation: t.visible
+                ? "fadeInDown 200ms ease-out forwards"
+                : "fadeOutUp 150ms ease-in forwards",
+            }}
+          >
+            <p className=" max-w-sm mx-auto  text-lg font-semibold">
+              No claimable bets available
+            </p>
+          </div>
+        ),
+        {
+          position: "top-center",
+        }
+      
+      );
       return;
     }
 
@@ -232,23 +371,46 @@ export default function PredictionCards() {
       setClaimableRewards(0);
 
       console.log(`Batched payout claimed successfully: ${signature}`);
-      toast.custom((t) => (
-        <div className="glass flex items-center flex-col p-4 rounded-lg shadow-lg">
-          <div className="w-full">
-            <Image
-              alt="Solana Background"
-              src={Cheers || "/placeholder.svg"}
-              className="rounded-[10px] w-full h-[182px] object-cover"
-              width={415}
-              height={242}
-            />
+      toast.custom(
+        (t) => (
+          <div
+            className={`
+             w-full glass text-center h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+            flex flex-col items-center p-4 pb-12 mt-16
+             ${
+               theme === "dark"
+                 ? "bg-gray-800 text-white"
+                 : "bg-white text-black"
+             }
+          `}
+            style={{
+              // slide in/out from top
+              animation: t.visible
+                ? "fadeInDown 200ms ease-out forwards"
+                : "fadeOutUp 150ms ease-in forwards",
+            }}
+          >
+            <div className="w-full h-[280px] relative mb-4">
+              <Image
+                src={Cheers}
+                alt="Cheers"
+                fill
+                className="object-contain rounded-xl"
+              />
+            </div>
+
+            <h3 className="font-bold text-2xl  mb-2">
+              Cheers to more withdrawals
+            </h3>
+
+            <p className=" max-w-sm mx-auto  text-sm">You have withdrawn {claimableAmountRef.current.toFixed(4)} SOL</p>
           </div>
-          <div className="py-3">
-            <h2 className="text-xl font-semibold">Cheers to more withdrawals</h2>
-            <p className="mt-1 text-sm">You have withdrawn {claimableRewards} SOL</p>
-          </div>
-        </div>
-      ))
+        ),
+        {
+          position: "top-center",
+        }
+      );
     } catch (error: any) {
       console.error("Failed to claim rewards:", error);
       let errorMessage = "Failed to claim rewards. Please try again.";
@@ -269,7 +431,7 @@ export default function PredictionCards() {
       } else if (error.message.includes("Signature request denied")) {
         errorMessage = "Transaction was not signed.";
       }
-      toast.error(errorMessage);
+      // toast.error(errorMessage);
     }
   }, [
     connected,
@@ -347,9 +509,7 @@ export default function PredictionCards() {
       if (error?.name === "AxiosError") {
         console.error("API error when fetching rounds:", error.message);
         // Don't crash the app, just show a toast message
-        toast.error(
-          "Server error when fetching new rounds. Please try again later."
-        );
+       
       } else {
         console.error("Error fetching rounds:", error);
       }
@@ -540,27 +700,27 @@ export default function PredictionCards() {
     }
 
     // Fallback: create minimal dummy rounds if no data is available
-    if (typeof currentRoundNumber === 'number') {
-    const fallbackCurrentTime = Math.floor(Date.now() / 1000);
-    const fallbackRounds: Round[] = [];
+    if (typeof currentRoundNumber === "number") {
+      const fallbackCurrentTime = Math.floor(Date.now() / 1000);
+      const fallbackRounds: Round[] = [];
 
-    for (let i = 0; i < 3; i++) {
-      const roundNumber = currentRoundNumber - 1 + i;
-      const baseTime = fallbackCurrentTime + i * 240;
+      for (let i = 0; i < 3; i++) {
+        const roundNumber = currentRoundNumber - 1 + i;
+        const baseTime = fallbackCurrentTime + i * 240;
 
-      fallbackRounds.push({
-        number: roundNumber.toString(),
-        startTime: baseTime - 240,
-        lockTime: baseTime - 120,
-        closeTime: baseTime,
-        totalAmount: 0,
-        totalBullAmount: 0,
-        totalBearAmount: 0,
-        isActive: i === 1, // Make the middle one active
-        status: i === 0 ? "expired" : i === 1 ? "next" : "later",
-      } as unknown as Round);
+        fallbackRounds.push({
+          number: roundNumber.toString(),
+          startTime: baseTime - 240,
+          lockTime: baseTime - 120,
+          closeTime: baseTime,
+          totalAmount: 0,
+          totalBullAmount: 0,
+          totalBearAmount: 0,
+          isActive: i === 1, // Make the middle one active
+          status: i === 0 ? "expired" : i === 1 ? "next" : "later",
+        } as unknown as Round);
+      }
     }
-  }
 
     return [];
   }, [computedDisplayRounds, currentRoundNumber]);
@@ -569,18 +729,18 @@ export default function PredictionCards() {
   const liveIndex = useMemo(() => {
     try {
       // Use finalDisplayRoundsForSwiper for calculating liveIndex
-      
+
       if (finalDisplayRoundsForSwiper.length > 0) {
         const firstRound = finalDisplayRoundsForSwiper[0];
         if (formatCardVariant(firstRound, currentRoundNumber) === "live") {
           return 0; // Live round is at index 0
         }
       }
-      
+
       const index = finalDisplayRoundsForSwiper.findIndex(
         (r) => formatCardVariant(r, currentRoundNumber) === "live"
       );
-      
+
       if (index === -1) {
         // If no live round, try to find next round
         const nextIndex = finalDisplayRoundsForSwiper.findIndex(
@@ -588,7 +748,7 @@ export default function PredictionCards() {
         );
         return nextIndex >= 0 ? nextIndex : 0;
       }
-      
+
       return index;
     } catch (error) {
       console.error("Error finding live index:", error);
@@ -599,7 +759,7 @@ export default function PredictionCards() {
   console.log("Final display rounds for Swiper:", finalDisplayRoundsForSwiper);
   useEffect(() => {
     const swiper = swiperRef.current;
-    if (!swiper || swiperReady ||  liveIndex < 0) return;
+    if (!swiper || swiperReady || liveIndex < 0) return;
 
     const currentLiveRound = finalDisplayRoundsForSwiper.find(
       (r) => formatCardVariant(r, currentRoundNumber) === "live"
@@ -608,27 +768,27 @@ export default function PredictionCards() {
     const currentLiveRoundNumber = currentLiveRound
       ? Number(currentLiveRound.number)
       : null;
-      const shouldJumpToLive =
+    const shouldJumpToLive =
       (!initialSlideJumped.current && swiperReady) || // Initial load when swiper is ready
       (currentLiveRoundNumber !== null &&
         currentLiveRoundNumber !== lastLiveRoundRef.current) ||
       timeLeft === 0;
 
-      if (shouldJumpToLive && currentLiveRound) {
-        try {
-          console.log(
-            `Jumping to live slide at index ${liveIndex}, round ${currentLiveRoundNumber}`
-          );
-          // Use immediate jump (0ms) for initial load, smooth for updates
-          const duration = initialSlideJumped.current ? 300 : 0;
-          swiper.slideTo(liveIndex, duration);
-          initialSlideJumped.current = true;
-          lastLiveRoundRef.current = currentLiveRoundNumber;
-        } catch (error) {
-          console.error("Error sliding to live index:", error);
-        }
+    if (shouldJumpToLive && currentLiveRound) {
+      try {
+        console.log(
+          `Jumping to live slide at index ${liveIndex}, round ${currentLiveRoundNumber}`
+        );
+        // Use immediate jump (0ms) for initial load, smooth for updates
+        const duration = initialSlideJumped.current ? 300 : 0;
+        swiper.slideTo(liveIndex, duration);
+        initialSlideJumped.current = true;
+        lastLiveRoundRef.current = currentLiveRoundNumber;
+      } catch (error) {
+        console.error("Error sliding to live index:", error);
       }
-    }, [
+    }
+  }, [
     liveIndex,
     finalDisplayRoundsForSwiper,
     currentRoundNumber,
@@ -651,7 +811,7 @@ export default function PredictionCards() {
     const handleVisibility = async () => {
       if (document.visibilityState === "visible" && !isRefreshing) {
         isRefreshing = true;
-        
+
         initialSlideJumped.current = false;
 
         try {
@@ -701,7 +861,6 @@ export default function PredictionCards() {
       document.removeEventListener("visibilitychange", handleVisibility);
   }, [fetchMoreRounds, fetchUserBets, safeFetchMoreRounds]);
 
-
   const formatTimeLeft = (seconds: number | null) => {
     if (seconds === null || seconds <= 0) return "Locked";
     const minutes = Math.floor(seconds / 60);
@@ -711,7 +870,7 @@ export default function PredictionCards() {
       .padStart(2, "0")}`;
   };
 
-  if ( computedDisplayRounds.length === 0) {
+  if (computedDisplayRounds.length === 0) {
     return (
       <div className="container px-3 sm:px-4 md:px-6 lg:px-8 mt-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -761,6 +920,7 @@ export default function PredictionCards() {
                 </p>
               </div>
             </div>
+           
             <div className="relative flex items-center justify-center w-[60px] sm:w-[80px] lg:w-[120px] h-[60px] sm:h-[80px] lg:h-[120px]">
               {/* Circular progress background */}
               <svg className="absolute w-full h-full" viewBox="0 0 100 100">
@@ -910,7 +1070,7 @@ export default function PredictionCards() {
             // Show cards only when wallet is connected
             <div className="relative">
               <Swiper
-              key={liveIndex}
+                key={liveIndex}
                 initialSlide={liveIndex}
                 onBeforeInit={(swiper) => {
                   swiper.params.initialSlide = liveIndex;
@@ -919,7 +1079,6 @@ export default function PredictionCards() {
                   swiperRef.current = swiper;
                   setSwiperReady(true);
                 }}
-
                 onSlideChange={handleSlideChange}
                 effect="coverflow"
                 grabCursor={true}
@@ -1046,13 +1205,11 @@ export default function PredictionCards() {
         </div>
 
         {/* <div           className="animate-fadeOut"> */}
-    <LiveBets
+        <LiveBets
           currentRound={Number(currentRound?.number) ?? null}
           key={currentRound?.number}
-
         />
         {/* </div> */}
-    
       </div>
     </div>
   );
