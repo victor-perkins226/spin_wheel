@@ -79,7 +79,6 @@ export default function PredictionCard({
   const { theme } = useTheme();
 
 
-
   const calculateMultipliers = () => {
     if (!roundData) return { bullMultiplier: "0.00", bearMultiplier: "0.00" };
 
@@ -636,7 +635,7 @@ export default function PredictionCard({
           </div>
         ) : (
           <div className="flex flex-col h-[350px] glass p-[10px] rounded-[20px] items-center">
-            <div className="max-w-[215px] flex flex-col gap-[33px] justify-between flex-1">
+            <div className="max-w-[250px] flex flex-col gap-[33px] justify-between flex-1">
               <Image
                 alt="Solana Background"
                 src={SolanaBg || "/placeholder.svg"}
