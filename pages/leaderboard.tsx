@@ -5,6 +5,7 @@ import Image from "next/image";
 import SolanaLogo from "@/public/assets/solana_logo.png";
 import axios from "axios";
 import { GetStaticProps } from "next";
+import { ThemeToggle } from "@/components/Themetoggle";
 
 type Leader = {
   userWalletAddress: string;
@@ -39,6 +40,9 @@ export default function Leaderboard({ leaders }: Props) {
         <title>Leaderboard | FORTUVA</title>
       </Head>
       <div className="container mt-[67px]">
+        <div className="flex items-center justify-end mb-[30px]">
+          <ThemeToggle/>
+        </div>
         <div className="glass px-[30px] py-[16px] rounded-[20px] w-full overflow-auto">
           <table className="w-full text-left">
             <thead className="text-[10px] lg:text-[12px]">

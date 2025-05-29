@@ -35,7 +35,7 @@ export default function PredictionCards() {
   const { publicKey, connected, sendTransaction } = useWallet();
   const connectionRef = useRef<Connection | null>(null);
   const [userBalance, setUserBalance] = useState(0);
-  const [liveRoundPrice, setLiveRoundPrice] = useState(50.5);
+  const [liveRoundPrice, setLiveRoundPrice] = useState(172.5);
   const [previousPrice, setPreviousPrice] = useState(liveRoundPrice);
   const [priceColor, setPriceColor] = useState("text-gray-900");
   const [claimableRewards, setClaimableRewards] = useState(0);
@@ -1097,7 +1097,7 @@ export default function PredictionCards() {
                     </div>
                   </div>
                   <button
-                    className="glass bg-green-500 py-2 px-4 rounded-lg font-semibold flex items-center justify-center"
+                    className="glass bg-green-500 cursor-pointer py-2 px-4 rounded-lg font-semibold flex items-center justify-center"
                     onClick={handleClaimRewards}
                     disabled={claimableAmountRef.current === 0 || isClaiming}
                   >
