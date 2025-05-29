@@ -14,10 +14,6 @@ export  function ThemeToggle() {
 
   const isDark = theme === "dark";
 
-  console.log("====================================");
-  console.log(theme, "theme");
-  console.log("====================================");
-
   return (
     <div
       className="relative w-[100px] h-[40px] rounded-full cursor-pointer"
