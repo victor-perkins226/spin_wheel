@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTheme } from "next-themes";
 import axios from "axios";
 import {
@@ -192,7 +192,20 @@ const TradingChart = () => {
   });
   const [retryCount, setRetryCount] = useState<number>(0);
   const [lastFetchTime, setLastFetchTime] = useState<number>(0);
-
+  const liveTicks = useMemo<number[] | undefined>(() => {
+    if (activeIndex !== 0) return undefined;
+    const end   = Date.now();
+    const start = end - 60_000;         // 60s ago
+    const step  = (end - start) / 3;    // 3 intervals → 4 tick positions
+    return [0,1,2,3].map(i => Math.floor(start + step * i));
+  }, [activeIndex, lastFetchTime]);
+  const liveWindow = useMemo(() => {
+    if (activeIndex !== 0) return null;
+    const end = Date.now();
+    const start = end - 60_000;       // 1 minute ago
+    return { start, end, ticks: [start, end] };
+  }, [activeIndex, lastFetchTime /* or Date.now() update trigger */]);
+  
   const isDarkMode =
     mounted &&
     (theme === "dark" || (theme === "system" && systemTheme === "dark"));
@@ -445,100 +458,116 @@ const TradingChart = () => {
   };
 
 
-  // Handle LIVE mode with Recharts
   useEffect(() => {
     if (activeIndex !== 0) return;
-  
-    let basePrice = 175.0;
     let liveUpdateInterval: NodeJS.Timeout;
-  
     const initialize = async () => {
       try {
-        basePrice = await initializeLiveMode();
-  
-        // Initialize with data points at 1-minute intervals for the last 5 minutes
-        const now = Date.now();
-        const maxPoints = MAX_DATA_POINTS.live;
-        const initialData: ChartData[] = [];
-  
-        for (let i = maxPoints - 1; i >= 0; i--) {
-          const timestamp = now - i * 60000; // 1-minute intervals (60000ms)
-          const date = new Date(timestamp);
-          const variation = (Math.random() - 0.5) * 2;
-          initialData.push({
-            timestamp,
-            time: date.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
-            pythPrice: basePrice + variation,
-            coinGeckoPrice: basePrice + variation * 0.8,
-          });
+        // ─── 1) Fetch the last 2 minutes of Pyth history ───
+        const nowSec = Math.floor(Date.now() / 1000);
+        const startSec = nowSec - 120; // 120 seconds ago
+    
+        const pythResp = await axios.get(PYTH_HISTORY, {
+          params: {
+            symbol: "Crypto.SOL/USD",
+            resolution: "1",  // 1-minute bars
+            from: startSec,
+            to: nowSec,
+          },
+          timeout: 8000,
+          headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+        });
+    
+        if (pythResp.data.s !== "ok" || !Array.isArray(pythResp.data.t)) {
+          throw new Error("Invalid Pyth history");
         }
-  
-        setChartData(initialData);
-        setCurrentPrice(basePrice.toFixed(2));
-        setIsLoading(false);
-  
-        // Start live updates every minute
-        liveUpdateInterval = setInterval(async () => {
-          try {
-            const newPrice = await fetchLivePrice();
-            if (newPrice > 0) {
-              basePrice = newPrice;
-              setCurrentPrice(newPrice.toFixed(2));
-            } else {
-              basePrice = basePrice + (Math.random() - 0.5) * 0.5;
-              setCurrentPrice(basePrice.toFixed(2));
-            }
-  
-            const timestamp = Date.now();
-            const date = new Date(timestamp);
-            const variation = (Math.random() - 0.5) * 1;
-  
-            const newDataPoint: ChartData = {
-              timestamp,
-              time: date.toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
-              pythPrice: basePrice + variation,
-              coinGeckoPrice: basePrice + variation * 0.9,
-            };
-  
-            setChartData((prev) => {
-              const updated = [...prev, newDataPoint];
-              // Keep only the last MAX_DATA_POINTS.live points (5 minutes)
-              return updated.slice(-MAX_DATA_POINTS.live);
-            });
-          } catch (error) {
-            console.warn("Error updating live price:", error);
-          }
-        }, 60000); // Update every minute (60000ms)
-      } catch (error) {
-        console.error("Error initializing live mode:", error);
-        setIsLoading(false);
-        // Set fallback data
-        const fallbackData: ChartData[] = [{
-          timestamp: Date.now(),
-          time: new Date().toLocaleTimeString([], {
+    
+        const pythPts: { timestamp: number; pythPrice: number }[] =
+          pythResp.data.t.map((t: number, i: number) => ({
+            timestamp: t * 1000,
+            pythPrice: pythResp.data.c[i],
+          }));
+    
+        // ─── 2) Fetch the last 2 minutes of CoinGecko history ───
+        const cgResp = await axios.get(COINGECKO_MARKETCHART_RANGE, {
+          params: {
+            vs_currency: "usd",
+            from: startSec,
+            to: nowSec,
+            x_cg_demo_api_key: "CG-EnQ2L2wvdfeMreh3qmY9eCqd",
+          },
+          timeout: 8000,
+          headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+        });
+    
+        if (!Array.isArray(cgResp.data.prices)) {
+          throw new Error("Invalid CoinGecko history");
+        }
+    
+        const cgPts: { timestamp: number; coinGeckoPrice: number }[] =
+          cgResp.data.prices.map((p: [number, number]) => ({
+            timestamp: p[0],
+            coinGeckoPrice: p[1],
+          }));
+    
+        // ─── 3) Zip into ChartData[] ───
+        const initialData: ChartData[] = pythPts.map((pt, i) => ({
+          timestamp: pt.timestamp,
+          time: new Date(pt.timestamp).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
+            second: "2-digit",
           }),
-          pythPrice: 165.0,
-          coinGeckoPrice: 164.5,
-        }];
-        setChartData(fallbackData);
-        setCurrentPrice("165.00");
+          pythPrice: pt.pythPrice,
+          coinGeckoPrice: cgPts[i]?.coinGeckoPrice ?? pt.pythPrice,
+        }));
+    
+        // ─── 4) Populate state and turn off loading ───
+        setChartData(initialData);
+        setCurrentPrice(initialData[initialData.length - 1].pythPrice.toFixed(2));
+        setIsLoading(false);
+    
+        // ─── 5) Start 5 s polling to append live prices ───
+        liveUpdateInterval = setInterval(async () => {
+          try {
+            const newP = await fetchLivePrice();
+            const cgSimple = await axios.get(COINGECKO_SIMPLE_PRICE, {
+              timeout: 5000,
+              headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
+            });
+            const newCg = cgSimple.data.solana.usd ?? newP;
+    
+            const ts = Date.now();
+            const next: ChartData = {
+              timestamp: ts,
+              time: new Date(ts).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              }),
+              pythPrice: newP,
+              coinGeckoPrice: newCg,
+            };
+    
+            setChartData((prev) =>
+              // keep only the last MAX_DATA_POINTS.live points
+              [...prev, next].slice(-MAX_DATA_POINTS.live)
+            );
+            setCurrentPrice(newP.toFixed(2));
+          } catch (err) {
+            console.warn("Live update failed", err);
+          }
+        }, 5000);
+      } catch (error) {
+        console.error("Live init failed", error);
+        // fallback: stop loader, optionally seed a small simulated window here
+        setIsLoading(false);
       }
     };
-  
     initialize();
-  
-    return () => {
-      if (liveUpdateInterval) clearInterval(liveUpdateInterval);
-    };
+    return () => clearInterval(liveUpdateInterval);
   }, [activeIndex]);
+  
   // Fetch historical data when active index changes (except for LIVE mode)
   useEffect(() => {
     if (activeIndex === 0) return; // Skip for LIVE mode
@@ -621,7 +650,7 @@ const TradingChart = () => {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
+              <LineChart data={chartData} >
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke={
@@ -630,24 +659,27 @@ const TradingChart = () => {
                       : "rgba(71, 85, 105, 0.1)"
                   }
                 />
-                <XAxis
-  dataKey="timestamp"
-  type="number"
-  scale="time"
-  domain={["dataMin", "dataMax"]}
-  tickFormatter={(value) => {
-    const date = new Date(value);
-    // For Live mode, show time without seconds since it's 1-minute intervals
-    return date.toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }}
-  stroke={isDarkMode ? "#94a3b8" : "#475562"}
-  fontSize={isMobile ? 9 : 11}
-  // For Live mode, ensure all ticks are shown
-  interval={activeIndex === 0 ? 0 : "preserveStartEnd"}
-/>
+                   <XAxis
+      dataKey="timestamp"
+      type="number"
+      scale="time"
+      domain={['dataMin','dataMax']}
+      ticks={
+        activeIndex === 0 && chartData.length > 0
+          ? [chartData[0].timestamp, chartData[chartData.length-1].timestamp]
+          : undefined
+      }
+      tickFormatter={(ts) =>
+        new Date(ts).toLocaleTimeString([], {
+          hour:   '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        })
+      }
+
+      stroke={isDarkMode ? '#94a3b8' : '#475562'}
+      fontSize={isMobile ? 9 : 11}
+    />
 
                 <YAxis
                   domain={["dataMin - 1", "dataMax + 1"]}

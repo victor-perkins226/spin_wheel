@@ -73,12 +73,8 @@ export default function PredictionCards() {
 
   // Update claimableAmountRef when claimableBets changes
   useEffect(() => {
-    const newClaimableAmount = claimableBets.reduce(
-      (sum, bet) => sum + bet.payout,
-      0
-    );
-    claimableAmountRef.current = newClaimableAmount;
-    console.log("Updated claimableAmount:", claimableAmountRef.current);
+    const sum = claimableBets.reduce((tot, b) => tot + b.payout, 0);
+    setClaimableRewards(sum);
   }, [claimableBets]);
 
   useEffect(() => {
@@ -413,6 +409,10 @@ export default function PredictionCards() {
       );
 
       await connectionRef.current.confirmTransaction(signature, "confirmed");
+    
+      // Refresh bets after claiming
+      await fetchUserBets();
+
       toast.custom(
         (t) => (
           <div
@@ -455,8 +455,6 @@ export default function PredictionCards() {
           position: "top-center",
         }
       );
-      // Refresh bets after claiming
-      await fetchUserBets();
 
       // Reset claimable rewards
       setClaimableRewards(0);
@@ -491,6 +489,7 @@ export default function PredictionCards() {
     publicKey,
     program,
     claimableBets,
+    claimableRewards,
     sendTransaction,
     fetchUserBets,
     handleClaimPayout,
@@ -1081,7 +1080,7 @@ export default function PredictionCards() {
                   <span>{userBalance.toFixed(4)} SOL</span>
                 </div>
               </div>
-              {claimableAmountRef.current > 0 && (
+              {claimableRewards > 0 && (
                 <div className="flex items-center gap-3">
                   <div>
                     <p className="text-sm opacity-70">Unclaimed Rewards</p>
@@ -1093,13 +1092,13 @@ export default function PredictionCards() {
                         width={20}
                         height={20}
                       />
-                      <span>{claimableAmountRef.current.toFixed(4)} SOL</span>
+                      <span>{claimableRewards.toFixed(4)} SOL</span>
                     </div>
                   </div>
                   <button
                     className="glass bg-green-500 cursor-pointer py-2 px-4 rounded-lg font-semibold flex items-center justify-center"
                     onClick={handleClaimRewards}
-                    disabled={claimableAmountRef.current === 0 || isClaiming}
+                    disabled={claimableRewards === 0 || isClaiming}
                   >
                     {isClaiming ? (
                       <PuffLoader size={20} color="#fff" />
