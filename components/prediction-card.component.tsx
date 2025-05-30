@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Button from "./button.component";
 import SVG from "./svg.component";
 import BetFailed from "@/public/assets/BetFailure.png";
@@ -14,6 +14,7 @@ import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import toast from "react-hot-toast";
 import { DotLoader, PuffLoader } from "react-spinners";
 import { useTheme } from "next-themes";
+import io from "socket.io-client";
 
 interface IProps {
   variant?: "live" | "expired" | "next" | "later" | "locked";
@@ -53,7 +54,7 @@ const CUSTOM_INPUTS = [
   { label: "75%", value: 0.75 },
   { label: "Max", value: 1.0 },
 ];
-
+const WS_URL = "https://sol-prediction-backend.onrender.com";
 export default function PredictionCard({
   variant,
   roundId = 0,
@@ -76,6 +77,7 @@ export default function PredictionCard({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { connected, publicKey } = useWallet();
   const { connection } = useConnection();
+  const [scriptBetPlaced, setScriptBetPlaced] = useState(false);
 
   const { theme } = useTheme();
 
@@ -107,6 +109,11 @@ export default function PredictionCard({
     };
   };
 
+  const socket = useMemo(() => io(WS_URL, {
+      transports: ["websocket"],
+      reconnection: true,
+    }), []);
+
   const { bullMultiplier, bearMultiplier } = calculateMultipliers();
 
   useEffect(() => {
@@ -124,10 +131,29 @@ export default function PredictionCard({
     })();
   }, [connected, publicKey, connection]);
 
+  useEffect(() => {
+        if (!connected || !publicKey) return;
+    
+        const handleNewBet = (newBet: any) => {
+          // if this bet is from our currently connected wallet …
+          if (newBet.data.user === publicKey.toString()
+            && newBet.data.round_number === roundId
+          ) {
+            // mark that they have already bet by any means
+            setScriptBetPlaced(true);
+          }
+        };
+    
+        socket.on("newBetPlaced", handleNewBet);
+        return () => {
+          socket.off("newBetPlaced", handleNewBet);
+        };
+       }, [connected, publicKey, roundId, socket]);
+     
+
   const userBetStatus =
     userBets?.find((bet) => bet.roundId === roundId) || null;
-  const hasUserBet = userBetStatus !== null || justBet;
-
+    const hasUserBet = userBetStatus !== null || justBet || scriptBetPlaced;
   const getPriceMovement = () => {
     if (!roundData) return { difference: 0, direction: "up" as "up" | "down" };
     const currentPrice =
