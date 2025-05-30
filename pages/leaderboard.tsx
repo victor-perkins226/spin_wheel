@@ -6,6 +6,8 @@ import SolanaLogo from "@/public/assets/solana_logo.png";
 import axios from "axios";
 import { GetStaticProps } from "next";
 import { ThemeToggle } from "@/components/Themetoggle";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
 
 type Leader = {
   userWalletAddress: string;
@@ -34,6 +36,30 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
 };
 
 export default function Leaderboard({ leaders }: Props) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const leadersPerPage = 10;
+
+  // Reset to first page if leaders update
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [leaders]);
+
+  const indexOfLastLeader = currentPage * leadersPerPage;
+  const indexOfFirstLeader = indexOfLastLeader - leadersPerPage;
+  const currentLeaders = leaders.slice(indexOfFirstLeader, indexOfLastLeader);
+  const totalPages = Math.ceil(leaders.length / leadersPerPage);
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
+    }
+  };
   return (
     <>
       <Head>
@@ -101,6 +127,30 @@ export default function Leaderboard({ leaders }: Props) {
               })}
             </tbody>
           </table>
+          <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+            <div className="text-sm ">
+              Showing {indexOfFirstLeader + 1}-{Math.min(indexOfLastLeader, leaders.length)} of {leaders.length}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handlePrevPage}
+                disabled={currentPage === 1}
+                className={`p-2 rounded-md ${currentPage === 1 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-800 hover:bg-gray-100'}`}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <div className="text-sm ">
+                Page {currentPage} of {totalPages}
+              </div>
+              <button
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+                className={`p-2 rounded-md ${currentPage === totalPages ? 'text-gray-400 cursor-not-allowed' : 'text-gray-800 hover:bg-gray-100'}`}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+            </div>
         </div>
       </div>
     </>

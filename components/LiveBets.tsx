@@ -85,7 +85,6 @@ function LiveBets({ currentRound }: LiveBetsProps) {
         const bets: Bet[] = response.data
           .map((bet: any) => {
             if (!bet.data.round_number) {
-              console.warn("Bet missing round_number:", bet);
               return null;
             }
             return {

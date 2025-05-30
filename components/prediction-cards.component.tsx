@@ -14,7 +14,6 @@ import { Connection, LAMPORTS_PER_SOL, Transaction } from "@solana/web3.js";
 import { MobileLiveBets } from "./MobileBets";
 import Cheers from "@/public/assets/cheers.png";
 import Success from "@/public/assets/success-bet.png";
-import Lock from "@/public/assets/lock.png";
 import BetFailed from "@/public/assets/BetFailure.png";
 import Withdraw from "@/public/assets/Withdrawal.png";
 import NumberFlow from "@number-flow/react";
@@ -171,49 +170,7 @@ export default function PredictionCards() {
   ) => {
     if (!connected || !publicKey || !connectionRef.current) {
       // toast.error("Please connect your wallet to place a bet");
-      toast.custom(
-        (t) => (
-          <div
-            className={`
-             w-full glass text-center animate-toast-bounce h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
-            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
-            flex flex-col items-center p-4 pb-8 mt-16
-             ${
-               theme === "dark"
-                 ? "bg-gray-800 text-white"
-                 : "bg-white text-black"
-             }
-          `}
-            style={{
-              // slide in/out from top
-              animation: t.visible
-                ? "fadeInDown 200ms ease-out forwards"
-                : "fadeOutUp 150ms ease-in forwards",
-            }}
-          >
-            <div className="w-full animate-pulse h-[280px] relative mb-4">
-              <Image
-                src={Lock}
-                alt="lock"
-                fill
-                className="object-contain rounded-xl"
-              />
-            </div>
-
-            <h3 className="font-bold text-2xl text-center animate-toast-pulse   mb-2">
-              Access is restricted in your region.
-            </h3>
-
-            <p className=" text-sm">
-              We can't provide service in your area because of local rules.
-              Please try from another location or check your settings
-            </p>
-          </div>
-        ),
-        {
-          position: "top-center",
-        }
-      );
+    
     
    
       return;
@@ -681,9 +638,8 @@ export default function PredictionCards() {
     const roundNumber = Number(round.number);
     if (!isNaN(roundNumber)) {
       roundMap.set(roundNumber, round);
-    } else {
-      console.warn(`Skipping round with invalid number:`, round);
     }
+    
   });
 
 

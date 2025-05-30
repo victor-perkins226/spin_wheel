@@ -75,7 +75,7 @@ export const getPythHistoricalPrice = async (
       // LIVE - keep your existing logic
       const { data } = await axios.get<any>(PYTH_LATEST);
       if (!data?.parsed?.[0]?.price) {
-        console.warn("Pyth live price data is invalid:", data);
+        
         return null;
       }
       const priceData = data.parsed[0].price;
@@ -128,7 +128,7 @@ export const getPythHistoricalPrice = async (
 
       // TradingView format returns: {s: "ok", t: timestamps[], c: closes[], o: opens[], h: highs[], l: lows[], v: volumes[]}
       if (!data || data.s !== "ok" || !Array.isArray(data.t) || !Array.isArray(data.c)) {
-        console.warn(`Pyth historical data is invalid for ${btn.id}:`, data);
+       
         return null;
       }
 
@@ -800,7 +800,7 @@ async function initializeLiveMode(): Promise<number> {
     }
 
     // Fallback to a reasonable default price
-    console.warn("Unable to fetch live price, using default");
+   
     return 165.0;
   } catch (error) {
     console.error("Error initializing live mode:", error);
