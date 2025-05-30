@@ -21,10 +21,10 @@ interface Bet {
 }
 
 // Backend API and WebSocket URLs
-const API_URL =
-  "https://sol-prediction-backend.onrender.com/bet-placed?limit=1000&offset=0";
-const WS_URL = "https://sol-prediction-backend.onrender.com";
+
 const BIG_BET_THRESHOLD = 1;
+const API_URL = "https://sol-prediction-backend-6e3r.onrender.com/bet-placed?limit=1000&offset=0";
+const WS_URL = "https://sol-prediction-backend-6e3r.onrender.com";
 
 // Initialize WebSocket connection
 const socket = io(WS_URL, {
