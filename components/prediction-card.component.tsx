@@ -36,7 +36,7 @@ interface IProps {
     direction: "up" | "down",
     amount: number,
     roundId: number
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   currentRoundId?: number;
   bufferTimeInSeconds?: number;
   isRoundBettable?: (roundId: number) => boolean;
@@ -402,52 +402,56 @@ export default function PredictionCard({
       return;
     }
 
-    if (amount > 1) {
-      toast.custom(
-        (t) => (
-          <div
-            className={`
-                            w-full glass text-center h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
-                           shadow-xl animate-toast-bounce ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
-                           flex flex-col items-start p-4 pb-8 mt-16
-                            ${
-                              theme === "dark"
-                                ? "bg-gray-800 text-white"
-                                : "bg-white text-black"
-                            }
-                         `}
-            style={{
-              // slide in/out from top
-              animation: t.visible
-                ? "fadeInDown 200ms ease-out forwards"
-                : "fadeOutUp 150ms ease-in forwards",
-            }}
-          >
-            <div className="w-full animate-vibrate h-[280px] relative mb-4">
-              <Image
-                src={BigBet}
-                alt="big bet"
-                fill
-                className="object-cover rounded-xl"
-              />
-            </div>
+    // if (amount > 1) {
+    //   toast.custom(
+    //     (t) => (
+    //       <div
+    //         className={`
+    //                         w-full glass text-center h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+    //                        shadow-xl animate-toast-bounce ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+    //                        flex flex-col items-start p-4 pb-8 mt-16
+    //                         ${
+    //                           theme === "dark"
+    //                             ? "bg-gray-800 text-white"
+    //                             : "bg-white text-black"
+    //                         }
+    //                      `}
+    //         style={{
+    //           // slide in/out from top
+    //           animation: t.visible
+    //             ? "fadeInDown 200ms ease-out forwards"
+    //             : "fadeOutUp 150ms ease-in forwards",
+    //         }}
+    //       >
+    //         <div className="w-full animate-vibrate h-[280px] relative mb-4">
+    //           <Image
+    //             src={BigBet}
+    //             alt="big bet"
+    //             fill
+    //             className="object-cover rounded-xl"
+    //           />
+    //         </div>
 
-            <h3 className="font-bold text-2xl animate-toast-pulse  mb-2">Big Bet Notification</h3>
+    //         <h3 className="font-bold text-2xl animate-toast-pulse  mb-2">Big Bet Notification</h3>
 
-            <p className=" text-sm">John Doe made a {amount} SOL bet</p>
-          </div>
-        ),
-        {
-          position: "top-center",
-        }
-      );
-    }
+    //         <p className=" text-sm">John Doe made a {amount} SOL bet</p>
+    //       </div>
+    //     ),
+    //     {
+    //       position: "top-center",
+    //     }
+    //   );
+    // }
 
     if (onPlaceBet && mode && roundId) {
       setIsSubmitting(true);
       try {
-        setJustBet(true);
-        await onPlaceBet(mode, amount, roundId);
+        const betStatus = await onPlaceBet(mode, amount, roundId);
+      
+        if (betStatus === true){
+           setJustBet(true);
+        }
+       
       } finally {
         setIsSubmitting(false);
         setIsFlipped(false);
@@ -889,18 +893,15 @@ export default function PredictionCard({
           value={inputValue}
           placeholder="Enter Value:"
           onChange={(e) => {
-            // only filter out totally invalid characters if you like:
             const raw = e.target.value;
-            // allow digits, decimal point, optional leading dash if you ever allow negative
             if (
               raw === "" ||
-              /^(?:0|[1-9]\d*)(?:\.\d*)?$/.test(raw)
+              /^(?:0|[1-9]\d*)(?:\.\d{0,10})?$/.test(raw) 
             ) {
               setInputValue(raw);
             }
           }}
           onBlur={() => {
-            // when they leave the field, parse and clamp to a valid number
             const parsed = parseFloat(inputValue);
             if (isNaN(parsed) || parsed <= 0) {
               setAmount(0.01);
@@ -908,8 +909,7 @@ export default function PredictionCard({
             } else {
               const clamped = Math.min(parsed, maxAmount);
               setAmount(clamped);
-              // format to two decimals for display
-              setInputValue(clamped.toFixed(2));
+              setInputValue(String(clamped));
             }
           }}
           className="glass h-[65px] text-right rounded-[20px] pr-4 font-semibold text-[16px] text-white outline-0"

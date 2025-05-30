@@ -15,6 +15,8 @@ import { MobileLiveBets } from "./MobileBets";
 import Cheers from "@/public/assets/cheers.png";
 import Success from "@/public/assets/success-bet.png";
 import Lock from "@/public/assets/lock.png";
+import BetFailed from "@/public/assets/BetFailure.png";
+import Withdraw from "@/public/assets/Withdrawal.png";
 import NumberFlow from "@number-flow/react";
 import LiveBets from "./LiveBets";
 import { useRoundManager } from "@/hooks/roundManager";
@@ -212,6 +214,8 @@ export default function PredictionCards() {
           position: "top-center",
         }
       );
+    
+   
       return;
     }
 
@@ -261,15 +265,15 @@ export default function PredictionCards() {
           (t) => (
             <div
               className={`
-             w-full glass text-center  max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
-            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
-            flex flex-col items-center p-4 mt-12
-             ${
-               theme === "dark"
-                 ? "bg-gray-800 text-white"
-                 : "bg-white text-black"
-             }
-          `}
+               w-full glass text-center animate-toast-bounce h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+              shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+              flex flex-col items-center p-4 pb-8 mt-16
+               ${
+                 theme === "dark"
+                   ? "bg-gray-800 text-white"
+                   : "bg-white text-black"
+               }
+            `}
               style={{
                 // slide in/out from top
                 animation: t.visible
@@ -277,8 +281,22 @@ export default function PredictionCards() {
                   : "fadeOutUp 150ms ease-in forwards",
               }}
             >
-              <p className=" max-w-sm mx-auto  text-lg font-semibold">
-                Bet Failed. Please try again
+              <div className="w-full animate-pulse h-[280px] relative mb-4">
+                <Image
+                  src={BetFailed}
+                  alt="lock"
+                  fill
+                  className="object-contain rounded-xl"
+                />
+              </div>
+  
+              <h3 className="font-bold text-2xl text-center animate-toast-pulse   mb-2">
+                Bet Failed
+              </h3>
+  
+              <p className=" text-sm">
+              You were unable to place the bet, 
+              please try again later
               </p>
             </div>
           ),
@@ -287,6 +305,7 @@ export default function PredictionCards() {
           }
         );
       }
+      return ok;
     } catch (error) {
       console.error("Failed to place bet:", error);
       // toast.error("Failed to place bet");
@@ -480,6 +499,49 @@ export default function PredictionCards() {
       } else if (error.message.includes("Signature request denied")) {
         errorMessage = "Transaction was not signed.";
       }
+
+      toast.custom(
+        (t) => (
+          <div
+            className={`
+             w-full glass text-center animate-toast-bounce h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+            flex flex-col items-center p-4 pb-8 mt-16
+             ${
+               theme === "dark"
+                 ? "bg-gray-800 text-white"
+                 : "bg-white text-black"
+             }
+          `}
+            style={{
+              // slide in/out from top
+              animation: t.visible
+                ? "fadeInDown 200ms ease-out forwards"
+                : "fadeOutUp 150ms ease-in forwards",
+            }}
+          >
+            <div className="w-full animate-pulse h-[280px] relative mb-4">
+              <Image
+                src={Withdraw}
+                alt="lock"
+                fill
+                className="object-contain rounded-xl"
+              />
+            </div>
+
+            <h3 className="font-bold text-2xl text-center animate-toast-pulse   mb-2">
+              Withdrawal Failed
+            </h3>
+
+            <p className=" text-sm">
+            You were unable to withdraw, please recheck and try again
+            </p>
+          </div>
+        ),
+        {
+          position: "top-center",
+        }
+      );
       // toast.error(errorMessage);
     } finally {
       setIsClaiming(false);
