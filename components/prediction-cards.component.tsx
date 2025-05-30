@@ -510,14 +510,14 @@ export default function PredictionCards() {
     const roundNumber = Number(baseRound.number) + offsetNumber;
     const baseStartTime =
       typeof baseRound.closeTime === "number"
-        ? baseRound.closeTime + offsetNumber * 240
-        : Math.floor(Date.now() / 1000) + offsetNumber * 240;
+        ? baseRound.closeTime + offsetNumber * (config?.roundDuration || 360)
+        : Math.floor(Date.now() / 1000) + offsetNumber * (config?.roundDuration || 360);
 
     return {
       number: roundNumber.toString(),
       startTime: baseStartTime,
-      lockTime: baseStartTime + 120,
-      closeTime: baseStartTime + 240,
+      lockTime: baseStartTime + (config?.lockDuration || 180),
+      closeTime: baseStartTime + (config?.roundDuration || 360),
       totalAmount: 0,
       totalBullAmount: 0,
       totalBearAmount: 0,
@@ -592,11 +592,11 @@ export default function PredictionCards() {
       lockTime:
         (typeof currentRound?.closeTime === "number"
           ? currentRound.closeTime
-          : Math.floor(Date.now() / 1000)) + 120,
+          : Math.floor(Date.now() / 1000)) + (config?.lockDuration || 180),
       closeTime:
         (typeof currentRound?.closeTime === "number"
           ? currentRound.closeTime
-          : Math.floor(Date.now() / 1000)) + 240,
+          : Math.floor(Date.now() / 1000)) + (config?.roundDuration || 360),
       totalAmount: 0,
       totalBullAmount: 0,
       totalBearAmount: 0,
@@ -679,8 +679,8 @@ export default function PredictionCards() {
       ({
         number: currentRoundNumber.toString(),
         startTime: now,
-        lockTime: now + (config?.lockDuration || 120),
-        closeTime: now + (config?.lockDuration || 120) * 2,
+        lockTime: now + (config?.lockDuration || (config?.lockDuration || 180)),
+        closeTime: now + (config?.lockDuration || 180) * 2,
         totalAmount: 0,
         totalBullAmount: 0,
         totalBearAmount: 0,
@@ -754,12 +754,12 @@ export default function PredictionCards() {
 
       for (let i = 0; i < 3; i++) {
         const roundNumber = currentRoundNumber - 1 + i;
-        const baseTime = fallbackCurrentTime + i * 240;
+        const baseTime = fallbackCurrentTime + i * (config?.roundDuration || 360);
 
         fallbackRounds.push({
           number: roundNumber.toString(),
-          startTime: baseTime - 240,
-          lockTime: baseTime - 120,
+          startTime: baseTime - (config?.roundDuration || 360),
+          lockTime: baseTime - (config?.lockDuration || 180),
           closeTime: baseTime,
           totalAmount: 0,
           totalBullAmount: 0,
@@ -1018,7 +1018,7 @@ export default function PredictionCards() {
                   strokeLinecap="round"
                   strokeDasharray="283" // 2πr ≈ 283 (for r=45)
                   strokeDashoffset={
-                    isLocked ? 0 : 283 - 283 * (1 - (timeLeft ?? 0) / 120)
+                    isLocked ? 0 : 283 - 283 * (1 - (timeLeft ?? 0) / (config?.lockDuration || 180))
                   }
                   transform="rotate(-90 50 50)"
                 />
@@ -1205,14 +1205,14 @@ export default function PredictionCards() {
                           : typeof round.lockTime === "string" &&
                             !isNaN(Number(round.lockTime))
                           ? Number(round.lockTime)
-                          : startTimeMs / 1000 + 120;
+                          : startTimeMs / 1000 + (config?.lockDuration || 180);
                       const closeTime =
                         round.closeTime instanceof Date
                           ? round.closeTime.getTime() / 1000
                           : typeof round.closeTime === "string" &&
                             !isNaN(Number(round.closeTime))
                           ? Number(round.closeTime)
-                          : lockTime + 120;
+                          : lockTime + (config?.lockDuration || 180);
 
                       // Get the variant for this card
                       const cardVariant = formatCardVariant(
