@@ -6,7 +6,7 @@ import { AnchorProvider, Program, Idl } from "@project-serum/anchor";
 
 import * as idl from "@/lib/idl.json";
 
-const programId = new PublicKey("81utGxcdCmAmg6Hi4rwGSRwbNyG7Vj8bwtTNvyu5rYm6")
+const programId = new PublicKey("BLrGsehZZ8kgkUXrkken588MeEDDZXdxvcX7hR5HEgzA")
 
 export const useProgram = () => {
     const [program, setProgram] = useState<Program<Idl>>();

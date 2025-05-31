@@ -20,7 +20,7 @@ interface SolPredictorHook {
     isPlacingBet: boolean;
 }
 
-const programId = new PublicKey("81utGxcdCmAmg6Hi4rwGSRwbNyG7Vj8bwtTNvyu5rYm6");
+const programId = new PublicKey("BLrGsehZZ8kgkUXrkken588MeEDDZXdxvcX7hR5HEgzA");
 export const useSolPredictor = (): SolPredictorHook => {
     const { publicKey, connected } = useWallet();
     const { program } = useProgram();
