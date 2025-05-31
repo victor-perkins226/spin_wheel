@@ -37,13 +37,14 @@ import Image from "next/image";
 //     };
 //   }
 
+//   // 6. Else, proceed to render page as normal
 //   return {
 //     props: {
 //       isBanned: false,
 //     },
 //   };
 // };
-export default function Home() {
+export default function Home({ isBanned }: { isBanned: boolean }) {
   const { theme } = useTheme();
   
   return (
