@@ -578,10 +578,10 @@ export default function PredictionCard({
             <p>Prize Pool</p>
             <p>{roundData.prizePool.toFixed(4)} SOL</p>
           </div>
-          <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
+          {/* <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
             <p>Time Left</p>
             <p>{formatTimeLeft(timeLeft)}</p>
-          </div>
+          </div> */}
         </div>
 
         <>
@@ -968,7 +968,7 @@ export default function PredictionCard({
               setInputValue(String(clamped));
             }
           }}
-          className="glass h-[65px] text-right rounded-[20px] pr-4 font-semibold text-[16px] text-white outline-0"
+          className="glass h-[65px] text-right rounded-[20px] pr-4 font-semibold text-[16px] outline-0"
         />
          {inputError && (
               <p className="mt-1 text-red-500 text-sm">{inputError}</p>
