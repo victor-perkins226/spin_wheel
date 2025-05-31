@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "vercel-build": "npx geoip-lite updatedb && next build",
+    "vercel-build": "node -e \"require('geoip-lite').reloadData()\" && next build",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
