@@ -46,7 +46,6 @@ export const useLivePrice = (): LivePriceData => {
         setError(null);
         // console.log('Received live price update:', data.price);
       } else {
-        console.warn('Received invalid price update:', data.price);
         setError('Received invalid price data.');
       }
     });
