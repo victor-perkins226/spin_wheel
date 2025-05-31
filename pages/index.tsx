@@ -1,7 +1,7 @@
 // pages/index.tsx  (or wherever your home page lives)
 
 import { GetServerSideProps } from "next";
-import geoip from "geoip-lite";
+// import geoip from "geoip-lite";
 import { BANNED_COUNTRY_CODES } from "@/lib/bannedCountries";
 import Head from "next/head";
 import Hero from "@/components/hero.component";
@@ -10,40 +10,40 @@ import { useTheme } from "next-themes";
 
 import Lock from "@/public/assets/lock.png";
 import Image from "next/image";
-export const getServerSideProps: GetServerSideProps = async ({ req }) => {
-  const xffHeader = req.headers["x-forwarded-for"];
-  const rawIp =
-    typeof xffHeader === "string"
-      ? xffHeader.split(",")[0].trim()
-      : req.socket.remoteAddress || "";
+// export const getServerSideProps: GetServerSideProps = async ({ req }) => {
+//   const xffHeader = req.headers["x-forwarded-for"];
+//   const rawIp =
+//     typeof xffHeader === "string"
+//       ? xffHeader.split(",")[0].trim()
+//       : req.socket.remoteAddress || "";
 
-  console.log("Raw IP header/socket:", rawIp);
+//   console.log("Raw IP header/socket:", rawIp);
 
-  let ip = rawIp;
-  if (ip.startsWith("::ffff:")) {
-    ip = ip.split(":").pop()!;
-  }
+//   let ip = rawIp;
+//   if (ip.startsWith("::ffff:")) {
+//     ip = ip.split(":").pop()!;
+//   }
 
-  // ip = '5.62.45.0'     // some German IP
-  ip = "185.185.185.185"; // pretend this is from IR
+//   // ip = '5.62.45.0'     // some German IP
+//   ip = "185.185.185.185"; // pretend this is from IR
 
-  const geo = geoip.lookup(ip);
-  const country = geo?.country ?? "??";
-  if (BANNED_COUNTRY_CODES.includes(country)) {
-    return {
-      props: {
-        isBanned: true,
-      },
-    };
-  }
+//   const geo = geoip.lookup(ip);
+//   const country = geo?.country ?? "??";
+//   if (BANNED_COUNTRY_CODES.includes(country)) {
+//     return {
+//       props: {
+//         isBanned: true,
+//       },
+//     };
+//   }
 
-  // 6. Else, proceed to render page as normal
-  return {
-    props: {
-      isBanned: false,
-    },
-  };
-};
+//   // 6. Else, proceed to render page as normal
+//   return {
+//     props: {
+//       isBanned: false,
+//     },
+//   };
+// };
 export default function Home({ isBanned }: { isBanned: boolean }) {
   const { theme } = useTheme();
   
