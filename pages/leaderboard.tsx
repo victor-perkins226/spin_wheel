@@ -8,6 +8,7 @@ import { GetStaticProps } from "next";
 import { ThemeToggle } from "@/components/Themetoggle";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
+import { API_URL } from "@/lib/config";
 
 type Leader = {
   userWalletAddress: string;
@@ -22,7 +23,7 @@ type Props = { leaders: Leader[] };
 export const getStaticProps: GetStaticProps<Props> = async () => {
   try {
     const { data: leaders } = await axios.get<Leader[]>(
-      "https://sol-prediction-backend.onrender.com/leaderboard"
+      `${API_URL}/leaderboard`
     );
     return {
       props: { leaders },

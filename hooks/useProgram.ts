@@ -5,8 +5,9 @@ import { PublicKey, Connection, } from "@solana/web3.js";
 import { AnchorProvider, Program, Idl } from "@project-serum/anchor";
 
 import * as idl from "@/lib/idl.json";
+import { PROGRAM_ID } from "@/lib/config";
 
-const programId = new PublicKey("AKui3UEpyUEhtnqsDChTL76DFncYx6rRqp6CSShnUm9r")
+const programId = new PublicKey(PROGRAM_ID)
 
 export const useProgram = () => {
     const [program, setProgram] = useState<Program<Idl>>();

@@ -15,6 +15,7 @@ import toast from "react-hot-toast";
 import { DotLoader, PuffLoader } from "react-spinners";
 import { useTheme } from "next-themes";
 import io from "socket.io-client";
+import { API_URL } from "@/lib/config";
 
 interface IProps {
   variant?: "live" | "expired" | "next" | "later" | "locked";
@@ -54,7 +55,7 @@ const CUSTOM_INPUTS = [
   { label: "75%", value: 0.75 },
   { label: "Max", value: 1.0 },
 ];
-const WS_URL = "https://sol-prediction-backend.onrender.com";
+const WS_URL = API_URL;
 export default function PredictionCard({
   variant,
   roundId = 0,

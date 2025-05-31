@@ -9,6 +9,7 @@ import { useCallback, useEffect, useState, useRef } from "react";
 import { UserBet, ClaimableBet, UserBetAccount } from "@/types/round";
 import Success from "@/public/assets/success-bet.png";
 import toast from "react-hot-toast";
+import { PROGRAM_ID } from "@/lib/config";
 
 // Define the return type for the hook
 interface SolPredictorHook {
@@ -20,7 +21,7 @@ interface SolPredictorHook {
     isPlacingBet: boolean;
 }
 
-const programId = new PublicKey("AKui3UEpyUEhtnqsDChTL76DFncYx6rRqp6CSShnUm9r");
+const programId = new PublicKey(PROGRAM_ID);
 export const useSolPredictor = (): SolPredictorHook => {
     const { publicKey, connected } = useWallet();
     const { program } = useProgram();
