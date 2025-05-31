@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Button from "./button.component";
 import SVG from "./svg.component";
-import BigBet from "@/public/assets/Big-Bet.png";
+import BetFailed from "@/public/assets/BetFailure.png";
 import Image from "next/image";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import SolanaBg from "@/public/assets/solana_bg.png";
@@ -14,6 +14,7 @@ import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import toast from "react-hot-toast";
 import { DotLoader, PuffLoader } from "react-spinners";
 import { useTheme } from "next-themes";
+import io from "socket.io-client";
 
 interface IProps {
   variant?: "live" | "expired" | "next" | "later" | "locked";
@@ -53,7 +54,7 @@ const CUSTOM_INPUTS = [
   { label: "75%", value: 0.75 },
   { label: "Max", value: 1.0 },
 ];
-
+const WS_URL = "https://sol-prediction-backend.onrender.com";
 export default function PredictionCard({
   variant,
   roundId = 0,
@@ -72,9 +73,11 @@ export default function PredictionCard({
   const [amount, setAmount] = useState(0.1);
   const [maxAmount, setMaxAmount] = useState<number>(10);
   const [justBet, setJustBet] = useState(false);
+  const [inputError, setInputError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { connected, publicKey } = useWallet();
   const { connection } = useConnection();
+  const [scriptBetPlaced, setScriptBetPlaced] = useState(false);
 
   const { theme } = useTheme();
 
@@ -106,6 +109,11 @@ export default function PredictionCard({
     };
   };
 
+  const socket = useMemo(() => io(WS_URL, {
+      transports: ["websocket"],
+      reconnection: true,
+    }), []);
+
   const { bullMultiplier, bearMultiplier } = calculateMultipliers();
 
   useEffect(() => {
@@ -123,10 +131,29 @@ export default function PredictionCard({
     })();
   }, [connected, publicKey, connection]);
 
+  useEffect(() => {
+        if (!connected || !publicKey) return;
+    
+        const handleNewBet = (newBet: any) => {
+          // if this bet is from our currently connected wallet …
+          if (newBet.data.user === publicKey.toString()
+            && newBet.data.round_number === roundId
+          ) {
+            // mark that they have already bet by any means
+            setScriptBetPlaced(true);
+          }
+        };
+    
+        socket.on("newBetPlaced", handleNewBet);
+        return () => {
+          socket.off("newBetPlaced", handleNewBet);
+        };
+       }, [connected, publicKey, roundId, socket]);
+     
+
   const userBetStatus =
     userBets?.find((bet) => bet.roundId === roundId) || null;
-  const hasUserBet = userBetStatus !== null || justBet;
-
+    const hasUserBet = userBetStatus !== null || justBet || scriptBetPlaced;
   const getPriceMovement = () => {
     if (!roundData) return { difference: 0, direction: "up" as "up" | "down" };
     const currentPrice =
@@ -196,6 +223,7 @@ export default function PredictionCard({
 
 
   const handleEnterPrediction = (mode: "up" | "down") => {
+    setInputError(null);
     if (!connected) {
       toast.custom(
         (t) => (
@@ -231,36 +259,49 @@ export default function PredictionCard({
     }
     if (!canBet) {
       // toast("Betting is not available for this round");
-       toast.custom(
-              (t) => (
-                <div
-                  className={`
-                   w-full glass text-center  max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
-                  shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
-                  flex flex-col items-center p-4 mt-12
-                   ${
-                     theme === "dark"
-                       ? "bg-gray-800 text-white"
-                       : "bg-white text-black"
-                   }
-                `}
-                  style={{
-                    // slide in/out from top
-                    animation: t.visible
-                      ? "fadeInDown 200ms ease-out forwards"
-                      : "fadeOutUp 150ms ease-in forwards",
-                  }}
-                >
-                  <p className=" max-w-sm mx-auto  text-lg font-semibold">
-                  Betting is not available for this round
-                  </p>
-                </div>
-              ),
-              {
-                position: "top-center",
-              }
-            
-            );
+      toast.custom(
+        (t) => (
+          <div
+            className={`
+             w-full glass text-center animate-toast-bounce h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+            flex flex-col items-center p-4 pb-8 mt-16
+             ${
+               theme === "dark"
+                 ? "bg-gray-800 text-white"
+                 : "bg-white text-black"
+             }
+          `}
+            style={{
+              // slide in/out from top
+              animation: t.visible
+                ? "fadeInDown 200ms ease-out forwards"
+                : "fadeOutUp 150ms ease-in forwards",
+            }}
+          >
+            <div className="w-full animate-pulse h-[280px] relative mb-4">
+              <Image
+                src={BetFailed}
+                alt="lock"
+                fill
+                className="object-contain rounded-xl"
+              />
+            </div>
+
+            <h3 className="font-bold text-2xl text-center animate-toast-pulse   mb-2">
+              Bet Failed
+            </h3>
+
+            <p className=" text-sm">
+            You were unable to place the bet, 
+            please try again later
+            </p>
+          </div>
+        ),
+        {
+          position: "top-center",
+        }
+      );
       return;
     }
     if (userBetStatus !== null) {
@@ -302,6 +343,17 @@ export default function PredictionCard({
   };
 
   const handlePlaceBet = async () => {
+    if (inputValue.trim() === "") {
+      setInputError("Please enter an amount");
+      return;
+    }
+    const parsed = parseFloat(inputValue);
+    if (isNaN(parsed) || parsed <= 0) {
+      setInputError("Enter a valid number");
+      return;
+    }
+
+    setInputError(null);
     if (!connected) {
       toast.custom(
         (t) => (
@@ -914,6 +966,9 @@ export default function PredictionCard({
           }}
           className="glass h-[65px] text-right rounded-[20px] pr-4 font-semibold text-[16px] text-white outline-0"
         />
+         {inputError && (
+              <p className="mt-1 text-red-500 text-sm">{inputError}</p>
+            )}
         <input
           type="range"
           min="0.01"
@@ -942,7 +997,7 @@ export default function PredictionCard({
   disabled={isSubmitting} onClick={handlePlaceBet}>
            {isSubmitting
     ? <PuffLoader color="#ffffff" size={20} />
-    : `Buy ${mode?.toUpperCase()} for ${amount} SOL`
+    : `Buy ${mode?.toUpperCase()} for ${parseFloat(inputValue || "0").toFixed(2)} SOL`
   }
         </Button>
       </div>
