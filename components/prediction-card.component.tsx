@@ -16,6 +16,7 @@ import { DotLoader, PuffLoader } from "react-spinners";
 import { useTheme } from "next-themes";
 import io from "socket.io-client";
 import { API_URL } from "@/lib/config";
+import { useRoundManager } from "@/hooks/roundManager";
 
 interface IProps {
   variant?: "live" | "expired" | "next" | "later" | "locked";
@@ -82,7 +83,9 @@ export default function PredictionCard({
 
   const { theme } = useTheme();
 
-
+  const {
+    config,
+  } = useRoundManager(5, 0);
   const calculateMultipliers = () => {
     if (!roundData) return { bullMultiplier: "0.00", bearMultiplier: "0.00" };
 
@@ -628,7 +631,7 @@ export default function PredictionCard({
 
     const baseRemaining = timeLeft || 0;
     const totalSeconds =
-      variant === "later" ? baseRemaining : baseRemaining + 120;
+      variant === "later" ? baseRemaining : baseRemaining + (config?.lockDuration || 180);
 
     const display =
       totalSeconds > 0
@@ -868,7 +871,7 @@ export default function PredictionCard({
                   className="h-full flex-1 rounded-[1px]"
                   style={{
                     backgroundColor:
-                      i < Math.floor(((120 - (timeLeft || 0)) / 120) * 7)
+                      i < Math.floor((((config?.lockDuration || 180) - (timeLeft || 0)) / (config?.lockDuration || 180)) * 7)
                         ? "#E5E7EB"
                         : "#6B7280",
                   }}

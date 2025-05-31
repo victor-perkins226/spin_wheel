@@ -20,7 +20,6 @@ interface Bet {
   timestamp: number;
   round_number: number;
 }
-
 // Backend API and WebSocket URLs
 
 const BIG_BET_THRESHOLD = 1;

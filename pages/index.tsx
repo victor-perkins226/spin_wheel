@@ -1,7 +1,7 @@
 // pages/index.tsx  (or wherever your home page lives)
 
 import { GetServerSideProps } from "next";
-import geoip from "geoip-lite";
+// import geoip from "geoip-lite";
 import { BANNED_COUNTRY_CODES } from "@/lib/bannedCountries";
 import Head from "next/head";
 import Hero from "@/components/hero.component";
