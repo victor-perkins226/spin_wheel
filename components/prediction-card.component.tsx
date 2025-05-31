@@ -54,7 +54,7 @@ const CUSTOM_INPUTS = [
   { label: "75%", value: 0.75 },
   { label: "Max", value: 1.0 },
 ];
-const WS_URL = "https://sol-prediction-backend.onrender.com";
+const WS_URL = "https://sol-prediction-backend-6e3r.onrender.com";
 export default function PredictionCard({
   variant,
   roundId = 0,

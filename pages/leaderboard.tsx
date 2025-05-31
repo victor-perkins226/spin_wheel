@@ -22,7 +22,7 @@ type Props = { leaders: Leader[] };
 export const getStaticProps: GetStaticProps<Props> = async () => {
   try {
     const { data: leaders } = await axios.get<Leader[]>(
-      "https://sol-prediction-backend.onrender.com/leaderboard"
+      "https://sol-prediction-backend-6e3r.onrender.com/leaderboard"
     );
     return {
       props: { leaders },

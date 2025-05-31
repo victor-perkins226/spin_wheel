@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import io, { Socket } from 'socket.io-client';
 
 
-const BACKEND_WS_URL ='https://sol-prediction-backend.onrender.com'; // Default NestJS port
+const BACKEND_WS_URL ='https://sol-prediction-backend-6e3r.onrender.com'; // Default NestJS port
 
 interface LivePriceData {
   price: number | undefined;

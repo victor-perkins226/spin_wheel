@@ -21,7 +21,7 @@ export const syncWithServerTime = async (): Promise<void> => {
     // Get server time from the API
     const startTime = Date.now();
     const response = await fetch(
-      "https://sol-prediction-backend.onrender.com/round/config"
+      "https://sol-prediction-backend-6e3r.onrender.com/round/config"
     );
     const endTime = Date.now();
     const roundTripTime = endTime - startTime;
@@ -188,7 +188,7 @@ export const fetchRoundDetails = async (roundId: number): Promise<any> => {
   // Otherwise fetch from API
   try {
     const response = await fetch(
-      `https://sol-prediction-backend.onrender.com/round/${roundId}`
+      `https://sol-prediction-backend-6e3r.onrender.com/round/${roundId}`
     );
     if (!response.ok) {
       throw new Error(`Failed to fetch round ${roundId}`);
@@ -231,7 +231,7 @@ export const fetchConfig = async (): Promise<any> => {
   // Otherwise fetch from API
   try {
     const response = await fetch(
-      "https://sol-prediction-backend.onrender.com/round/config"
+      "https://sol-prediction-backend-6e3r.onrender.com/round/config"
     );
     if (!response.ok) {
       throw new Error("Failed to fetch configuration");
