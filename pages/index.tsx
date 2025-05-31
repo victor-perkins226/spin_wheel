@@ -10,46 +10,45 @@ import { useTheme } from "next-themes";
 
 import Lock from "@/public/assets/lock.png";
 import Image from "next/image";
-export const getServerSideProps: GetServerSideProps = async ({ req }) => {
-  const xffHeader = req.headers["x-forwarded-for"];
-  const rawIp =
-    typeof xffHeader === "string"
-      ? xffHeader.split(",")[0].trim()
-      : req.socket.remoteAddress || "";
+// export const getServerSideProps: GetServerSideProps = async ({ req }) => {
+//   const xffHeader = req.headers["x-forwarded-for"];
+//   const rawIp =
+//     typeof xffHeader === "string"
+//       ? xffHeader.split(",")[0].trim()
+//       : req.socket.remoteAddress || "";
 
-  console.log("Raw IP header/socket:", rawIp);
+//   console.log("Raw IP header/socket:", rawIp);
 
-  let ip = rawIp;
-  if (ip.startsWith("::ffff:")) {
-    ip = ip.split(":").pop()!;
-  }
+//   let ip = rawIp;
+//   if (ip.startsWith("::ffff:")) {
+//     ip = ip.split(":").pop()!;
+//   }
 
-  // ip = '5.62.45.0'     // some German IP
-  ip = "185.185.185.185"; // pretend this is from IR
+//   // ip = '5.62.45.0'     // some German IP
+//   ip = "185.185.185.185"; // pretend this is from IR
 
-  const geo = geoip.lookup(ip);
-  const country = geo?.country ?? "??";
-  if (BANNED_COUNTRY_CODES.includes(country)) {
-    return {
-      props: {
-        isBanned: true,
-      },
-    };
-  }
+//   const geo = geoip.lookup(ip);
+//   const country = geo?.country ?? "??";
+//   if (BANNED_COUNTRY_CODES.includes(country)) {
+//     return {
+//       props: {
+//         isBanned: true,
+//       },
+//     };
+//   }
 
-  // 6. Else, proceed to render page as normal
-  return {
-    props: {
-      isBanned: false,
-    },
-  };
-};
-export default function Home({ isBanned }: { isBanned: boolean }) {
+//   return {
+//     props: {
+//       isBanned: false,
+//     },
+//   };
+// };
+export default function Home() {
   const { theme } = useTheme();
   
   return (
     <>
-      {isBanned ? (
+      {/* {/* {isBanned ? (
         <>
           <Head>
             <title>Access Restricted</title>
@@ -83,15 +82,15 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
             </div>
           </main>
         </>
-      ) : (
-        <>
+      ) : ( */}
+        <> 
           <Head>
             <title>Prediction | FORTUVA</title>
           </Head>
           <Hero />
           <PredictionCards />
         </>
-      )}
+      
     </>
   );
 }
