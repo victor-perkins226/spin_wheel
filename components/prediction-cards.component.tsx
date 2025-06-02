@@ -1,7 +1,14 @@
 /* eslint-disable @typescript-eslint/no-non-null-asserted-optional-chain */
 "use client";
 
-import { useRef, useState, useEffect, useCallback, useMemo } from "react";
+import React, {
+  useRef,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  Suspense,
+} from "react";
 import PredictionCard from "./prediction-card.component";
 import Image from "next/image";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -12,23 +19,31 @@ import "swiper/css/pagination";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Connection, LAMPORTS_PER_SOL, Transaction } from "@solana/web3.js";
 import { MobileLiveBets } from "./MobileBets";
-import Cheers from "@/public/assets/cheers.png";
-import Success from "@/public/assets/success-bet.png";
-import BetFailed from "@/public/assets/BetFailure.png";
-import Withdraw from "@/public/assets/Withdrawal.png";
 import NumberFlow from "@number-flow/react";
 import LiveBets from "./LiveBets";
 import { useRoundManager } from "@/hooks/roundManager";
 import { Round } from "@/types/round";
 import { useSolPredictor } from "@/hooks/useBuyClaim";
-import { BetsHistory } from "./BetsHistory";
-import LineChart from "./LineChart";
+// import { BetsHistory } from "./BetsHistory";
+// import LineChart from "./LineChart";
 import { useLivePrice } from "@/lib/price-utils";
 import { useProgram } from "@/hooks/useProgram";
 import toast from "react-hot-toast";
 import { useTheme } from "next-themes";
 import { DotLoader, PuffLoader } from "react-spinners";
+import MarketHeader from "./MarketHeader";
+import {
+  BetFailedToast,
+  BetSuccessToast,
+  BetSuccessToastMini,
+  ClaimFailureToast,
+  ClaimSuccessToastMini,
+  ConnectWalletBetToast,
+  NoClaimableBetsToast,
+} from "./toasts";
+const BetsHistory = React.lazy(() => import("./BetsHistory"));
 
+const LineChart = React.lazy(() => import("./LineChart"));
 export default function PredictionCards() {
   const [screenWidth, setScreenWidth] = useState(0);
   const [mounted, setMounted] = useState(false);
@@ -170,9 +185,7 @@ export default function PredictionCards() {
   ) => {
     if (!connected || !publicKey || !connectionRef.current) {
       // toast.error("Please connect your wallet to place a bet");
-    
-    
-   
+
       return;
     }
 
@@ -181,86 +194,17 @@ export default function PredictionCards() {
       if (ok) {
         toast.custom(
           (t) => (
-            <div
-              className={`
-              animate-toast-bounce-in w-full glass text-center h-[400px] max-w-[600px] 
-              bg-white dark:bg-gray-800 rounded-2xl shadow-xl ring-1 ring-black ring-opacity-5 
-              overflow-hidden flex flex-col items-center p-4 pb-12 mt-16
-              ${
-                theme === "dark"
-                  ? "bg-gray-800 text-white"
-                  : "bg-white text-black"
-              }
-            `}
-              style={{
-                animation: t.visible
-                  ? "fadeInDown 200ms ease-out forwards"
-                  : "fadeOutUp 150ms ease-in forwards",
-              }}
-            >
-              <div className="animate-vibrate w-full h-[280px] relative mb-4">
-                <Image
-                  src={Success}
-                  alt="Big Bet"
-                  fill
-                  className="object-contain rounded-xl"
-                />
-              </div>
-              <h3 className="font-bold text-2xl mb-2 animate-toast-pulse">
-                Bet successful
-              </h3>
-              <p className="max-w-sm mx-auto text-sm">
-                You have successfully placed a bet, cheers to potential wins
-              </p>
-            </div>
+            <>
+              <BetSuccessToastMini theme={theme} />
+            </>
           ),
-          { position: "top-center" }
+          { position: "top-right" }
         );
         await fetchUserBets();
       } else {
-        toast.custom(
-          (t) => (
-            <div
-              className={`
-               w-full glass text-center animate-toast-bounce h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
-              shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
-              flex flex-col items-center p-4 pb-8 mt-16
-               ${
-                 theme === "dark"
-                   ? "bg-gray-800 text-white"
-                   : "bg-white text-black"
-               }
-            `}
-              style={{
-                // slide in/out from top
-                animation: t.visible
-                  ? "fadeInDown 200ms ease-out forwards"
-                  : "fadeOutUp 150ms ease-in forwards",
-              }}
-            >
-              <div className="w-full animate-pulse h-[280px] relative mb-4">
-                <Image
-                  src={BetFailed}
-                  alt="lock"
-                  fill
-                  className="object-contain rounded-xl"
-                />
-              </div>
-  
-              <h3 className="font-bold text-2xl text-center animate-toast-pulse   mb-2">
-                Bet Failed
-              </h3>
-  
-              <p className=" text-sm">
-              You were unable to place the bet, 
-              please try again later
-              </p>
-            </div>
-          ),
-          {
-            position: "top-center",
-          }
-        );
+        toast.custom((t) => <BetFailedToast theme={theme} />, {
+          position: "top-right",
+        });
       }
       return ok;
     } catch (error) {
@@ -292,68 +236,16 @@ export default function PredictionCards() {
   const handleClaimRewards = useCallback(async () => {
     if (!connected || !publicKey || !connectionRef.current || !program) {
       // toast.error("Please connect your wallet to claim rewards");
-      toast.custom(
-        (t) => (
-          <div
-            className={`
-             w-full glass text-center  max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
-            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
-            flex flex-col items-center p-4 mt-12
-             ${
-               theme === "dark"
-                 ? "bg-gray-800 text-white"
-                 : "bg-white text-black"
-             }
-          `}
-            style={{
-              // slide in/out from top
-              animation: t.visible
-                ? "fadeInDown 200ms ease-out forwards"
-                : "fadeOutUp 150ms ease-in forwards",
-            }}
-          >
-            <p className=" max-w-sm mx-auto  text-lg font-semibold">
-              Please connect your wallet to claim rewards
-            </p>
-          </div>
-        ),
-        {
-          position: "top-center",
-        }
-      );
+      toast.custom((t) => <ConnectWalletBetToast />, {
+        position: "top-right",
+      });
       return;
     }
 
     if (claimableBets.length === 0) {
-      toast.custom(
-        (t) => (
-          <div
-            className={`
-             w-full glass text-center  max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
-            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
-            flex flex-col items-center p-4 mt-12
-             ${
-               theme === "dark"
-                 ? "bg-gray-800 text-white"
-                 : "bg-white text-black"
-             }
-          `}
-            style={{
-              // slide in/out from top
-              animation: t.visible
-                ? "fadeInDown 200ms ease-out forwards"
-                : "fadeOutUp 150ms ease-in forwards",
-            }}
-          >
-            <p className=" max-w-sm mx-auto  text-lg font-semibold">
-              No claimable bets available
-            </p>
-          </div>
-        ),
-        {
-          position: "top-center",
-        }
-      );
+      toast.custom((t) => <NoClaimableBetsToast theme={theme} />, {
+        position: "top-right",
+      });
       return;
     }
 
@@ -385,50 +277,19 @@ export default function PredictionCards() {
       );
 
       await connectionRef.current.confirmTransaction(signature, "confirmed");
-    
+
       // Refresh bets after claiming
       await fetchUserBets();
 
       toast.custom(
         (t) => (
-          <div
-            className={`
-             w-full glass text-center h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
-            shadow-xl animate-toast-bounce ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
-            flex flex-col items-center p-4 pb-12 mt-16
-             ${
-               theme === "dark"
-                 ? "bg-gray-800 text-white"
-                 : "bg-white text-black"
-             }
-          `}
-            style={{
-              // slide in/out from top
-              animation: t.visible
-                ? "fadeInDown 200ms ease-out forwards"
-                : "fadeOutUp 150ms ease-in forwards",
-            }}
-          >
-            <div className="w-full animate-vibrate h-[280px] relative mb-4">
-              <Image
-                src={Cheers}
-                alt="Cheers"
-                fill
-                className="object-contain rounded-xl"
-              />
-            </div>
-
-            <h3 className="font-bold text-2xl animate-toast-pulse mb-2">
-              Cheers to more withdrawals
-            </h3>
-
-            <p className=" max-w-sm mx-auto  text-sm">
-              You have withdrawn {claimableAmountRef.current.toFixed(4)} SOL
-            </p>
-          </div>
+          <ClaimSuccessToastMini
+            theme={theme}
+            claimableAmount={claimableRewards}
+          />
         ),
         {
-          position: "top-center",
+          position: "top-right",
         }
       );
 
@@ -457,48 +318,9 @@ export default function PredictionCards() {
         errorMessage = "Transaction was not signed.";
       }
 
-      toast.custom(
-        (t) => (
-          <div
-            className={`
-             w-full glass text-center animate-toast-bounce h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
-            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
-            flex flex-col items-center p-4 pb-8 mt-16
-             ${
-               theme === "dark"
-                 ? "bg-gray-800 text-white"
-                 : "bg-white text-black"
-             }
-          `}
-            style={{
-              // slide in/out from top
-              animation: t.visible
-                ? "fadeInDown 200ms ease-out forwards"
-                : "fadeOutUp 150ms ease-in forwards",
-            }}
-          >
-            <div className="w-full animate-pulse h-[280px] relative mb-4">
-              <Image
-                src={Withdraw}
-                alt="lock"
-                fill
-                className="object-contain rounded-xl"
-              />
-            </div>
-
-            <h3 className="font-bold text-2xl text-center animate-toast-pulse   mb-2">
-              Withdrawal Failed
-            </h3>
-
-            <p className=" text-sm">
-            You were unable to withdraw, please recheck and try again
-            </p>
-          </div>
-        ),
-        {
-          position: "top-center",
-        }
-      );
+      toast.custom((t) => <ClaimFailureToast theme={theme} />, {
+        position: "top-right",
+      });
       // toast.error(errorMessage);
     } finally {
       setIsClaiming(false);
@@ -530,7 +352,8 @@ export default function PredictionCards() {
     const baseStartTime =
       typeof baseRound.closeTime === "number"
         ? baseRound.closeTime + offsetNumber * (config?.roundDuration || 360)
-        : Math.floor(Date.now() / 1000) + offsetNumber * (config?.roundDuration || 360);
+        : Math.floor(Date.now() / 1000) +
+          offsetNumber * (config?.roundDuration || 360);
 
     return {
       number: roundNumber.toString(),
@@ -639,22 +462,7 @@ export default function PredictionCards() {
     if (!isNaN(roundNumber)) {
       roundMap.set(roundNumber, round);
     }
-    
   });
-
-
-  // const sortedRounds = useMemo(() => {
-  //   try {
-  //     // build your unique list
-  //     const list = Array.from(roundMap.values());
-  //     // clone+sort
-  //     return [...list].sort((a, b) => Number(a.number) - Number(b.number));
-  //   } catch (error) {
-  //     console.error("Error sorting rounds:", error);
-  //     // Return empty array as fallback to prevent crashes
-  //     return [];
-  //   }
-  // }, [roundMap]);
 
   const liveRound = previousRounds.find(
     (r) => Number(r.number) === currentRoundNumber - 1
@@ -697,7 +505,7 @@ export default function PredictionCards() {
       ({
         number: currentRoundNumber.toString(),
         startTime: now,
-        lockTime: now + (config?.lockDuration || (config?.lockDuration || 180)),
+        lockTime: now + (config?.lockDuration || config?.lockDuration || 180),
         closeTime: now + (config?.lockDuration || 180) * 2,
         totalAmount: 0,
         totalBullAmount: 0,
@@ -772,7 +580,8 @@ export default function PredictionCards() {
 
       for (let i = 0; i < 3; i++) {
         const roundNumber = currentRoundNumber - 1 + i;
-        const baseTime = fallbackCurrentTime + i * (config?.roundDuration || 360);
+        const baseTime =
+          fallbackCurrentTime + i * (config?.roundDuration || 360);
 
         fallbackRounds.push({
           number: roundNumber.toString(),
@@ -790,7 +599,6 @@ export default function PredictionCards() {
 
     return [];
   }, [computedDisplayRounds, currentRoundNumber]);
-
 
   const liveIndex = useMemo(() => {
     try {
@@ -957,21 +765,15 @@ export default function PredictionCards() {
       .padStart(2, "0")}`;
   };
 
-  // if (computedDisplayRounds.length === 0) {
-  //   return (
-  //     <div className="container px-3 sm:px-4 md:px-6 lg:px-8 mt-5">
-  //       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-  //         {[...Array(3)].map((_, i) => (
-  //           <div
-  //             key={i}
-  //             className="h-64 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"
-  //           />
-  //         ))}
-  //       </div>
-  //     </div>
-  //   );
-  // }
+  const formatPrice = (price: any): number | undefined => {
+    if (price === null || price === undefined) return undefined;
+    const numPrice = Number(price);
+    if (isNaN(numPrice)) return undefined;
+    // Assuming blockchain prices are scaled by 1e8
+    return numPrice > 1000000 ? numPrice / 1e8 : numPrice;
+  };
 
+  
   const isDataLoaded = finalDisplayRoundsForSwiper.length > 4;
   const skeletonInitial = Math.floor(7 / 2);
   const initial = isDataLoaded ? liveIndex : skeletonInitial;
@@ -980,163 +782,21 @@ export default function PredictionCards() {
     <div className="container px-3 sm:px-4 md:px-6 lg:px-8 mt-5 md:mt-6 lg:mt-[70px] flex flex-col gap-4 md:gap-6 lg:gap-[40px]">
       <div className="grid grid-cols-12 gap-4 lg:gap-6 xl:gap-[40px]">
         <div className="flex flex-col gap-6 md:gap-8 lg:gap-[40px] col-span-12 xl:col-span-9">
-          <div className="flex justify-between items-center flex-wrap gap-4 md:gap-4">
-            <div className="relative">
-              <Image
-                className="w-[24px] sm:w-[32px] lg:w-[64px] h-auto object-contain absolute left-0 top-0 z-10"
-                src="/assets/solana_logo.png"
-                alt="Solana"
-                width={64}
-                height={64}
-              />
-              <div className="glass flex gap-2 sm:gap-[9px] lg:gap-[26px] relative top-0 left-[8px] sm:left-[10px] lg:left:[20px] items-center font-semibold px-3 sm:px-[20px] lg:px-[44px] py-1 sm:py-[6px] lg:py-[15px] rounded-full">
-                <p className="text-[10px] pl-4 sm:text-[12px] lg:text-[20px]">
-                  SOL/USDT
-                </p>
-                <p
-                  className={`text-[10px] sm:text-[12px] transition-colors duration-300 ${priceColor}`}
-                >
-                  $
-                  <NumberFlow
-                    value={liveRoundPrice}
-                    format={{
-                      minimumFractionDigits: 4,
-                      maximumFractionDigits: 4,
-                    }}
-                    transformTiming={{
-                      duration: 750,
-                      easing: "ease-out",
-                    }}
-                  />
-                </p>
-              </div>
-            </div>
-
-            <div className="relative flex items-center justify-center w-[60px] sm:w-[80px] lg:w-[120px] h-[60px] sm:h-[80px] lg:h-[120px]">
-              {/* Circular progress background */}
-              <svg className="absolute w-full h-full" viewBox="0 0 100 100">
-                {/* Background circle */}
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="45"
-                  fill="none"
-                  stroke={theme === "dark" ? "#374151" : "#E5E7EB"} // grey-700 for dark, grey-200 for light
-                  strokeWidth="5"
-                />
-
-                {/* Progress circle */}
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="45"
-                  fill="none"
-                  stroke={theme === "dark" ? "#6B7280" : "#9CA3AF"} // grey-500 for dark, grey-400 for light
-                  strokeWidth="5"
-                  strokeLinecap="round"
-                  strokeDasharray="283" // 2πr ≈ 283 (for r=45)
-                  strokeDashoffset={
-                    isLocked ? 0 : 283 - 283 * (1 - (timeLeft ?? 0) / (config?.lockDuration || 180))
-                  }
-                  transform="rotate(-90 50 50)"
-                />
-
-                {/* 12 hour markers */}
-                {Array.from({ length: 20 }).map((_, i) => {
-                  const angle = 15 + i * 18; // Starts at 15°, 18° increments (covers 15°-345°)
-                  if (angle < 165 || angle > 195) {
-                    // Skip small bottom portion (165°-195°)
-                    return (
-                      <line
-                        key={i}
-                        x1="50"
-                        y1="8"
-                        x2="50"
-                        y2="12"
-                        stroke={theme === "dark" ? "#4B5563" : "#6B7280"} // grey-600 for dark, grey-500 for light
-                        strokeWidth="1.5"
-                        transform={`rotate(${angle} 50 50)`}
-                      />
-                    );
-                  }
-                  return null;
-                })}
-              </svg>
-
-              {/* Time display in center */}
-              <div className="absolute flex flex-col items-center justify-center z-10">
-                <span
-                  className={`font-semibold text-[12px] sm:text-[16px] lg:text-[24px] ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}
-                >
-                  {isLocked ? "Closing" : formatTimeLeft(timeLeft)}
-                </span>
-                <span
-                  className={`text-[8px] sm:text-[10px] lg:text-[12px] ${
-                    theme === "dark" ? "text-[#D1D5DB]" : "text-gray-500"
-                  }`}
-                >
-                  {config ? config.lockDuration / 60 : 2}m
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {connected && (
-            <div className="glass rounded-xl p-4 flex justify-between items-center flex-wrap gap-4">
-              <div>
-                <p className="text-sm opacity-70">Your Balance</p>
-                <div className="flex items-center gap-1 font-semibold">
-                  <Image
-                    className="w-[20px] h-auto object-contain"
-                    src="/assets/solana_logo.png"
-                    alt="Solana"
-                    width={20}
-                    height={20}
-                  />
-                  <span>{userBalance.toFixed(4)} SOL</span>
-                </div>
-              </div>
-              {claimableRewards > 0 && (
-                <div className="flex items-center gap-3">
-                  <div>
-                    <p className="text-sm opacity-70">Unclaimed Rewards</p>
-                    <div className="flex items-center gap-1 font-semibold text-green-500">
-                      <Image
-                        className="w-[20px] h-auto object-contain"
-                        src="/assets/solana_logo.png"
-                        alt="Solana"
-                        width={20}
-                        height={20}
-                      />
-                      <span>{claimableRewards.toFixed(4)} SOL</span>
-                    </div>
-                  </div>
-                  <button
-                    className="glass bg-green-500 cursor-pointer py-2 px-4 rounded-lg font-semibold flex items-center justify-center"
-                    onClick={handleClaimRewards}
-                    disabled={claimableRewards === 0 || isClaiming}
-                  >
-                    {isClaiming ? (
-                      <PuffLoader size={20} color="#fff" />
-                    ) : (
-                      "Claim"
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {!connected && (
-            <div className="glass rounded-xl p-4 flex justify-center items-center">
-              <p className="text-sm opacity-70">
-                Connect your wallet to place bets and view your balance
-              </p>
-            </div>
-          )}
-
+          <MarketHeader
+            liveRoundPrice={liveRoundPrice}
+            priceColor={priceColor}
+            isLocked={isLocked}
+            timeLeft={timeLeft}
+            lockDuration={config?.lockDuration}
+            theme={theme === "dark" ? "dark" : "light"}
+            connected={connected}
+            userBalance={userBalance}
+            claimableRewards={claimableRewards}
+            isClaiming={isClaiming}
+            onClaim={handleClaimRewards}
+            formatTimeLeft={formatTimeLeft}
+          />
+          
           {!connected ? (
             // Show wallet connection prompt instead of cards when not connected
             <div className="flex flex-col items-center justify-center min-h-[400px] gap-6">
@@ -1238,6 +898,15 @@ export default function PredictionCards() {
                         currentRoundNumber
                       );
 
+                      if (cardVariant === 'expired') {
+                        console.log(`Expired Round ${round.number}:`, {
+                          lockPrice: round.lockPrice,
+                          endPrice: round.endPrice,
+                          formattedLockPrice: formatPrice(round.lockPrice),
+                          formattedClosePrice: formatPrice(round.endPrice)
+                        });
+                      }
+
                       return (
                         <SwiperSlide
                           key={round.number} // Ensure key is stable and unique
@@ -1247,13 +916,16 @@ export default function PredictionCards() {
                             variant={cardVariant}
                             roundId={Number(round.number)}
                             roundData={{
-                              lockPrice: round.lockPrice! / 1e8,
-                              closePrice: round.endPrice
-                                ? round.endPrice / 1e8
-                                : liveRoundPrice,
-                              currentPrice:
-                                liveRoundPrice ||
-                                (round.lockPrice || 50 * 1e8) / 1e8,
+                              lockPrice: formatPrice(round.lockPrice),
+                              closePrice: formatPrice(round.endPrice),
+                              currentPrice: (() => {
+                                // For expired rounds, use the close price as current price
+                                if (cardVariant === 'expired') {
+                                  return formatPrice(round.endPrice) || formatPrice(round.lockPrice) || liveRoundPrice;
+                                }
+                                // For live/calculating rounds, use live price
+                                return liveRoundPrice;
+                              })(),
                               prizePool:
                                 (round.totalAmount || 0) / LAMPORTS_PER_SOL,
                               upBets:
@@ -1299,11 +971,15 @@ export default function PredictionCards() {
           </div>
 
           <div className="mt-10">
-            <LineChart />
+            <Suspense fallback={<PuffLoader color="#06C729" size={30} />}>
+              <LineChart />
+            </Suspense>
           </div>
 
           {connected && userBets.length > 0 && (
-            <BetsHistory userBets={userBets} />
+            <Suspense fallback={<PuffLoader color="#06C729" size={30} />}>
+              <BetsHistory userBets={userBets} />
+            </Suspense>
           )}
         </div>
         <LiveBets

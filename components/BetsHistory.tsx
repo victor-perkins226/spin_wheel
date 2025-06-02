@@ -7,7 +7,7 @@ interface BetsHistoryProps {
   userBets: UserBet[];
 }
 
-export function BetsHistory({ userBets }: BetsHistoryProps) {
+export default function BetsHistory({ userBets }: BetsHistoryProps) {
   const { theme } = useTheme();
   const [sortedBets, setSortedBets] = useState<UserBet[]>([]);
   const [mounted, setMounted] = useState(false);
