@@ -37,6 +37,7 @@ import {
   BetSuccessToast,
   BetSuccessToastMini,
   ClaimFailureToast,
+  ClaimSuccessToast,
   ClaimSuccessToastMini,
   ConnectWalletBetToast,
   NoClaimableBetsToast,
@@ -108,7 +109,7 @@ export default function PredictionCards() {
   useEffect(() => {
     const updateLivePrice = async () => {
       if (livePrice !== undefined) {
-        console.log("Live price fetched:", livePrice);
+        // console.log("Live price fetched:", livePrice);
         setLiveRoundPrice(livePrice!);
       }
     };
@@ -283,20 +284,20 @@ export default function PredictionCards() {
 
       toast.custom(
         (t) => (
-          <ClaimSuccessToastMini
+          <ClaimSuccessToast
             theme={theme}
             claimableAmount={claimableRewards}
           />
         ),
         {
-          position: "top-right",
+          position: "top-center",
         }
       );
 
       // Reset claimable rewards
       setClaimableRewards(0);
 
-      console.log(`Batched payout claimed successfully: ${signature}`);
+      // console.log(`Batched payout claimed successfully: ${signature}`);
     } catch (error: any) {
       console.error("Failed to claim rewards:", error);
       let errorMessage = "Failed to claim rewards. Please try again.";
@@ -552,6 +553,7 @@ export default function PredictionCards() {
     createDummyLaterRound,
     formatCardVariant,
   ]);
+  console.log(config)
   // Update the ref with the latest non-empty computed rounds
   useEffect(() => {
     if (computedDisplayRounds.length > 0) {
@@ -642,7 +644,7 @@ export default function PredictionCards() {
     }
   }, [liveIndex]);
 
-  // console.log("Final display rounds for Swiper:", finalDisplayRoundsForSwiper);
+  console.log("Final display rounds for Swiper:", finalDisplayRoundsForSwiper);
   useEffect(() => {
     const swiper = swiperRef.current;
     if (!swiper || swiperReady || liveIndex < 0) return;
@@ -662,9 +664,9 @@ export default function PredictionCards() {
 
     if (shouldJumpToLive && currentLiveRound) {
       try {
-        console.log(
-          `Jumping to live slide at index ${liveIndex}, round ${currentLiveRoundNumber}`
-        );
+        // console.log(
+        //   `Jumping to live slide at index ${liveIndex}, round ${currentLiveRoundNumber}`
+        // );
         // Use immediate jump (0ms) for initial load, smooth for updates
         const duration = initialSlideJumped.current ? 300 : 0;
         swiper.slideTo(liveIndex, duration);

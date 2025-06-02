@@ -18,9 +18,9 @@ export function ClaimNotConnectedToast({
   return (
     <div
       className={`
-        w-full glass text-center max-w-[600px] rounded-2xl
+        glass  rounded-2xl
         shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
-        flex flex-col items-center p-4 mt-12
+        flex flex-col items-start p-4 mt-12
         ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
       `}
       style={{
@@ -45,9 +45,9 @@ export function NoClaimableBetsToast({
   return (
     <div
       className={`
-        w-full glass text-center max-w-[600px] rounded-2xl
+        glass text-center  rounded-2xl
         shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
-        flex flex-col items-center p-4 mt-12
+        flex flex-col items-start p-4 mt-12
         ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
       `}
       style={{
@@ -68,7 +68,7 @@ export function ClaimSuccessToast({
   theme,
   claimableAmount,
 }: {
-  theme: "light" | "dark";
+  theme: string | undefined;
   claimableAmount: number;
 }) {
   return (
@@ -144,23 +144,23 @@ export function ClaimFailureToast({
   return (
     <div
       className={`
-        w-full glass text-center animate-toast-bounce h-[200px] max-w-[600px] rounded-2xl
+        glass text-center animate-toast-bounce rounded-2xl
         shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
-        flex flex-col items-center p-4 pb-8 mt-16
+        flex flex-col items-start p-4 pb-8 mt-16
         ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
       `}
       style={{
         animation: "fadeInDown 200ms ease-out forwards",
       }}
     >
-      <div className="w-full animate-pulse h-[80px] relative mb-4">
+      {/* <div className="w-full animate-pulse h-[80px] relative mb-4">
         <Image
           src={Withdraw}
           alt="Withdrawal Failed"
           fill
           className="object-contain rounded-xl"
         />
-      </div>
+      </div> */}
 
       <h3 className="font-bold text-2xl text-center animate-toast-pulse mb-2">
         Withdrawal Failed
@@ -179,7 +179,7 @@ export function ClaimFailureToast({
 export function BetSuccessToast({
   theme,
 }: {
-  theme: "light" | "dark";
+  theme: string | undefined;
 }) {
   return (
     <div
@@ -220,9 +220,9 @@ export function BetSuccessToastMini({
     return (
       <div
         className={`
-          animate-toast-bounce-in w-full glass text-center h-[400px] max-w-[600px]
+          animate-toast-bounce-in
           rounded-2xl shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
-          flex flex-col items-center p-4 pb-12 mt-16
+          flex flex-col items-start p-4 pb-12 mt-16
           ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
         `}
         style={{
@@ -250,23 +250,23 @@ export function BetFailedToast({
   return (
     <div
       className={`
-        w-full glass text-center animate-toast-bounce h-[400px] max-w-[600px] rounded-2xl
+        glass text-left animate-toast-bounce rounded-2xl
         shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
-        flex flex-col items-center p-4 pb-8 mt-16
+        flex flex-col items-start p-4 pb-8 mt-16
         ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
       `}
       style={{
         animation: "fadeInDown 200ms ease-out forwards",
       }}
     >
-      <div className="w-full animate-pulse h-[280px] relative mb-4">
+      {/* <div className="w-full animate-pulse h-[280px] relative mb-4">
         <Image
           src={BetFailed}
           alt="Bet Failed"
           fill
           className="object-contain rounded-xl"
         />
-      </div>
+      </div> */}
 
       <h3 className="font-bold text-2xl text-center animate-toast-pulse mb-2">
         Bet Failed
@@ -285,14 +285,14 @@ export function BetFailedToast({
 export function AlreadyPlacedBetToast({
   theme,
 }: {
-  theme: "light" | "dark";
+  theme: string | undefined;
 }) {
   return (
     <div
       className={`
-        w-full glass text-center max-w-[600px] rounded-2xl
+        glass rounded-2xl
         shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
-        flex flex-col items-center p-4 mt-12
+        flex flex-col items-start p-4 mt-12
         ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
       `}
       style={{
@@ -317,9 +317,9 @@ export function InvalidAmountToast({
   return (
     <div
       className={`
-        w-full glass text-center max-w-[600px] rounded-2xl
+         glass text-left rounded-2xl
         shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
-        flex flex-col items-center p-4 mt-12
+        flex flex-col items-start p-4 mt-12
         ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
       `}
       style={{
@@ -344,7 +344,7 @@ export function BettingNotAvailableToast({
   return (
     <div
       className={`
-        w-full glass text-center max-w-[600px] rounded-2xl
+        glass rounded-2xl
         shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
         flex flex-col items-center p-4 mt-12
         ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
@@ -367,9 +367,9 @@ export function ConnectWalletBetToast() {
   return (
     <div
       className={`
-        w-full glass text-center max-w-[600px] rounded-2xl
+         glass ] rounded-2xl
         shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
-        flex flex-col items-center p-4 mt-12
+        flex flex-col items-start p-4 mt-12
       `}
       style={{
         animation: "fadeInDown 200ms ease-out forwards",

@@ -22,12 +22,11 @@ export  function ThemeToggle() {
           isDark ? "/assets/lightToggle.png" : "/assets/darkToggle.png"
         })`,
         backgroundSize: "cover",
-        backgroundPosition: "center",
       }}
     >
       <div
         className={`absolute top-1/2 transform -translate-y-1/2 w-[40px] h-[40px] bg-white rounded-full shadow-md transition-all duration-100 ${
-          isDark ? "right-[58px]" : "left-[36px]"
+          isDark ? "right-[59px]" : "left-[59px]"
         }`}
       ></div>
     </div>
