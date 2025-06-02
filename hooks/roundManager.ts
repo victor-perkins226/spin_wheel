@@ -137,7 +137,7 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
   
     const calculateTimeLeft = () => {
       const now = Date.now() / 1000;
-      console.log({currentRoundNumber})
+      // console.log({currentRoundNumber})
       
       let startTimeMs: number;
       const startTimeValue = currentRound.startTime as any;
@@ -247,7 +247,7 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
       
       const nextRoundNumber = currentRoundNumber + 1;
       if (newConfig.currentRound > currentRoundNumber) {
-        console.log("New round detected:", newConfig.currentRound);
+        // console.log("New round detected:", newConfig.currentRound);
         
         // Only invalidate what's necessary
         await queryClient.invalidateQueries({ 
@@ -280,7 +280,7 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
     if (!currentRoundNumber) return;
     const newOffset = offset + initialLimit;
     setOffset(newOffset);
-    console.log(`Workspaceing more rounds with offset ${newOffset}`);
+    // console.log(`Workspaceing more rounds with offset ${newOffset}`);
   };
 
   return {

@@ -609,14 +609,14 @@ const TradingChart = () => {
       <div className="flex mb-5 items-center space-x-4 text-sm">
         <div className="flex items-center">
           <div className="w-3 h-3 rounded-full bg-green-500 mr-1"></div>
-          <span className="text-xs text-gray-600 dark:text-gray-300">
+          <span className="text-xs ">
             Pyth Oracle
           </span>
         </div>
 
         <div className="flex items-center">
           <div className="w-3 h-3 rounded-full bg-blue-500 mr-1"></div>
-          <span className="text-xs text-gray-600 dark:text-gray-300">
+          <span className="text-xs">
             CoinGecko
           </span>
         </div>
