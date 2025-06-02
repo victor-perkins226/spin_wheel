@@ -37,6 +37,7 @@ import {
   BetSuccessToast,
   BetSuccessToastMini,
   ClaimFailureToast,
+  ClaimSuccessToast,
   ClaimSuccessToastMini,
   ConnectWalletBetToast,
   NoClaimableBetsToast,
@@ -283,13 +284,13 @@ export default function PredictionCards() {
 
       toast.custom(
         (t) => (
-          <ClaimSuccessToastMini
+          <ClaimSuccessToast
             theme={theme}
             claimableAmount={claimableRewards}
           />
         ),
         {
-          position: "top-right",
+          position: "top-center",
         }
       );
 
