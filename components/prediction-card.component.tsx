@@ -539,7 +539,7 @@
         <>
           {isLocked ? (
             <div className="flex-1 glass h-[300px] flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
-              <div className="flex flex-col items-center gap-3 justify-center h-[250px]">
+              <div className="flex flex-col items-center gap-3 justify-center h-[300px]">
                 <DotLoader
                   color="#ffffff"
                   size={40}
@@ -553,11 +553,11 @@
             </div>
           ) : (
             <div className="flex flex-col h-[300px] glass p-[10px] rounded-[20px] items-center">
-              <div className=" flex flex-col gap-[13px] justify-between flex-1">
+              <div className=" flex flex-col gap-[13px] w-[90%] justify-between flex-1">
                 <Image
                   alt="Solana Background"
                   src={SolanaBg || "/placeholder.svg"}
-                  className="rounded-[10px] w-full h-[122px] object-cover"
+                  className="rounded-[10px] w-full h-[132px] object-cover"
                   width={215}
                   height={142}
                 />
@@ -700,7 +700,7 @@
       <div
         className={`card_container glass rounded-[20px] p-[15px] sm:p-[25px] ${
           variant === "live"
-            ? "min-w-[280px] sm:min-w-[320px] md:min-w-[380px]"
+            ? "min-w-[240px] sm:min-w-[273px] w-full"
             : "min-w-[240px] sm:min-w-[273px] w-full"
         }`}
       >
