@@ -7,7 +7,6 @@
 // import idl from '../lib/idl.json';
 
 // const PROGRAM_ID = new PublicKey('7uYDitac59MxCgP7Narmfb8HfPWLjk7sQGTGosiV7RPL');
-// const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://sol-prediction-backend.onrender.com/round';
 
 // // Round status variants
 // const ROUND_STATUS = {

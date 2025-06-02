@@ -5,10 +5,11 @@ import { Config, Round } from "@/types/round";
 import { useProgram } from "./useProgram";
 import { PublicKey } from "@solana/web3.js";
 import * as anchor from "@project-serum/anchor";
+import { PROGRAM_ID } from "@/lib/config";
 
 
 
-const programId = new PublicKey("BLrGsehZZ8kgkUXrkken588MeEDDZXdxvcX7hR5HEgzA");
+const programId = new PublicKey(PROGRAM_ID);
 
 
 

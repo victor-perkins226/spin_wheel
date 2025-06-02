@@ -1,9 +1,10 @@
 // hooks/useLivePrice.ts
 import { useState, useEffect, useRef } from 'react';
 import io, { Socket } from 'socket.io-client';
+import { API_URL } from './config';
 
 
-const BACKEND_WS_URL ='https://sol-prediction-backend-6e3r.onrender.com'; // Default NestJS port
+const BACKEND_WS_URL = API_URL; // Default NestJS port
 
 interface LivePriceData {
   price: number | undefined;

@@ -1,7 +1,6 @@
-// pages/index.tsx  (or wherever your home page lives)
+// pages/index.tsx
 
 import { GetServerSideProps } from "next";
-// import geoip from "geoip-lite";
 import { BANNED_COUNTRY_CODES } from "@/lib/bannedCountries";
 import Head from "next/head";
 import Hero from "@/components/hero.component";
@@ -10,43 +9,25 @@ import { useTheme } from "next-themes";
 
 import Lock from "@/public/assets/lock.png";
 import Image from "next/image";
-// export const getServerSideProps: GetServerSideProps = async ({ req }) => {
-//   const xffHeader = req.headers["x-forwarded-for"];
-//   const rawIp =
-//     typeof xffHeader === "string"
-//       ? xffHeader.split(",")[0].trim()
-//       : req.socket.remoteAddress || "";
 
-//   console.log("Raw IP header/socket:", rawIp);
+export const getServerSideProps: GetServerSideProps = async ({ req }) => {
+  // 1. Read Vercel's country header (ISO-3166-1 alpha-2)
+  const rawCountry = req.headers["x-vercel-ip-country"] as string | undefined;
+  const country = rawCountry ? rawCountry.toUpperCase() : "";
 
-//   let ip = rawIp;
-//   if (ip.startsWith("::ffff:")) {
-//     ip = ip.split(":").pop()!;
-//   }
+  console.log("Vercel geo header:", country);
 
-//   // ip = '5.62.45.0'     // some German IP
-//   ip = "185.185.185.185"; // pretend this is from IR
+  // 2. If it matches a banned code, mark isBanned = true
+  const isBanned = BANNED_COUNTRY_CODES.includes(country);
 
-//   const geo = geoip.lookup(ip);
-//   const country = geo?.country ?? "??";
-//   if (BANNED_COUNTRY_CODES.includes(country)) {
-//     return {
-//       props: {
-//         isBanned: true,
-//       },
-//     };
-//   }
+  return {
+    props: { isBanned },
+  };
+};
 
-//   // 6. Else, proceed to render page as normal
-//   return {
-//     props: {
-//       isBanned: false,
-//     },
-//   };
-// };
 export default function Home({ isBanned }: { isBanned: boolean }) {
   const { theme } = useTheme();
-  
+
   return (
     <>
       {isBanned ? (
@@ -54,31 +35,29 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
           <Head>
             <title>Access Restricted</title>
           </Head>
-          <main className="flex items-center justify-center">
+          <main className="flex items-center justify-center min-h-screen">
             <div
               className={`
-               w-full  text-center animate-toast-bounce h-[600px] max-w-[1000px]  rounded-2xl
-               overflow-hidden justify-space-between
-              flex flex-col items-center p-4 pb-8 mt-16
-           
-            `}
+                w-full max-w-[600px] h-[500px] text-center rounded-2xl
+                flex flex-col items-center justify-center p-4
+              `}
             >
-              <div className="w-full  h-full relative mb-4">
+              <div className="relative w-full h-full mb-6">
                 <Image
                   src={Lock}
                   alt="lock"
                   fill
-                  className="object-contain rounded-xl"
+                  className="object-contain"
                 />
               </div>
 
-              <h3 className="font-bold text-4xl text-center animate-toast-pulse   mb-2">
+              <h3 className="font-bold text-3xl mb-4">
                 Access is restricted in your region.
               </h3>
 
-              <p className=" text-xl max-w-4xl mx-auto text-center mt-6">
-                We can't provide service in your area because of local rules.
-                Please try from another location or check your settings
+              <p className="text-lg text-gray-700 dark:text-gray-300">
+                We can’t provide service in your area because of local rules.
+                Please try from another location or check your settings.
               </p>
             </div>
           </main>

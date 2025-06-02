@@ -15,7 +15,14 @@ import toast from "react-hot-toast";
 import { DotLoader, PuffLoader } from "react-spinners";
 import { useTheme } from "next-themes";
 import io from "socket.io-client";
+import { API_URL } from "@/lib/config";
 import { useRoundManager } from "@/hooks/roundManager";
+import {
+  BetFailedToast,
+  BettingNotAvailableToast,
+  ConnectWalletBetToast,
+  InvalidAmountToast,
+} from "./toasts";
 
 interface IProps {
   variant?: "live" | "expired" | "next" | "later" | "locked";
@@ -55,7 +62,7 @@ const CUSTOM_INPUTS = [
   { label: "75%", value: 0.75 },
   { label: "Max", value: 1.0 },
 ];
-const WS_URL = "https://sol-prediction-backend-6e3r.onrender.com";
+const WS_URL = API_URL;
 export default function PredictionCard({
   variant,
   roundId = 0,
@@ -82,9 +89,7 @@ export default function PredictionCard({
 
   const { theme } = useTheme();
 
-  const {
-    config,
-  } = useRoundManager(5, 0);
+  const { config } = useRoundManager(5, 0);
   const calculateMultipliers = () => {
     if (!roundData) return { bullMultiplier: "0.00", bearMultiplier: "0.00" };
 
@@ -112,10 +117,14 @@ export default function PredictionCard({
     };
   };
 
-  const socket = useMemo(() => io(WS_URL, {
-      transports: ["websocket"],
-      reconnection: true,
-    }), []);
+  const socket = useMemo(
+    () =>
+      io(WS_URL, {
+        transports: ["websocket"],
+        reconnection: true,
+      }),
+    []
+  );
 
   const { bullMultiplier, bearMultiplier } = calculateMultipliers();
 
@@ -135,28 +144,28 @@ export default function PredictionCard({
   }, [connected, publicKey, connection]);
 
   useEffect(() => {
-        if (!connected || !publicKey) return;
-    
-        const handleNewBet = (newBet: any) => {
-          // if this bet is from our currently connected wallet …
-          if (newBet.data.user === publicKey.toString()
-            && newBet.data.round_number === roundId
-          ) {
-            // mark that they have already bet by any means
-            setScriptBetPlaced(true);
-          }
-        };
-    
-        socket.on("newBetPlaced", handleNewBet);
-        return () => {
-          socket.off("newBetPlaced", handleNewBet);
-        };
-       }, [connected, publicKey, roundId, socket]);
-     
+    if (!connected || !publicKey) return;
+
+    const handleNewBet = (newBet: any) => {
+      // if this bet is from our currently connected wallet …
+      if (
+        newBet.data.user === publicKey.toString() &&
+        newBet.data.round_number === roundId
+      ) {
+        // mark that they have already bet by any means
+        setScriptBetPlaced(true);
+      }
+    };
+
+    socket.on("newBetPlaced", handleNewBet);
+    return () => {
+      socket.off("newBetPlaced", handleNewBet);
+    };
+  }, [connected, publicKey, roundId, socket]);
 
   const userBetStatus =
     userBets?.find((bet) => bet.roundId === roundId) || null;
-    const hasUserBet = userBetStatus !== null || justBet || scriptBetPlaced;
+  const hasUserBet = userBetStatus !== null || justBet || scriptBetPlaced;
   const getPriceMovement = () => {
     if (!roundData) return { difference: 0, direction: "up" as "up" | "down" };
     const currentPrice =
@@ -223,40 +232,18 @@ export default function PredictionCard({
         status: "ENDED" as const,
       };
 
-
-
   const handleEnterPrediction = (mode: "up" | "down") => {
     setInputError(null);
     if (!connected) {
       toast.custom(
         (t) => (
-          <div
-            className={`
-             w-full glass text-center  max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
-            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
-            flex flex-col items-center p-4 mt-12
-             ${
-               theme === "dark"
-                 ? "bg-gray-800 text-white"
-                 : "bg-white text-black"
-             }
-          `}
-            style={{
-              // slide in/out from top
-              animation: t.visible
-                ? "fadeInDown 200ms ease-out forwards"
-                : "fadeOutUp 150ms ease-in forwards",
-            }}
-          >
-            <p className=" max-w-sm mx-auto  text-lg font-semibold">
-            Please connect your wallet first
-            </p>
-          </div>
+          <>
+            <ConnectWalletBetToast />
+          </>
         ),
         {
           position: "top-center",
         }
-      
       );
       return;
     }
@@ -296,8 +283,7 @@ export default function PredictionCard({
             </h3>
 
             <p className=" text-sm">
-            You were unable to place the bet, 
-            please try again later
+              You were unable to place the bet, please try again later
             </p>
           </div>
         ),
@@ -311,33 +297,13 @@ export default function PredictionCard({
       // toast("You have already placed a bet on this round");
       toast.custom(
         (t) => (
-          <div
-            className={`
-             w-full glass text-center  max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
-            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
-            flex flex-col items-center p-4 mt-12
-             ${
-               theme === "dark"
-                 ? "bg-gray-800 text-white"
-                 : "bg-white text-black"
-             }
-          `}
-            style={{
-              // slide in/out from top
-              animation: t.visible
-                ? "fadeInDown 200ms ease-out forwards"
-                : "fadeOutUp 150ms ease-in forwards",
-            }}
-          >
-            <p className=" max-w-sm mx-auto  text-lg font-semibold">
-            You have already placed a bet on this round.
-            </p>
-          </div>
+          <>
+            <BetFailedToast theme={theme} />
+          </>
         ),
         {
           position: "top-center",
         }
-      
       );
       return;
     }
@@ -360,99 +326,32 @@ export default function PredictionCard({
     if (!connected) {
       toast.custom(
         (t) => (
-          <div
-            className={`
-             w-full glass text-center  max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
-            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
-            flex flex-col items-center p-4 mt-12
-             ${
-               theme === "dark"
-                 ? "bg-gray-800 text-white"
-                 : "bg-white text-black"
-             }
-          `}
-            style={{
-              // slide in/out from top
-              animation: t.visible
-                ? "fadeInDown 200ms ease-out forwards"
-                : "fadeOutUp 150ms ease-in forwards",
-            }}
-          >
-            <p className=" max-w-sm mx-auto  text-lg font-semibold">
-            Please connect your wallet first
-            </p>
-          </div>
+          <>
+            <ConnectWalletBetToast />
+          </>
         ),
         {
-          position: "top-center",
+          position: "top-right",
         }
-      
       );
       return;
     }
     if (amount <= 0) {
-      toast.custom(
-        (t) => (
-          <div
-            className={`
-             w-full glass text-center  max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
-            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
-            flex flex-col items-center p-4 mt-12
-             ${
-               theme === "dark"
-                 ? "bg-gray-800 text-white"
-                 : "bg-white text-black"
-             }
-          `}
-            style={{
-              // slide in/out from top
-              animation: t.visible
-                ? "fadeInDown 200ms ease-out forwards"
-                : "fadeOutUp 150ms ease-in forwards",
-            }}
-          >
-            <p className=" max-w-sm mx-auto  text-lg font-semibold">
-            Please enter a valid amount
-            </p>
-          </div>
-        ),
-        {
-          position: "top-center",
-        }
-      
-      );
+      toast.custom((t) => <InvalidAmountToast theme={theme} />, {
+        position: "top-right",
+      });
       return;
     }
     if (!canBet) {
       toast.custom(
         (t) => (
-          <div
-            className={`
-             w-full glass text-center  max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
-            shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
-            flex flex-col items-center p-4 mt-12
-             ${
-               theme === "dark"
-                 ? "bg-gray-800 text-white"
-                 : "bg-white text-black"
-             }
-          `}
-            style={{
-              // slide in/out from top
-              animation: t.visible
-                ? "fadeInDown 200ms ease-out forwards"
-                : "fadeOutUp 150ms ease-in forwards",
-            }}
-          >
-            <p className=" max-w-sm mx-auto  text-lg font-semibold">
-            Betting is not available for this round
-            </p>
-          </div>
+          <>
+            <BettingNotAvailableToast theme={theme} />
+          </>
         ),
         {
-          position: "top-center",
+          position: "top-right",
         }
-      
       );
       return;
     }
@@ -502,11 +401,10 @@ export default function PredictionCard({
       setIsSubmitting(true);
       try {
         const betStatus = await onPlaceBet(mode, amount, roundId);
-      
-        if (betStatus === true){
-           setJustBet(true);
+
+        if (betStatus === true) {
+          setJustBet(true);
         }
-       
       } finally {
         setIsSubmitting(false);
         setIsFlipped(false);
@@ -569,7 +467,7 @@ export default function PredictionCard({
           <Image
             alt="Solana Background"
             src={SolanaBg || "/placeholder.svg"}
-            className="rounded-[10px] w-[215px] h-[142px] object-cover"
+            className="rounded-[10px] w-[215px] h-[132px] object-cover"
             width={215}
             height={142}
           />
@@ -577,10 +475,10 @@ export default function PredictionCard({
             <p>Prize Pool</p>
             <p>{roundData.prizePool.toFixed(4)} SOL</p>
           </div>
-          <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
+          {/* <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
             <p>Time Left</p>
             <p>{formatTimeLeft(timeLeft)}</p>
-          </div>
+          </div> */}
         </div>
 
         <>
@@ -630,7 +528,9 @@ export default function PredictionCard({
 
     const baseRemaining = timeLeft || 0;
     const totalSeconds =
-      variant === "later" ? baseRemaining : baseRemaining + (config?.lockDuration || 180);
+      variant === "later"
+        ? baseRemaining
+        : baseRemaining + (config?.lockDuration || 180);
 
     const display =
       totalSeconds > 0
@@ -693,19 +593,19 @@ export default function PredictionCard({
             </div>
           </div>
         ) : (
-          <div className="flex flex-col h-[350px] glass p-[10px] rounded-[20px] items-center">
-            <div className="max-w-[250px] flex flex-col gap-[33px] justify-between flex-1">
+          <div className="flex flex-col h-[300px] glass p-[10px] rounded-[20px] items-center">
+            <div className=" flex flex-col gap-[13px] justify-between flex-1">
               <Image
                 alt="Solana Background"
                 src={SolanaBg || "/placeholder.svg"}
-                className="rounded-[10px] w-[215px] h-[142px] object-cover"
+                className="rounded-[10px] w-full h-[122px] object-cover"
                 width={215}
                 height={142}
               />
               <div
                 className={`flex flex-col gap-[22px] font-semibold ${getContentTextStyle()}`}
               >
-                <div className="flex justify-between">
+                <div className="flex gap-4 justify-between">
                   <NumberFlow
                     value={formattedRoundData.closePrice}
                     format={{
@@ -870,7 +770,12 @@ export default function PredictionCard({
                   className="h-full flex-1 rounded-[1px]"
                   style={{
                     backgroundColor:
-                      i < Math.floor((((config?.lockDuration || 180) - (timeLeft || 0)) / (config?.lockDuration || 180)) * 7)
+                      i <
+                      Math.floor(
+                        (((config?.lockDuration || 180) - (timeLeft || 0)) /
+                          (config?.lockDuration || 180)) *
+                          7
+                      )
                         ? "#E5E7EB"
                         : "#6B7280",
                   }}
@@ -949,10 +854,7 @@ export default function PredictionCard({
           placeholder="Enter Value:"
           onChange={(e) => {
             const raw = e.target.value;
-            if (
-              raw === "" ||
-              /^(?:0|[1-9]\d*)(?:\.\d{0,10})?$/.test(raw) 
-            ) {
+            if (raw === "" || /^(?:0|[1-9]\d*)(?:\.\d{0,10})?$/.test(raw)) {
               setInputValue(raw);
             }
           }}
@@ -967,11 +869,11 @@ export default function PredictionCard({
               setInputValue(String(clamped));
             }
           }}
-          className="glass h-[65px] text-right rounded-[20px] pr-4 font-semibold text-[16px] text-white outline-0"
+          className="glass h-[65px] text-right rounded-[20px] pr-4 font-semibold text-[16px] outline-0"
         />
-         {inputError && (
-              <p className="mt-1 text-red-500 text-sm">{inputError}</p>
-            )}
+        {inputError && (
+          <p className="mt-1 text-red-500 text-sm">{inputError}</p>
+        )}
         <input
           type="range"
           min="0.01"
@@ -996,12 +898,18 @@ export default function PredictionCard({
             </div>
           ))}
         </div>
-        <Button  className="cursor-pointer flex items-center justify-center" 
-  disabled={isSubmitting} onClick={handlePlaceBet}>
-           {isSubmitting
-    ? <PuffLoader color="#ffffff" size={20} />
-    : `Buy ${mode?.toUpperCase()} for ${parseFloat(inputValue || "0").toFixed(2)} SOL`
-  }
+        <Button
+          className="cursor-pointer flex items-center justify-center"
+          disabled={isSubmitting}
+          onClick={handlePlaceBet}
+        >
+          {isSubmitting ? (
+            <PuffLoader color="#ffffff" size={20} />
+          ) : (
+            `Buy ${mode?.toUpperCase()} for ${parseFloat(
+              inputValue || "0"
+            ).toFixed(2)} SOL`
+          )}
         </Button>
       </div>
     </div>

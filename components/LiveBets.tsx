@@ -10,6 +10,7 @@ import { useTheme } from "next-themes";
 import { ThemeToggle } from "./Themetoggle";
 import toast from "react-hot-toast";
 import BigBet from "@/public/assets/Big-Bet.png";
+import { API_URL } from "@/lib/config";
 
 // Define the Bet interface
 interface Bet {
@@ -22,8 +23,8 @@ interface Bet {
 // Backend API and WebSocket URLs
 
 const BIG_BET_THRESHOLD = 1;
-const API_URL = "https://sol-prediction-backend-6e3r.onrender.com/bet-placed?limit=1000&offset=0";
-const WS_URL = "https://sol-prediction-backend-6e3r.onrender.com";
+const WS_URL = API_URL;
+const API_URL_BET = `${WS_URL}/bet-placed?limit=1000&offset=0`;
 
 // Initialize WebSocket connection
 const socket = io(WS_URL, {
@@ -79,7 +80,7 @@ function LiveBets({ currentRound }: LiveBetsProps) {
         setIsLoading(true);
         setError(null);
         setLiveBets([]); // Clear bets on round change
-        const response = await axios.get(API_URL);
+        const response = await axios.get(API_URL_BET);
 
         const bets: Bet[] = response.data
           .map((bet: any) => {
