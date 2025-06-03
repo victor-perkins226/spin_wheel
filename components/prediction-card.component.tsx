@@ -1,686 +1,700 @@
-  "use client";
+"use client";
 
-  import { useState, useEffect, useMemo } from "react";
-  import Button from "./button.component";
-  import SVG from "./svg.component";
-  import BetFailed from "@/public/assets/BetFailure.png";
-  import Image from "next/image";
-  import { useWallet, useConnection } from "@solana/wallet-adapter-react";
-  import SolanaBg from "@/public/assets/solana_bg.png";
-  import { ArrowDown, ArrowUp } from "lucide-react";
-  import NumberFlow from "@number-flow/react";
-  import { UserBet } from "@/types/round";
-  import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-  import toast from "react-hot-toast";
-  import { DotLoader, PuffLoader } from "react-spinners";
-  import { useTheme } from "next-themes";
-  import io from "socket.io-client";
-  import { API_URL } from "@/lib/config";
-  import { useRoundManager } from "@/hooks/roundManager";
-  import {
-    BetFailedToast,
-    BettingNotAvailableToast,
-    ConnectWalletBetToast,
-    InvalidAmountToast,
-  } from "./toasts";
+import { useState, useEffect, useMemo } from "react";
+import Button from "./button.component";
+import SVG from "./svg.component";
+import BetFailed from "@/public/assets/BetFailure.png";
+import Image from "next/image";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
+import SolanaBg from "@/public/assets/solana_bg.png";
+import { ArrowDown, ArrowUp } from "lucide-react";
+import NumberFlow from "@number-flow/react";
+import { UserBet } from "@/types/round";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import toast from "react-hot-toast";
+import { DotLoader, PuffLoader } from "react-spinners";
+import { useTheme } from "next-themes";
+import io from "socket.io-client";
+import { API_URL } from "@/lib/config";
+import { useRoundManager } from "@/hooks/roundManager";
+import {
+  BetFailedToast,
+  BettingNotAvailableToast,
+  ConnectWalletBetToast,
+  InvalidAmountToast,
+} from "./toasts";
 
-  interface IProps {
-    variant?: "live" | "expired" | "next" | "later" | "locked";
-    roundId?: number;
-    roundData?: {
-      lockPrice: number;
-      closePrice: number;
-      currentPrice: number;
-      prizePool: number;
-      upBets: number;
-      downBets: number;
-      timeRemaining: number;
-      lockTimeRemaining: number;
-      lockTime: number;
-      closeTime: number;
-      isActive: boolean;
-      treasuryFee: number;
+interface IProps {
+  variant?: "live" | "expired" | "next" | "later" | "locked";
+  roundId?: number;
+  roundData?: {
+    lockPrice: number;
+    closePrice: number;
+    currentPrice: number;
+    prizePool: number;
+    upBets: number;
+    downBets: number;
+    timeRemaining: number;
+    lockTimeRemaining: number;
+    lockTime: number;
+    closeTime: number;
+    isActive: boolean;
+    treasuryFee: number;
+  };
+  onPlaceBet?: (
+    direction: "up" | "down",
+    amount: number,
+    roundId: number
+  ) => Promise<boolean>;
+  currentRoundId?: number;
+  bufferTimeInSeconds?: number;
+  isRoundBettable?: (roundId: number) => boolean;
+  liveRoundPrice?: number;
+  userBets?: UserBet[];
+  isLocked: boolean;
+  timeLeft: number | null;
+}
+
+const CUSTOM_INPUTS = [
+  { label: "10%", value: 0.1 },
+  { label: "25%", value: 0.25 },
+  { label: "50%", value: 0.5 },
+  { label: "75%", value: 0.75 },
+  { label: "Max", value: 1.0 },
+];
+const WS_URL = API_URL;
+export default function PredictionCard({
+  variant,
+  roundId = 0,
+  roundData,
+  onPlaceBet,
+  currentRoundId,
+  bufferTimeInSeconds = 5,
+  liveRoundPrice,
+  userBets,
+  isLocked,
+  timeLeft,
+}: IProps) {
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [mode, setMode] = useState<"up" | "down" | "">("");
+  const [inputValue, setInputValue] = useState("0.1");
+  const [amount, setAmount] = useState(0.1);
+  const [maxAmount, setMaxAmount] = useState<number>(10);
+  const [justBet, setJustBet] = useState(false);
+  const [inputError, setInputError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { connected, publicKey } = useWallet();
+  const { connection } = useConnection();
+  const isValidAmount =
+    inputValue !== "" && // not empty
+    !isNaN(parseFloat(inputValue)) && // parses to a number
+    parseFloat(inputValue) > 0 && // strictly positive
+    parseFloat(inputValue) <= maxAmount; // does not exceed their balance
+  const buyDisabled = isSubmitting || !(amount > 0 && amount <= maxAmount + 1);
+  const [scriptBetPlaced, setScriptBetPlaced] = useState(false);
+
+  const [lockedPriceLocal, setLockedPriceLocal] = useState<number>(
+    roundData?.lockPrice ?? 0
+  );
+  const [prizePoolLocal, setPrizePoolLocal] = useState<number>(
+    roundData?.prizePool ?? 0
+  );
+
+  useEffect(() => {
+    if (roundData) {
+      setLockedPriceLocal(roundData.lockPrice);
+      setPrizePoolLocal(roundData.prizePool);
+    }
+  }, [roundId, roundData]);
+
+  const { theme } = useTheme();
+
+  const { config } = useRoundManager(5, 0);
+  const calculateMultipliers = () => {
+    if (!roundData) return { bullMultiplier: "0.00", bearMultiplier: "0.00" };
+
+    const totalAmount = roundData.prizePool;
+    const totalBullAmount = roundData.upBets;
+    const totalBearAmount = roundData.downBets;
+
+    // If no bets, return 1x multiplier
+    if (totalAmount === 0) {
+      return { bullMultiplier: "1.00", bearMultiplier: "1.00" };
+    }
+
+    const treasuryFeePercent = roundData.treasuryFee / 10000; // Convert basis points to decimal
+    const rewardAmount = totalAmount * (1 - treasuryFeePercent);
+
+    // Calculate multipliers: (total reward pool / amount bet in that direction)
+    const bullMultiplier =
+      totalBullAmount > 0 ? rewardAmount / totalBullAmount : 1;
+    const bearMultiplier =
+      totalBearAmount > 0 ? rewardAmount / totalBearAmount : 1;
+
+    return {
+      bullMultiplier: Math.max(bullMultiplier, 0).toFixed(2),
+      bearMultiplier: Math.max(bearMultiplier, 0).toFixed(2),
     };
-    onPlaceBet?: (
-      direction: "up" | "down",
-      amount: number,
-      roundId: number
-    ) => Promise<boolean>;
-    currentRoundId?: number;
-    bufferTimeInSeconds?: number;
-    isRoundBettable?: (roundId: number) => boolean;
-    liveRoundPrice?: number;
-    userBets?: UserBet[];
-    isLocked: boolean;
-    timeLeft: number | null;
-  }
+  };
 
-  const CUSTOM_INPUTS = [
-    { label: "10%", value: 0.1 },
-    { label: "25%", value: 0.25 },
-    { label: "50%", value: 0.5 },
-    { label: "75%", value: 0.75 },
-    { label: "Max", value: 1.0 },
-  ];
-  const WS_URL = API_URL;
-  export default function PredictionCard({
-    variant,
-    roundId = 0,
-    roundData,
-    onPlaceBet,
-    currentRoundId,
-    bufferTimeInSeconds = 5,
-    liveRoundPrice,
-    userBets,
-    isLocked,
-    timeLeft,
-  }: IProps) {
-    const [isFlipped, setIsFlipped] = useState(false);
-    const [mode, setMode] = useState<"up" | "down" | "">("");
-    const [inputValue, setInputValue] = useState("0.1");
-    const [amount, setAmount] = useState(0.1);
-    const [maxAmount, setMaxAmount] = useState<number>(10);
-    const [justBet, setJustBet] = useState(false);
-    const [inputError, setInputError] = useState<string | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const { connected, publicKey } = useWallet();
-    const { connection } = useConnection();
-    const isValidAmount =
-  inputValue !== "" &&       // not empty
-  !isNaN(parseFloat(inputValue)) && // parses to a number
-  parseFloat(inputValue) > 0 &&     // strictly positive
-  parseFloat(inputValue) <= maxAmount; // does not exceed their balance
-  const buyDisabled = isSubmitting || !(amount > 0 && amount <= maxAmount+1);
-    const [scriptBetPlaced, setScriptBetPlaced] = useState(false);
+  const socket = useMemo(
+    () =>
+      io(WS_URL, {
+        transports: ["websocket"],
+        reconnection: true,
+      }),
+    []
+  );
 
-    const { theme } = useTheme();
+  const { bullMultiplier, bearMultiplier } = calculateMultipliers();
 
-    const { config } = useRoundManager(5, 0);
-    const calculateMultipliers = () => {
-      if (!roundData) return { bullMultiplier: "0.00", bearMultiplier: "0.00" };
-
-      const totalAmount = roundData.prizePool;
-      const totalBullAmount = roundData.upBets;
-      const totalBearAmount = roundData.downBets;
-
-      // If no bets, return 1x multiplier
-      if (totalAmount === 0) {
-        return { bullMultiplier: "1.00", bearMultiplier: "1.00" };
+  useEffect(() => {
+    if (!connected || !publicKey) {
+      setMaxAmount(0);
+      return;
+    }
+    (async () => {
+      try {
+        const lamports = await connection.getBalance(publicKey);
+        setMaxAmount(lamports / LAMPORTS_PER_SOL);
+      } catch (err) {
+        console.error("Failed to fetch SOL balance:", err);
       }
+    })();
+  }, [connected, publicKey, connection]);
 
-      const treasuryFeePercent = roundData.treasuryFee / 10000; // Convert basis points to decimal
-      const rewardAmount = totalAmount * (1 - treasuryFeePercent);
+  useEffect(() => {
+    if (!connected || !publicKey) return;
 
-      // Calculate multipliers: (total reward pool / amount bet in that direction)
-      const bullMultiplier =
-        totalBullAmount > 0 ? rewardAmount / totalBullAmount : 1;
-      const bearMultiplier =
-        totalBearAmount > 0 ? rewardAmount / totalBearAmount : 1;
+    const handleNewBet = (newBet: any) => {
+      // if this bet is from our currently connected wallet …
+      if (
+        newBet.data.user === publicKey.toString() &&
+        newBet.data.round_number === roundId
+      ) {
+        // mark that they have already bet by any means
+        setScriptBetPlaced(true);
+      }
+    };
 
-      return {
-        bullMultiplier: Math.max(bullMultiplier, 0).toFixed(2),
-        bearMultiplier: Math.max(bearMultiplier, 0).toFixed(2),
+    socket.on("newBetPlaced", handleNewBet);
+    return () => {
+      socket.off("newBetPlaced", handleNewBet);
+    };
+  }, [connected, publicKey, roundId, socket]);
+
+  const userBetStatus =
+    userBets?.find((bet) => bet.roundId === roundId) || null;
+  const hasUserBet = userBetStatus !== null || justBet || scriptBetPlaced;
+  const getPriceMovement = () => {
+    if (!roundData) return { difference: 0, direction: "up" as "up" | "down" };
+    const currentPrice =
+      variant === "expired" && roundData.closePrice > 0
+        ? roundData.closePrice
+        : liveRoundPrice || roundData.lockPrice;
+    const lockPrice = roundData.lockPrice;
+    const difference = Math.abs(currentPrice - lockPrice);
+    const direction = currentPrice >= lockPrice ? "up" : "down";
+    return { difference, direction };
+  };
+
+  const { difference: priceDifference, direction: priceDirection } =
+    getPriceMovement();
+
+  const canBet =
+    variant === "next" &&
+    roundId === currentRoundId &&
+    roundData?.isActive === true &&
+    !isLocked &&
+    (timeLeft ?? 0) > bufferTimeInSeconds &&
+    !hasUserBet;
+
+  const formatTimeLeft = (seconds: number | null) => {
+    if (seconds === null || seconds <= 0) return "Locked";
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
+  const formattedRoundData = roundData
+    ? {
+        lockPrice: roundData.lockPrice,
+        closePrice:
+          roundData.closePrice > 0
+            ? roundData.closePrice
+            : liveRoundPrice || roundData.lockPrice,
+        currentPrice: liveRoundPrice || roundData.lockPrice,
+        prizePool: roundData.prizePool,
+        upBets: roundData.upBets,
+        downBets: roundData.downBets,
+        lockTimeRemaining:
+          timeLeft !== null
+            ? timeLeft
+            : Math.max(0, roundData.lockTime - Date.now() / 1000),
+        timeRemaining: Math.max(0, roundData.timeRemaining),
+        status: roundData.isActive
+          ? "LIVE"
+          : roundData.timeRemaining > 0
+          ? "LOCKED"
+          : "ENDED",
+      }
+    : {
+        lockPrice: 0,
+        closePrice: liveRoundPrice || 0,
+        currentPrice: liveRoundPrice || 0,
+        prizePool: 0,
+        upBets: 0,
+        downBets: 0,
+        lockTimeRemaining: 0,
+        timeRemaining: 0,
+        status: "ENDED" as const,
       };
-    };
 
-    const socket = useMemo(
-      () =>
-        io(WS_URL, {
-          transports: ["websocket"],
-          reconnection: true,
-        }),
-      []
-    );
-
-    const { bullMultiplier, bearMultiplier } = calculateMultipliers();
-
-    useEffect(() => {
-      if (!connected || !publicKey) {
-        setMaxAmount(0);
-        return;
-      }
-      (async () => {
-        try {
-          const lamports = await connection.getBalance(publicKey);
-          setMaxAmount(lamports / LAMPORTS_PER_SOL);
-        } catch (err) {
-          console.error("Failed to fetch SOL balance:", err);
-        }
-      })();
-    }, [connected, publicKey, connection]);
-
-    useEffect(() => {
-      if (!connected || !publicKey) return;
-
-      const handleNewBet = (newBet: any) => {
-        // if this bet is from our currently connected wallet …
-        if (
-          newBet.data.user === publicKey.toString() &&
-          newBet.data.round_number === roundId
-        ) {
-          // mark that they have already bet by any means
-          setScriptBetPlaced(true);
-        }
-      };
-
-      socket.on("newBetPlaced", handleNewBet);
-      return () => {
-        socket.off("newBetPlaced", handleNewBet);
-      };
-    }, [connected, publicKey, roundId, socket]);
-
-    const userBetStatus =
-      userBets?.find((bet) => bet.roundId === roundId) || null;
-    const hasUserBet = userBetStatus !== null || justBet || scriptBetPlaced;
-    const getPriceMovement = () => {
-      if (!roundData) return { difference: 0, direction: "up" as "up" | "down" };
-      const currentPrice =
-        variant === "expired" && roundData.closePrice > 0
-          ? roundData.closePrice
-          : liveRoundPrice || roundData.lockPrice;
-      const lockPrice = roundData.lockPrice;
-      const difference = Math.abs(currentPrice - lockPrice);
-      const direction = currentPrice >= lockPrice ? "up" : "down";
-      return { difference, direction };
-    };
-
-    const { difference: priceDifference, direction: priceDirection } =
-      getPriceMovement();
-
-    const canBet =
-      variant === "next" &&
-      roundId === currentRoundId &&
-      roundData?.isActive === true &&
-      !isLocked &&
-      (timeLeft ?? 0) > bufferTimeInSeconds &&
-      !hasUserBet;
-
-    const formatTimeLeft = (seconds: number | null) => {
-      if (seconds === null || seconds <= 0) return "Locked";
-      const minutes = Math.floor(seconds / 60);
-      const remainingSeconds = seconds % 60;
-      return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
-        .toString()
-        .padStart(2, "0")}`;
-    };
-
-    const formattedRoundData = roundData
-      ? {
-          lockPrice: roundData.lockPrice,
-          closePrice:
-            roundData.closePrice > 0
-              ? roundData.closePrice
-              : liveRoundPrice || roundData.lockPrice,
-          currentPrice: liveRoundPrice || roundData.lockPrice,
-          prizePool: roundData.prizePool,
-          upBets: roundData.upBets,
-          downBets: roundData.downBets,
-          lockTimeRemaining:
-            timeLeft !== null
-              ? timeLeft
-              : Math.max(0, roundData.lockTime - Date.now() / 1000),
-          timeRemaining: Math.max(0, roundData.timeRemaining),
-          status: roundData.isActive
-            ? "LIVE"
-            : roundData.timeRemaining > 0
-            ? "LOCKED"
-            : "ENDED",
-        }
-      : {
-          lockPrice: 0,
-          closePrice: liveRoundPrice || 0,
-          currentPrice: liveRoundPrice || 0,
-          prizePool: 0,
-          upBets: 0,
-          downBets: 0,
-          lockTimeRemaining: 0,
-          timeRemaining: 0,
-          status: "ENDED" as const,
-        };
-
-    const handleEnterPrediction = (mode: "up" | "down") => {
-      setInputError(null);
-      if (!connected) {
-        toast.custom(
-          (t) => (
-            <>
-              <ConnectWalletBetToast />
-            </>
-          ),
-          {
-            position: "top-right",
-          }
-        );
-        return;
-      }
-      if (!canBet) {
-        // toast("Betting is not available for this round");
-        toast.custom(
-          (t) => (
-            <BetFailedToast theme={theme} />
-          ),
-          {
-            position: "top-right",
-          }
-        );
-        return;
-      }
-      if (userBetStatus !== null) {
-        // toast("You have already placed a bet on this round");
-        toast.custom(
-          (t) => (
-            <>
-              <BetFailedToast theme={theme} />
-            </>
-          ),
-          {
-            position: "top-right",
-          }
-        );
-        return;
-      }
-      setIsFlipped(true);
-      setMode(mode);
-    };
-
-    const handlePlaceBet = async () => {
-      if (inputValue.trim() === "") {
-        setInputError("Please enter an amount");
-        return;
-      }
-      const parsed = parseFloat(inputValue);
-      if (isNaN(parsed) || parsed <= 0) {
-        setInputError("Enter a valid number");
-        return;
-      }
-
-      setInputError(null);
-      if (!connected) {
-        toast.custom(
-          (t) => (
-            <>
-              <ConnectWalletBetToast />
-            </>
-          ),
-          {
-            position: "top-right",
-          }
-        );
-        return;
-      }
-      if (amount <= 0) {
-        toast.custom((t) => <InvalidAmountToast theme={theme} />, {
+  const handleEnterPrediction = (mode: "up" | "down") => {
+    setInputError(null);
+    if (!connected) {
+      toast.custom(
+        (t) => (
+          <>
+            <ConnectWalletBetToast />
+          </>
+        ),
+        {
           position: "top-right",
-        });
-        return;
-      }
-      if (!canBet) {
-        toast.custom(
-          (t) => (
-            <>
-              <BettingNotAvailableToast theme={theme} />
-            </>
-          ),
-          {
-            position: "top-right",
-          }
-        );
-        return;
-      }
-
-      if (onPlaceBet && mode && roundId) {
-        setIsSubmitting(true);
-        try {
-          const betStatus = await onPlaceBet(mode, amount, roundId);
-
-          if (betStatus === true) {
-            setJustBet(true);
-          }
-        } finally {
-          setIsSubmitting(false);
-          setIsFlipped(false);
-          setMode("");
-          setAmount(0.1);
-          setInputValue("0.10");
         }
-      }
-    };
-
-    const handleCustomAmount = (percentage: number) => {
-      const calculatedAmount = maxAmount * percentage;
-      const clampedAmount = Math.max(0.01, Math.min(calculatedAmount, maxAmount));
-      const rounded = Math.round(clampedAmount * 100) / 100;
-      setAmount(rounded);
-      setInputValue(String(rounded)); // keep the text field in sync
-    };
-
-    const getButtonStyle = (direction: "up" | "down") => {
-      if (variant === "expired" || variant === "live") {
-        if (priceDirection === direction) {
-          return direction === "up"
-            ? "linear-gradient(90deg, #06C729 0%, #04801B 100%)"
-            : "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)";
-        } else {
-          return "linear-gradient(228.15deg, rgba(255, 255, 255, 0.2) -64.71%, rgba(255, 255, 255, 0.05) 102.6%)";
+      );
+      return;
+    }
+    if (!canBet) {
+      // toast("Betting is not available for this round");
+      toast.custom((t) => <BetFailedToast theme={theme} />, {
+        position: "top-right",
+      });
+      return;
+    }
+    if (userBetStatus !== null) {
+      // toast("You have already placed a bet on this round");
+      toast.custom(
+        (t) => (
+          <>
+            <BetFailedToast theme={theme} />
+          </>
+        ),
+        {
+          position: "top-right",
         }
+      );
+      return;
+    }
+    setIsFlipped(true);
+    setMode(mode);
+  };
+
+  const handlePlaceBet = async () => {
+    if (inputValue.trim() === "") {
+      setInputError("Please enter an amount");
+      return;
+    }
+    const parsed = parseFloat(inputValue);
+    if (isNaN(parsed) || parsed <= 0) {
+      setInputError("Enter a valid number");
+      return;
+    }
+
+    setInputError(null);
+    if (!connected) {
+      toast.custom(
+        (t) => (
+          <>
+            <ConnectWalletBetToast />
+          </>
+        ),
+        {
+          position: "top-right",
+        }
+      );
+      return;
+    }
+    if (amount <= 0) {
+      toast.custom((t) => <InvalidAmountToast theme={theme} />, {
+        position: "top-right",
+      });
+      return;
+    }
+    if (!canBet) {
+      toast.custom(
+        (t) => (
+          <>
+            <BettingNotAvailableToast theme={theme} />
+          </>
+        ),
+        {
+          position: "top-right",
+        }
+      );
+      return;
+    }
+
+    if (onPlaceBet && mode && roundId) {
+      setIsSubmitting(true);
+      try {
+        const betStatus = await onPlaceBet(mode, amount, roundId);
+
+        if (betStatus === true) {
+          setJustBet(true);
+        }
+      } finally {
+        setIsSubmitting(false);
+        setIsFlipped(false);
+        setMode("");
+        setAmount(0.1);
+        setInputValue("0.10");
       }
-      return "";
-    };
+    }
+  };
 
-    const renderNextRoundContent = () => {
-      if (variant !== "next") return null;
-      // const hasUserBet = userBetStatus !== null;
+  const handleCustomAmount = (percentage: number) => {
+    const calculatedAmount = maxAmount * percentage;
+    const clampedAmount = Math.max(0.01, Math.min(calculatedAmount, maxAmount));
+    const rounded = Math.round(clampedAmount * 100) / 100;
+    setAmount(rounded);
+    setInputValue(String(rounded)); // keep the text field in sync
+  };
 
-      let buttonDisabled = isLocked || hasUserBet;
-      if (!roundData) {
-        return (
-          <div className="flex-1 glass h-[300px] flex flex-col items-center justify-center rounded-[20px] px-[19px] py-[8.5px]">
-            <h2 className="text-xl font-semibold text-center">
-              Waiting for round data...
-            </h2>
-            <DotLoader color="#06C729" size={30} className="mt-3" />
-          </div>
-        );
+  const getButtonStyle = (direction: "up" | "down") => {
+    if (variant === "expired" || variant === "live") {
+      if (priceDirection === direction) {
+        return direction === "up"
+          ? "linear-gradient(90deg, #06C729 0%, #04801B 100%)"
+          : "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)";
+      } else {
+        return "linear-gradient(228.15deg, rgba(255, 255, 255, 0.2) -64.71%, rgba(255, 255, 255, 0.05) 102.6%)";
       }
+    }
+    return "";
+  };
 
-      if (roundId !== currentRoundId) {
-        return (
-          <div className="flex-1 glass h-[300px] flex flex-col items-center justify-center rounded-[20px] px-[19px] py-[8.5px]">
-            <h2 className="text-xl font-semibold text-center">Future Round</h2>
-            <p className="text-sm opacity-70 text-center mt-2">
-              Round {roundId} will be available later
-            </p>
-          </div>
-        );
-      }
+  const renderNextRoundContent = () => {
+    if (variant !== "next") return null;
+    // const hasUserBet = userBetStatus !== null;
 
+    let buttonDisabled = isLocked || hasUserBet;
+    if (!roundData) {
       return (
-        <div className="flex-1 glass h-[300px] flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
-          <div className="flex flex-col items-center gap-[7px]">
-            <Image
-              alt="Solana Background"
-              src={SolanaBg || "/placeholder.svg"}
-              className="rounded-[10px] w-[215px] h-[132px] object-cover"
-              width={215}
-              height={142}
-            />
-            <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
-              <p>Prize Pool</p>
-              <p>{roundData.prizePool.toFixed(4)} SOL</p>
-            </div>
-            {/* <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
+        <div className="flex-1 glass h-[300px] flex flex-col items-center justify-center rounded-[20px] px-[19px] py-[8.5px]">
+          <h2 className="text-xl font-semibold text-center">
+            Waiting for round data...
+          </h2>
+          <DotLoader color="#06C729" size={30} className="mt-3" />
+        </div>
+      );
+    }
+
+    if (roundId !== currentRoundId) {
+      return (
+        <div className="flex-1 glass h-[300px] flex flex-col items-center justify-center rounded-[20px] px-[19px] py-[8.5px]">
+          <h2 className="text-xl font-semibold text-center">Future Round</h2>
+          <p className="text-sm opacity-70 text-center mt-2">
+            Round {roundId} will be available later
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex-1 glass h-[300px] flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
+        <div className="flex flex-col items-center gap-[7px]">
+          <Image
+            alt="Solana Background"
+            src={SolanaBg || "/placeholder.svg"}
+            className="rounded-[10px] w-[215px] h-[132px] object-cover"
+            width={215}
+            height={142}
+          />
+          <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
+            <p>Prize Pool</p>
+            <p>{roundData.prizePool.toFixed(4)} SOL</p>
+          </div>
+          {/* <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
               <p>Time Left</p>
               <p>{formatTimeLeft(timeLeft)}</p>
             </div> */}
-          </div>
-
-          <>
-            <Button
-              style={{
-                background: buttonDisabled
-                  ? "#9CA3AF"
-                  : "linear-gradient(90deg, #06C729 0%, #04801B 100%)",
-              }}
-              onClick={() =>
-                buttonDisabled ? undefined : handleEnterPrediction("up")
-              }
-              className={`glass flex flex-col gap-4 py-[16px] ${
-                buttonDisabled
-                  ? "opacity-50 cursor-not-allowed"
-                  : "cursor-pointer hover:opacity-80"
-              }`}
-              disabled={buttonDisabled}
-            >
-              Enter UP
-            </Button>
-            <Button
-              style={{
-                background: buttonDisabled
-                  ? "#9CA3AF"
-                  : "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)",
-              }}
-              onClick={() =>
-                buttonDisabled ? undefined : handleEnterPrediction("down")
-              }
-              className={`glass flex flex-col gap-4 py-[16px] ${
-                buttonDisabled
-                  ? "opacity-50 cursor-not-allowed"
-                  : "cursor-pointer hover:opacity-80"
-              }`}
-              disabled={buttonDisabled}
-            >
-              Enter DOWN
-            </Button>
-          </>
         </div>
-      );
-    };
 
-    const renderLaterRoundContent = () => {
-      if (variant !== "later") return null;
-
-      const baseRemaining = timeLeft || 0;
-      const totalSeconds =
-        variant === "later"
-          ? baseRemaining
-          : baseRemaining + (config?.lockDuration || 180);
-
-      const display =
-        totalSeconds > 0
-          ? `${Math.floor(totalSeconds / 60)
-              .toString()
-              .padStart(2, "0")}:${Math.floor(totalSeconds % 60)
-              .toString()
-              .padStart(2, "0")}`
-          : "Waiting";
-      return (
-        <div className="glass h-[300px] rounded-[20px] flex flex-col gap-[12px] items-center justify-center">
-          <div className="flex items-center gap-[12px]">
-            <SVG iconName="play-fill" />
-            <p className="font-semibold text-[20px]">Next Play</p>
-          </div>
-          <p className="font-semibold text-[35px]">{display}</p>
-        </div>
-      );
-    };
-
-    const renderLiveRoundContent = () => {
-      if (variant !== "live") return null;
-
-      const getPriceTextStyle = () => {
-        return `text-[20px] ${
-          theme === "dark" ? "text-[#FEFEFE]" : "text-gray-900"
-        }`;
-      };
-
-      const getContentTextStyle = () => {
-        return `font-semibold ${
-          theme === "dark" ? "text-[#FEFEFE]" : "text-gray-800"
-        }`;
-      };
-
-      const getLabelTextStyle = () => {
-        return `text-[10px] ${
-          theme === "dark" ? "text-[#FEFEFE]" : "text-gray-600"
-        }`;
-      };
-
-      const getPriceDirectionBg = () => {
-        return theme === "dark" ? "bg-white" : "bg-gray-100";
-      };
-
-      return (
         <>
-          {isLocked ? (
-            <div className="flex-1 glass h-[300px] flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
-              <div className="flex flex-col items-center gap-3 justify-center h-[280px]">
-                <DotLoader
-                  color="#ffffff"
-                  size={40}
-                  aria-label="Loading Spinner"
-                  data-testid="loader"
-                />
-                <h2 className="text-2xl font-semibold mt-4 text-center">
-                  Calculating...
-                </h2>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col h-[300px] glass p-[10px] rounded-[20px] items-center">
-              <div className=" flex flex-col gap-[13px] w-[90%] justify-between flex-1">
-                <Image
-                  alt="Solana Background"
-                  src={SolanaBg || "/placeholder.svg"}
-                  className="rounded-[10px] w-full h-[132px] object-cover"
-                  width={215}
-                  height={142}
-                />
-                <div
-                  className={`flex flex-col gap-[22px] font-semibold ${getContentTextStyle()}`}
-                >
-                  <div className="flex gap-4 justify-between">
-                    <NumberFlow
-                      value={formattedRoundData.closePrice}
-                      format={{
-                        style: "currency",
-                        currency: "USD",
-                        minimumFractionDigits: 4,
-                        maximumFractionDigits: 4,
-                      }}
-                      className={`${getPriceTextStyle()} ${
-                        priceDirection === "up"
-                          ? "text-green-500"
-                          : "text-red-500"
-                      }`}
-                      transformTiming={{
-                        duration: 800,
-                        easing: "ease-out",
-                      }}
-                    />
-                    <div
-                      className={`${getPriceDirectionBg()} flex items-center gap-[4px] ${
-                        priceDirection === "up"
-                          ? "text-green-500"
-                          : "text-red-500"
-                      } px-[10px] py-[10px] rounded-[5px]`}
-                    >
-                      {priceDirection === "up" ? (
-                        <ArrowUp size={12} />
-                      ) : (
-                        <ArrowDown size={12} />
-                      )}
-                      <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
-                    </div>
-                  </div>
-                  <div
-                    className={`flex justify-between items-center ${getLabelTextStyle()}`}
-                  >
-                    <p>Locked Price</p>
-                    <p>${formattedRoundData.lockPrice.toFixed(4)}</p>
-                  </div>
-                  <div className="flex justify-between text-[16px]">
-                    <p>Prize Pool</p>
-                    <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          <Button
+            style={{
+              background: buttonDisabled
+                ? "#9CA3AF"
+                : "linear-gradient(90deg, #06C729 0%, #04801B 100%)",
+            }}
+            onClick={() =>
+              buttonDisabled ? undefined : handleEnterPrediction("up")
+            }
+            className={`glass flex flex-col gap-4 py-[16px] ${
+              buttonDisabled
+                ? "opacity-50 cursor-not-allowed"
+                : "cursor-pointer hover:opacity-80"
+            }`}
+            disabled={buttonDisabled}
+          >
+            Enter UP
+          </Button>
+          <Button
+            style={{
+              background: buttonDisabled
+                ? "#9CA3AF"
+                : "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)",
+            }}
+            onClick={() =>
+              buttonDisabled ? undefined : handleEnterPrediction("down")
+            }
+            className={`glass flex flex-col gap-4 py-[16px] ${
+              buttonDisabled
+                ? "opacity-50 cursor-not-allowed"
+                : "cursor-pointer hover:opacity-80"
+            }`}
+            disabled={buttonDisabled}
+          >
+            Enter DOWN
+          </Button>
         </>
-      );
+      </div>
+    );
+  };
+
+  const renderLaterRoundContent = () => {
+    if (variant !== "later") return null;
+
+    const baseRemaining = timeLeft || 0;
+    const totalSeconds =
+      variant === "later"
+        ? baseRemaining
+        : baseRemaining + (config?.lockDuration || 180);
+
+    const display =
+      totalSeconds > 0
+        ? `${Math.floor(totalSeconds / 60)
+            .toString()
+            .padStart(2, "0")}:${Math.floor(totalSeconds % 60)
+            .toString()
+            .padStart(2, "0")}`
+        : "Waiting";
+    return (
+      <div className="glass h-[300px] rounded-[20px] flex flex-col gap-[12px] items-center justify-center">
+        <div className="flex items-center gap-[12px]">
+          <SVG iconName="play-fill" />
+          <p className="font-semibold text-[20px]">Next Play</p>
+        </div>
+        <p className="font-semibold text-[35px]">{display}</p>
+      </div>
+    );
+  };
+
+  const renderLiveRoundContent = () => {
+    if (variant !== "live") return null;
+
+    const getPriceTextStyle = () => {
+      return `text-[20px] ${
+        theme === "dark" ? "text-[#FEFEFE]" : "text-gray-900"
+      }`;
     };
 
-    const renderExpiredRoundContent = () => {
-      if (variant !== "expired" && variant !== "locked") return null;
+    const getContentTextStyle = () => {
+      return `font-semibold ${
+        theme === "dark" ? "text-[#FEFEFE]" : "text-gray-800"
+      }`;
+    };
 
-      const getPriceTextStyle = () => {
-        return `text-[20px] ${
-          theme === "dark" ? "text-[#FEFEFE]" : "text-gray-900"
-        }`;
-      };
+    const getLabelTextStyle = () => {
+      return `text-[10px] ${
+        theme === "dark" ? "text-[#FEFEFE]" : "text-gray-600"
+      }`;
+    };
 
-      const getContentTextStyle = () => {
-        return `font-semibold ${
-          theme === "dark" ? "text-[#FEFEFE]" : "text-gray-800"
-        }`;
-      };
+    const getPriceDirectionBg = () => {
+      return theme === "dark" ? "bg-white" : "bg-gray-100";
+    };
 
-      const getLabelTextStyle = () => {
-        return `text-[10px] ${
-          theme === "dark" ? "text-[#FEFEFE]" : "text-gray-600"
-        }`;
-      };
-
-      const getPriceDirectionBg = () => {
-        return theme === "dark" ? "bg-white" : "bg-gray-100";
-      };
-
-      const getOpacityStyle = () => {
-        return theme === "dark" ? "opacity-80" : "opacity-70";
-      };
-
-      return (
-        <div
-          className={`flex-1 flex flex-col glass p-[10px] rounded-[20px] items-center ${getOpacityStyle()}`}
-        >
-          <div className="max-w-[215px] flex flex-col gap-[33px] justify-between flex-1">
-            <Image
-              alt="Solana Background"
-              src={SolanaBg || "/placeholder.svg"}
-              className="rounded-[10px] w-[215px] h-[142px] object-cover"
-              width={215}
-              height={142}
-            />
-            <div
-              className={`flex flex-col gap-[22px] font-semibold ${getContentTextStyle()}`}
-            >
-              <div className="flex justify-between">
-                <p className={getPriceTextStyle()}>
-                  ${formattedRoundData.closePrice.toFixed(4)}
-                </p>
-                <div
-                  className={`${getPriceDirectionBg()} flex items-center gap-[4px] ${
-                    priceDirection === "up" ? "text-green-500" : "text-red-500"
-                  } px-[10px] py-[5px] rounded-[5px]`}
-                >
-                  {priceDirection === "up" ? (
-                    <ArrowUp size={12} />
-                  ) : (
-                    <ArrowDown size={12} />
-                  )}
-                  <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
-                </div>
-              </div>
+    return (
+      <>
+        {isLocked ? (
+          <div className="flex-1 glass h-[300px] flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
+            <div className="flex flex-col items-center gap-3 justify-center h-[280px]">
+              <DotLoader
+                color="#ffffff"
+                size={40}
+                aria-label="Loading Spinner"
+                data-testid="loader"
+              />
+              <h2 className="text-2xl font-semibold mt-4 text-center">
+                Calculating...
+              </h2>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col h-[300px] bg-red-400 glass p-[10px] rounded-[20px] items-center">
+            <div className=" flex flex-col  gap-[13px] w-[90%] justify-between flex-1">
+              <Image
+                alt="Solana Background"
+                src={SolanaBg || "/placeholder.svg"}
+                className="rounded-[10px] w-full h-[132px] object-cover"
+                width={215}
+                height={142}
+              />
               <div
-                className={`flex justify-between items-center ${getLabelTextStyle()}`}
+                className={`flex flex-col gap-[22px] font-semibold ${getContentTextStyle()}`}
               >
-                <p>Locked Price</p>
-                <p>${formattedRoundData.lockPrice.toFixed(4)}</p>
-              </div>
-              <div className="flex justify-between text-[16px]">
-                <p>Prize Pool</p>
-                <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
+                <div className="flex gap-4 justify-between">
+                  <NumberFlow
+                    value={formattedRoundData.closePrice}
+                    format={{
+                      style: "currency",
+                      currency: "USD",
+                      minimumFractionDigits: 4,
+                      maximumFractionDigits: 4,
+                    }}
+                    className={`${getPriceTextStyle()} ${
+                      priceDirection === "up"
+                        ? "text-green-500"
+                        : "text-red-500"
+                    }`}
+                    transformTiming={{
+                      duration: 800,
+                      easing: "ease-out",
+                    }}
+                  />
+                  <div
+                    className={`${getPriceDirectionBg()} flex items-center gap-[4px] ${
+                      priceDirection === "up"
+                        ? "text-green-500"
+                        : "text-red-500"
+                    } px-[10px] py-[10px] rounded-[5px]`}
+                  >
+                    {priceDirection === "up" ? (
+                      <ArrowUp size={12} />
+                    ) : (
+                      <ArrowDown size={12} />
+                    )}
+                    <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
+                  </div>
+                </div>
+                <div
+                  className={`flex justify-between items-center ${getLabelTextStyle()}`}
+                >
+                  <p>Locked Price</p>
+                  <p>${formattedRoundData.lockPrice.toFixed(4)}</p>
+                </div>
+                <div className="flex justify-between text-[16px]">
+                  <p>Prize Pool</p>
+                  <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      );
+        )}
+      </>
+    );
+  };
+
+  const renderExpiredRoundContent = () => {
+    if (variant !== "expired" && variant !== "locked") return null;
+
+    const getPriceTextStyle = () => {
+      return `text-[20px] ${
+        theme === "dark" ? "text-[#FEFEFE]" : "text-gray-900"
+      }`;
     };
 
-    if (!roundData && variant !== "later" && variant !== "next")
-      return <div>No round data available</div>;
+    const getContentTextStyle = () => {
+      return `font-semibold ${
+        theme === "dark" ? "text-[#FEFEFE]" : "text-gray-800"
+      }`;
+    };
+
+    const getLabelTextStyle = () => {
+      return `text-[10px] ${
+        theme === "dark" ? "text-[#FEFEFE]" : "text-gray-600"
+      }`;
+    };
+
+    const getPriceDirectionBg = () => {
+      return theme === "dark" ? "bg-white" : "bg-gray-100";
+    };
+
+    const getOpacityStyle = () => {
+      return theme === "dark" ? "opacity-80" : "opacity-70";
+    };
 
     return (
       <div
-        className={`
-          card_container glass rounded-[20px] p-[15px] sm:p-[25px]
-          min-w-[240px] sm:min-w-[273px] w-full
-    
-          ${variant === "expired" ? "opacity-50 glass cursor-not-allowed hover:opacity-80 " : ""}
-          ${variant === "live"    ? "gradient-border rounded-b-2 "  : ""}
-          ${variant === "next"    ? "bg-blue-50 glass border border-blue-300" : ""}
-        `}
+        className={`flex-1 flex flex-col glass p-[10px] rounded-[20px] items-center ${getOpacityStyle()}`}
       >
+        <div className="max-w-[215px] flex flex-col gap-[33px] justify-between flex-1">
+          <Image
+            alt="Solana Background"
+            src={SolanaBg || "/placeholder.svg"}
+            className="rounded-[10px] w-[215px] h-[142px] object-cover"
+            width={215}
+            height={142}
+          />
+          <div
+            className={`flex flex-col gap-[22px] font-semibold ${getContentTextStyle()}`}
+          >
+            <div className="flex justify-between">
+              <p className={getPriceTextStyle()}>
+                ${formattedRoundData.closePrice.toFixed(4)}
+              </p>
+              <div
+                className={`${getPriceDirectionBg()} flex items-center gap-[4px] ${
+                  priceDirection === "up" ? "text-green-500" : "text-red-500"
+                } px-[10px] py-[5px] rounded-[5px]`}
+              >
+                {priceDirection === "up" ? (
+                  <ArrowUp size={12} />
+                ) : (
+                  <ArrowDown size={12} />
+                )}
+                <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
+              </div>
+            </div>
+            <div
+              className={`flex justify-between items-center ${getLabelTextStyle()}`}
+            >
+              <p>Locked Price</p>
+              <p>${formattedRoundData.lockPrice.toFixed(4)}</p>
+            </div>
+            <div className="flex justify-between text-[16px]">
+              <p>Prize Pool</p>
+              <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  if (!roundData && variant !== "later" && variant !== "next")
+    return <div>No round data available</div>;
+
+  return (
+    <div
+      className={`
+           p-[2px]
+          card_container rounded-[20px]
+    
+          ${
+            variant === "expired"
+              ? "opacity-50 glass cursor-not-allowed hover:opacity-80 "
+              : ""
+          }
+          ${variant === "live" ? "gradient-border glass rounded-[20px] " : ""}
+          ${variant === "next" ? "bg-blue-50   rounded-[20px] glass border border-blue-300" : ""}
+        `}
+    >
+      <div className=" bg-[#2a2a4c]  rounded-[20px] min-w-[240px] sm:min-w-[273px] w-full p-4">
         <div
           className={`${
             isFlipped ? "hidden" : "flex"
@@ -693,32 +707,36 @@
           >
             <div className="flex justify-between items-center font-semibold text-[20px]">
               <div className="flex items-center gap-[10px]">
-                {
-                  variant === "expired" ? (
-                    <>
-                    <svg viewBox="0 0 24 24"  width="21px" fill="white" className="text-white" xmlns="http://www.w3.org/2000/svg"><path d="M12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22ZM12 4C16.42 4 20 7.58 20 12C20 13.85 19.37 15.55 18.31 16.9L7.1 5.69C8.45 4.63 10.15 4 12 4ZM5.69 7.1L16.9 18.31C15.55 19.37 13.85 20 12 20C7.58 20 4 16.42 4 12C4 10.15 4.63 8.45 5.69 7.1Z"></path></svg>
+                {variant === "expired" ? (
+                  <>
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="21px"
+                      fill="white"
+                      className="text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path d="M12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22ZM12 4C16.42 4 20 7.58 20 12C20 13.85 19.37 15.55 18.31 16.9L7.1 5.69C8.45 4.63 10.15 4 12 4ZM5.69 7.1L16.9 18.31C15.55 19.37 13.85 20 12 20C7.58 20 4 16.42 4 12C4 10.15 4.63 8.45 5.69 7.1Z"></path>
+                    </svg>
                     <p className="capitalize">{variant}</p>
-                    </>
-                  ): variant === "live" ? (
-                    <>
+                  </>
+                ) : variant === "live" ? (
+                  <>
                     <SVG width={18} height={18} iconName="play-fill" />
                     <p className="capitalize">{variant}</p>
-                    <div  className="rounded-full size-3 animate-pulse bg-green-600"></div>
-                    </>
-                  ): variant === "next" ?  (<>
-                  <SVG width={18} height={18} iconName="play-fill" />
-                  <p className="capitalize">{variant}</p>
+                    <div className="rounded-full size-3 animate-pulse bg-green-600"></div>
                   </>
-                    
-                  ): (
-                    <>
-                  <SVG width={18} height={18} iconName="clock" />
-                  <p className="capitalize">{variant}</p>
+                ) : variant === "next" ? (
+                  <>
+                    <SVG width={18} height={18} iconName="play-fill" />
+                    <p className="capitalize">{variant}</p>
                   </>
-                  )
-                }
-                
-                
+                ) : (
+                  <>
+                    <SVG width={18} height={18} iconName="clock" />
+                    <p className="capitalize">{variant}</p>
+                  </>
+                )}
               </div>
               <p>#{roundId}</p>
             </div>
@@ -809,58 +827,58 @@
             </div>
           </div>
           <input
-  type="text"
-  value={inputValue}
-  placeholder="Enter Value:"
-  onChange={(e) => {
-    const raw = e.target.value;
-    // allow blank or a number with up to 10 decimals
-    if (raw === "" || /^(?:0|[1-9]\d*)(?:\.\d{0,10})?$/.test(raw)) {
-      setInputValue(raw);
+            type="text"
+            value={inputValue}
+            placeholder="Enter Value:"
+            onChange={(e) => {
+              const raw = e.target.value;
+              // allow blank or a number with up to 10 decimals
+              if (raw === "" || /^(?:0|[1-9]\d*)(?:\.\d{0,10})?$/.test(raw)) {
+                setInputValue(raw);
 
-      // parse and clamp amount, but do NOT overwrite inputValue
-      const parsed = parseFloat(raw);
-      if (!isNaN(parsed) && parsed > 0) {
-        const clamped = Math.min(parsed, maxAmount);
-        setAmount(Math.round(clamped * 100) / 100);
-      } else {
-        setAmount(0);
-      }
-    }
-  }}
-  onBlur={() => {
-    const parsed = parseFloat(inputValue);
-    if (isNaN(parsed) || parsed <= 0) {
-      setAmount(0);
-      // leave inputValue blank so user can re‐enter as needed
-      setInputValue("");
-    } else {
-      // clamp amount but do not alter inputValue’s decimal formatting
-      const clamped = Math.min(parsed, maxAmount);
-      setAmount(Math.round(clamped * 100) / 100);
-    }
-  }}
-  className="glass h-[65px] text-right rounded-[20px] pr-4 font-semibold text-[16px] outline-0"
-/>
+                // parse and clamp amount, but do NOT overwrite inputValue
+                const parsed = parseFloat(raw);
+                if (!isNaN(parsed) && parsed > 0) {
+                  const clamped = Math.min(parsed, maxAmount);
+                  setAmount(clamped);
+                } else {
+                  setAmount(0);
+                }
+              }
+            }}
+            onBlur={() => {
+              const parsed = parseFloat(inputValue);
+              if (isNaN(parsed) || parsed <= 0) {
+                setAmount(0);
+                // leave inputValue blank so user can re‐enter as needed
+                setInputValue("");
+              } else {
+                // clamp amount but do not alter inputValue’s decimal formatting
+                const clamped = Math.min(parsed, maxAmount);
+                setAmount(clamped);
+              }
+            }}
+            className="glass h-[65px] text-right rounded-[20px] pr-4 font-semibold text-[16px] outline-0"
+          />
 
           {inputError && (
             <p className="mt-1 text-red-500 text-sm">{inputError}</p>
           )}
-           <input
-   type="range"
-   min="0.01"
-   max={maxAmount}
-   step="0.01"
-   value={Math.min(amount, maxAmount)} // Ensure value doesn't exceed max
-   onChange={(e) => {
-     const value = parseFloat(e.target.value);
-     const clampedValue = Math.max(0.01, Math.min(value, maxAmount));
-     const rounded = Math.round(clampedValue * 100) / 100;
-     setAmount(rounded);
-     setInputValue(String(rounded));
-   }}
-   className="w-full h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer my-5 accent-gray-500 custom-slider"
- />
+          <input
+            type="range"
+            min="0.01"
+            max={maxAmount}
+            step="0.000000001"
+            value={Math.min(amount, maxAmount)} // Ensure value doesn't exceed max
+            onChange={(e) => {
+              const value = parseFloat(e.target.value);
+              const clampedValue = Math.max(0.01, Math.min(value, maxAmount));
+              const rounded = Math.round(clampedValue * 100) / 100;
+              setAmount(clampedValue);
+              setInputValue(String(clampedValue))
+            }}
+            className="w-full h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer my-5 accent-gray-500 custom-slider"
+          />
           <div className="flex gap-y-[12px] gap-x-[4px] justify-between flex-wrap">
             {CUSTOM_INPUTS.map((el, key) => (
               <div
@@ -873,24 +891,28 @@
             ))}
           </div>
           <Button
-  disabled={buyDisabled}
-  
-  style={{
-    cursor: buyDisabled ? "not-allowed" : "pointer",
-    background: buyDisabled
-      ? "#9CA3AF" // gray when disabled
-      : mode === "up"
-      ? "linear-gradient(90deg, #06C729 0%, #04801B 100%)"
-      : mode === "down"
-      ? "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)"
-      : "",
-  }}
-  className="cursor-pointer flex items-center justify-center"
-  onClick={handlePlaceBet}
->
-  {isSubmitting ? <PuffLoader color="#ffffff" size={20} /> : `Buy ${mode?.toUpperCase() || ""}`}
-</Button>
+            disabled={buyDisabled}
+            style={{
+              cursor: buyDisabled ? "not-allowed" : "pointer",
+              background: buyDisabled
+                ? "#9CA3AF" // gray when disabled
+                : mode === "up"
+                ? "linear-gradient(90deg, #06C729 0%, #04801B 100%)"
+                : mode === "down"
+                ? "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)"
+                : "",
+            }}
+            className="cursor-pointer flex items-center justify-center"
+            onClick={handlePlaceBet}
+          >
+            {isSubmitting ? (
+              <PuffLoader color="#ffffff" size={20} />
+            ) : (
+              `Buy ${mode?.toUpperCase() || ""}`
+            )}
+          </Button>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
