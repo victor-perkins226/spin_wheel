@@ -310,7 +310,7 @@ export const useSolPredictor = (): SolPredictorHook => {
                 console.log(`Round ${roundId} account doesn't exist yet, proceeding with bet placement`);
             }
 
-            const lamports = Math.floor(amount * 1_000_000_000);
+            const lamports = Math.floor(amount * LAMPORTS_PER_SOL);;
 
             console.log("Placing bet with params:", {
                 roundId,

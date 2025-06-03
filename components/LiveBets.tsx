@@ -113,115 +113,295 @@ function LiveBets({ currentRound }: LiveBetsProps) {
   }, [currentRound]);
 
   // Listen for new bets via WebSocket
-  useEffect(() => {
-    if (currentRound === null) return;
+  // useEffect(() => {
+  //   if (currentRound === null) return;
 
-    socket.on("connect", () => {
-      console.log("Connected to WebSocket");
-    });
+  //   socket.on("connect", () => {
+  //     console.log("Connected to WebSocket");
+  //   });
 
-    socket.on("newBetPlaced", (newBet: any) => {
-      console.log("New bet received:", newBet);
-      const formattedBet: Bet = {
-        user: newBet.data.user.slice(0, 8) + "...",
-        amount: newBet.data.amount / 1e9,
-        signature: newBet.signature,
-        timestamp: new Date(newBet.timestamp).getTime(),
-        round_number: newBet.data.round_number,
-      };
+  //   socket.on("newBetPlaced", (newBet: any) => {
+  //     console.log("New bet received:", newBet);
+  //     const formattedBet: Bet = {
+  //       user: newBet.data.user.slice(0, 8) + "...",
+  //       amount: newBet.data.amount / 1e9,
+  //       signature: newBet.signature,
+  //       timestamp: new Date(newBet.timestamp).getTime(),
+  //       round_number: newBet.data.round_number,
+  //     };
 
-      // Only add bets for the current round
-      if (formattedBet.round_number !== currentRound) {
-        return;
-      }
+  //     // Only add bets for the current round
+  //     if (formattedBet.round_number !== currentRound) {
+  //       return;
+  //     }
 
-      if (formattedBet.amount > BIG_BET_THRESHOLD) {
-        toast.custom(
-          (t) => (
-            <div
-              className={`
-                          w-full glass text-center h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
-                          shadow-xl animate-toast-bounce ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
-                          flex flex-col items-start p-4 pb-8 mt-16
-                          ${
-                            theme === "dark"
-                              ? "bg-gray-800 text-white"
-                              : "bg-white text-black"
-                          }
-                        `}
-              style={{
-                animation: t.visible
-                  ? "fadeInDown 200ms ease-out forwards"
-                  : "fadeOutUp 150ms ease-in forwards",
-              }}
-            >
-              <div className="w-full animate-vibrate h-[280px] relative mb-4">
-                <Image
-                  src={BigBet}
-                  alt="big bet"
-                  fill
-                  className="object-cover rounded-xl"
-                />
-              </div>
+  //     if (formattedBet.amount > BIG_BET_THRESHOLD) {
+  //     }
 
-              <h3 className="font-bold text-2xl animate-toast-pulse  mb-2">
-                Big Bet Notification
-              </h3>
+  //     // Ins
 
-              <p className=" text-sm">
-                {" "}
-                {formattedBet.user} made a {formattedBet.amount.toFixed(2)} SOL
-                bet
-              </p>
-            </div>
-          ),
-          {
-            position: "top-center",
-          }
-        );
-      }
+  //     setLiveBets((prevBets) => {
+  //       // Prevent duplicates by signature
+  //       if (prevBets.some((bet) => bet.signature === formattedBet.signature)) {
+  //         return prevBets;
+  //       }
 
-      // Ins
+  //       // Mark this bet as new for animation
+  //       setNewBetSignatures(
+  //         (prev) => new Set(prev.add(formattedBet.signature))
+  //       );
 
-      setLiveBets((prevBets) => {
-        // Prevent duplicates by signature
-        if (prevBets.some((bet) => bet.signature === formattedBet.signature)) {
-          return prevBets;
-        }
+  //       const updatedBets = [formattedBet, ...prevBets]
+  //         .sort((a, b) => b.amount - a.amount) // Sort by amount descending
+  //         .slice(0, 10); // Limit to 10 bets
+  //       return updatedBets;
+  //     });
+  //   });
 
-        // Mark this bet as new for animation
-        setNewBetSignatures(
-          (prev) => new Set(prev.add(formattedBet.signature))
-        );
+  //   socket.on("disconnect", () => {
+  //     console.log("Disconnected from WebSocket");
+  //   });
 
-        const updatedBets = [formattedBet, ...prevBets]
-          .sort((a, b) => b.amount - a.amount) // Sort by amount descending
-          .slice(0, 10); // Limit to 10 bets
-        return updatedBets;
-      });
-    });
+  //   socket.on("error", (error: any) => {
+  //     console.error("WebSocket error:", error);
+  //   });
 
-    socket.on("disconnect", () => {
-      console.log("Disconnected from WebSocket");
-    });
+  //   socket.on("reconnect_attempt", (attempt: number) => {
+  //     console.log(`Reconnecting to WebSocket, attempt ${attempt}`);
+  //   });
 
-    socket.on("error", (error: any) => {
-      console.error("WebSocket error:", error);
-    });
+  //   // Cleanup on unmount
+  //   return () => {
+  //     socket.off("newBetPlaced");
+  //     socket.off("connect");
+  //     socket.off("disconnect");
+  //     socket.off("error");
+  //     socket.off("reconnect_attempt");
+  //   };
+  // }, [currentRound]);
 
-    socket.on("reconnect_attempt", (attempt: number) => {
-      console.log(`Reconnecting to WebSocket, attempt ${attempt}`);
-    });
+  // useEffect(() => {
+  //   const onNewBet = (newBet: any) => {
+  //     // Format it exactly as before:
+  //     const formattedBet = {
+  //       user: newBet.data.user.slice(0, 8) + "...",
+  //       amount: newBet.data.amount / 1e9,
+  //       signature: newBet.signature,
+  //       timestamp: new Date(newBet.timestamp).getTime(),
+  //       round_number: newBet.data.round_number,
+  //     };
 
-    // Cleanup on unmount
-    return () => {
-      socket.off("newBetPlaced");
-      socket.off("connect");
-      socket.off("disconnect");
-      socket.off("error");
-      socket.off("reconnect_attempt");
+  //     // Only show a “big bet” toast if it’s for the CURRENT round
+  //     if (
+  //       formattedBet.round_number === currentRound &&
+  //       formattedBet.amount > BIG_BET_THRESHOLD
+  //     ) {
+  //       toast.custom(
+  //         (t) => (
+  //           <div
+  //             className={`
+  //                             w-full glass text-center h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+  //                             shadow-xl animate-toast-bounce ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+  //                             flex flex-col items-start p-4 pb-8 mt-16
+  //                             ${
+  //                               theme === "dark"
+  //                                 ? "bg-gray-800 text-white"
+  //                                 : "bg-white text-black"
+  //                             }
+  //                           `}
+  //             style={{
+  //               animation: t.visible
+  //                 ? "fadeInDown 200ms ease-out forwards"
+  //                 : "fadeOutUp 150ms ease-in forwards",
+  //             }}
+  //           >
+  //             <div className="w-full animate-vibrate h-[280px] relative mb-4">
+  //               <Image
+  //                 src={BigBet}
+  //                 alt="big bet"
+  //                 fill
+  //                 className="object-cover rounded-xl"
+  //               />
+  //             </div>
+
+  //             <h3 className="font-bold text-2xl animate-toast-pulse  mb-2">
+  //               Big Bet Notification
+  //             </h3>
+
+  //             <p className=" text-sm">
+  //               {" "}
+  //               {formattedBet.user} made a {formattedBet.amount.toFixed(2)} SOL
+  //               bet
+  //             </p>
+  //           </div>
+  //         ),
+  //         {
+  //           position: "top-center",
+  //         }
+  //       );
+  //     }
+  //     // Finally, update liveBets state exactly as before:
+  //     setLiveBets((prevBets) => {
+  //       if (prevBets.some((b) => b.signature === formattedBet.signature)) {
+  //         return prevBets;
+  //       }
+
+  //       // Mark for animation
+  //       setNewBetSignatures(
+  //         (prev) => new Set(prev.add(formattedBet.signature))
+  //       );
+
+  //       return [formattedBet, ...prevBets]
+  //         .sort((a, b) => b.amount - a.amount)
+  //         .slice(0, 10);
+  //     });
+  //   };
+
+  //   // Attach the listener just once on mount:
+  //   socket.on("newBetPlaced", onNewBet);
+
+  //   // Clean up on unmount:
+  //   return () => {
+  //     socket.off("newBetPlaced", onNewBet);
+  //   };
+  // }, [currentRound, theme]);
+// Remove ALL the commented-out useEffect blocks (lines ~108-247) completely
+// Keep only this single, clean useEffect for WebSocket handling:
+
+useEffect(() => {
+  if (currentRound === null) return;
+
+
+  const onConnect = () => {
+    console.log("Connected to WebSocket");
+  };
+
+  const onDisconnect = () => {
+    console.log("Disconnected from WebSocket");
+  };
+
+  const onError = (error: any) => {
+    console.error("WebSocket error:", error);
+  };
+
+  const onReconnectAttempt = (attempt: number) => {
+    console.log(`Reconnecting to WebSocket, attempt ${attempt}`);
+  };
+
+  const onNewBet = (newBet: any) => {
+    
+    // Format the bet
+    const formattedBet: Bet = {
+      user: newBet.data.user.slice(0, 8) + "...",
+      amount: newBet.data.amount / 1e9,
+      signature: newBet.signature,
+      timestamp: new Date(newBet.timestamp).getTime(),
+      round_number: newBet.data.round_number,
     };
-  }, [currentRound]);
+
+    // Only process bets for the current round
+    if (formattedBet.round_number !== currentRound) {
+      return;
+    }
+
+    // Show big bet toast ONLY ONCE
+    if (formattedBet.amount > BIG_BET_THRESHOLD) {
+      console.log("🎉 Big bet detected! Amount:", formattedBet.amount, "Threshold:", BIG_BET_THRESHOLD);
+      
+      // Add a unique ID to prevent duplicates
+      const toastId = `big-bet-${formattedBet.signature}`;
+      
+      toast.custom(
+        (t) => (
+          <div
+            className={`
+              w-full glass text-center h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
+              shadow-xl animate-toast-bounce ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
+              flex flex-col items-start p-4 pb-8 mt-16
+              ${
+                theme === "dark"
+                  ? "bg-gray-800 text-white"
+                  : "bg-white text-black"
+              }
+            `}
+            style={{
+              animation: t.visible
+                ? "fadeInDown 200ms ease-out forwards"
+                : "fadeOutUp 150ms ease-in forwards",
+            }}
+          >
+            <div className="w-full animate-vibrate h-[280px] relative mb-4">
+              <Image
+                src={BigBet}
+                alt="big bet"
+                fill
+                className="object-cover rounded-xl"
+              />
+            </div>
+
+            <h3 className="font-bold text-2xl animate-toast-pulse mb-2">
+              Big Bet Notification
+            </h3>
+
+            <p className="text-sm">
+              {formattedBet.user} made a {formattedBet.amount.toFixed(2)} SOL bet
+            </p>
+          </div>
+        ),
+        {
+          position: "top-center",
+          duration: 4000,
+          id: toastId, // Prevent duplicates with same ID
+        }
+      );
+    }
+    // Update liveBets state
+    setLiveBets((prevBets) => {
+      // Prevent duplicates by signature
+      if (prevBets.some((bet) => bet.signature === formattedBet.signature)) {
+        return prevBets;
+      }
+
+
+      // Mark this bet as new for animation
+      setNewBetSignatures(
+        (prev) => new Set(prev.add(formattedBet.signature))
+      );
+
+      const updatedBets = [formattedBet, ...prevBets]
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 10);
+      
+      return updatedBets;
+    });
+  };
+
+  // Remove any existing listeners first (cleanup any previous listeners)
+  socket.off("connect");
+  socket.off("disconnect");
+  socket.off("error");
+  socket.off("reconnect_attempt");
+  socket.off("newBetPlaced");
+
+  // Attach all event listeners
+  socket.on("connect", onConnect);
+  socket.on("disconnect", onDisconnect);
+  socket.on("error", onError);
+  socket.off("reconnect_attempt", onReconnectAttempt);
+  socket.on("newBetPlaced", onNewBet);
+
+  // Clean up all listeners on unmount/deps change
+  return () => {
+    console.log("🧹 Cleaning up WebSocket listeners");
+    socket.off("connect", onConnect);
+    socket.off("disconnect", onDisconnect);
+    socket.off("error", onError);
+    socket.off("reconnect_attempt", onReconnectAttempt);
+    socket.off("newBetPlaced", onNewBet);
+  };
+}, [currentRound, theme]);
+
+  
 
   // Remove animation class after animation completes
   useEffect(() => {

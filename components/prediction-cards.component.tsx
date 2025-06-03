@@ -194,6 +194,8 @@ export default function PredictionCards() {
           ),
           { position: "top-right" }
         );
+        const lamports = await connectionRef.current!.getBalance(publicKey);
+        setUserBalance(lamports / LAMPORTS_PER_SOL);
         await fetchUserBets();
       await fetchMoreRounds();
       } else {
@@ -228,73 +230,186 @@ export default function PredictionCards() {
     );
   }
 
+  // const handleClaimRewards = useCallback(async () => {
+  //   if (!connected || !publicKey || !connectionRef.current || !program) {
+  //     // toast.error("Please connect your wallet to claim rewards");
+  //     toast.custom((t) => <ConnectWalletBetToast />, {
+  //       position: "top-right",
+  //     });
+  //     return;
+  //   }
+
+  //   if (claimableBets.length === 0) {
+  //     toast.custom((t) => <NoClaimableBetsToast theme={theme} />, {
+  //       position: "top-right",
+  //     });
+  //     return;
+  //   }
+
+  //   setIsClaiming(true);
+  //   try {
+  //     // Collect instructions for all claimable bets
+  //     const instructions = await Promise.all(
+  //       claimableBets.map((bet: { roundNumber: number }) =>
+  //         handleClaimPayout(bet.roundNumber)
+  //       )
+  //     );
+
+  //     // Create a new transaction
+  //     const transaction = new Transaction();
+  //     instructions.forEach((instruction) => transaction.add(instruction));
+
+  //     // Get recent blockhash
+  //     const { blockhash } = await connectionRef.current.getLatestBlockhash();
+  //     transaction.recentBlockhash = blockhash;
+  //     transaction.feePayer = publicKey;
+
+  //     // Send and confirm transaction
+  //     const signature = await sendTransaction(
+  //       transaction,
+  //       connectionRef.current,
+  //       {
+  //         skipPreflight: false, // Run preflight checks
+  //       }
+  //     );
+
+  //     await connectionRef.current.confirmTransaction(signature, "confirmed");
+
+  //     // Refresh bets after claiming
+  //     await fetchUserBets();
+
+  //     // Reset claimable rewards
+  //     setClaimableRewards(0);
+  //     const newLamports = await connectionRef.current.getBalance(publicKey);
+  //     setUserBalance(newLamports / LAMPORTS_PER_SOL);
+  
+
+  //     toast.custom(
+  //       (t) => (
+  //         <ClaimSuccessToast
+  //           theme={theme}
+  //           claimableAmount={claimableRewards}
+  //         />
+  //       ),
+  //       {
+  //         position: "top-center",
+  //       }
+  //     );
+  //     // console.log(`Batched payout claimed successfully: ${signature}`);
+  //   } catch (error: any) {
+  //     console.error("Failed to claim rewards:", error);
+  //     let errorMessage = "Failed to claim rewards. Please try again.";
+  //     if (error.message.includes("6012")) {
+  //       errorMessage = "Contract is paused.";
+  //     } else if (error.message.includes("6006")) {
+  //       errorMessage = "Payout already claimed.";
+  //     } else if (error.message.includes("6003")) {
+  //       errorMessage = "Round has not ended yet.";
+  //     } else if (error.message.includes("6004")) {
+  //       errorMessage = "Round has not closed yet.";
+  //     } else if (error.message.includes("6015")) {
+  //       errorMessage = "No rewards available for this round.";
+  //     } else if (error.message.includes("6007")) {
+  //       errorMessage = "Invalid round number.";
+  //     } else if (error.message.includes("6010")) {
+  //       errorMessage = "Insufficient funds in escrow.";
+  //     } else if (error.message.includes("Signature request denied")) {
+  //       errorMessage = "Transaction was not signed.";
+  //     }
+
+  //     toast.custom((t) => <ClaimFailureToast theme={theme} />, {
+  //       position: "top-right",
+  //     });
+  //     // toast.error(errorMessage);
+  //   } finally {
+  //     setIsClaiming(false);
+  //   }
+  // }, [
+  //   connected,
+  //   publicKey,
+  //   program,
+  //   claimableBets,
+  //   claimableRewards,
+  //   sendTransaction,
+  //   fetchUserBets,
+  //   handleClaimPayout,
+  // ]);
   const handleClaimRewards = useCallback(async () => {
     if (!connected || !publicKey || !connectionRef.current || !program) {
-      // toast.error("Please connect your wallet to claim rewards");
       toast.custom((t) => <ConnectWalletBetToast />, {
         position: "top-right",
       });
       return;
     }
-
+  
     if (claimableBets.length === 0) {
       toast.custom((t) => <NoClaimableBetsToast theme={theme} />, {
         position: "top-right",
       });
       return;
     }
-
+  
     setIsClaiming(true);
     try {
+      // Store the amount before claiming for the toast
+      const claimedAmount = claimableRewards;
+      
       // Collect instructions for all claimable bets
       const instructions = await Promise.all(
         claimableBets.map((bet: { roundNumber: number }) =>
           handleClaimPayout(bet.roundNumber)
         )
       );
-
+  
       // Create a new transaction
       const transaction = new Transaction();
       instructions.forEach((instruction) => transaction.add(instruction));
-
+  
       // Get recent blockhash
       const { blockhash } = await connectionRef.current.getLatestBlockhash();
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = publicKey;
-
+  
       // Send and confirm transaction
       const signature = await sendTransaction(
         transaction,
         connectionRef.current,
         {
-          skipPreflight: false, // Run preflight checks
+          skipPreflight: false,
         }
       );
-
+  
       await connectionRef.current.confirmTransaction(signature, "confirmed");
-
-      // Refresh bets after claiming
-      await fetchUserBets();
-
+  
+      // IMPORTANT: Refresh all user data after successful claim
+      await Promise.all([
+        fetchUserBets(), // This will update claimableBets and claimableRewards
+        // Refresh user balance
+        (async () => {
+          const newLamports = await connectionRef.current!.getBalance(publicKey);
+          setUserBalance(newLamports / LAMPORTS_PER_SOL);
+        })(),
+      ]);
+  
+      // Show success toast with the claimed amount
       toast.custom(
         (t) => (
           <ClaimSuccessToast
             theme={theme}
-            claimableAmount={claimableRewards}
+            claimableAmount={claimedAmount} // Use the stored amount
           />
         ),
         {
           position: "top-center",
         }
       );
-
-      // Reset claimable rewards
-      setClaimableRewards(0);
-
-      // console.log(`Batched payout claimed successfully: ${signature}`);
+  
+      console.log(`Batched payout claimed successfully: ${signature}`);
     } catch (error: any) {
       console.error("Failed to claim rewards:", error);
       let errorMessage = "Failed to claim rewards. Please try again.";
+      
+      // Your existing error handling...
       if (error.message.includes("6012")) {
         errorMessage = "Contract is paused.";
       } else if (error.message.includes("6006")) {
@@ -312,11 +427,10 @@ export default function PredictionCards() {
       } else if (error.message.includes("Signature request denied")) {
         errorMessage = "Transaction was not signed.";
       }
-
+  
       toast.custom((t) => <ClaimFailureToast theme={theme} />, {
         position: "top-right",
       });
-      // toast.error(errorMessage);
     } finally {
       setIsClaiming(false);
     }
@@ -329,8 +443,8 @@ export default function PredictionCards() {
     sendTransaction,
     fetchUserBets,
     handleClaimPayout,
+    theme, // Add theme to dependencies
   ]);
-
   const getSlidesPerView = () => {
     if (!mounted) return 1;
     if (screenWidth < 640) return 1;
