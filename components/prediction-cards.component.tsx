@@ -60,6 +60,7 @@ export default function PredictionCards() {
   const [priceColor, setPriceColor] = useState("text-gray-900");
   const [claimableRewards, setClaimableRewards] = useState(0);
   const [isClaiming, setIsClaiming] = useState(false);
+  const [justClaimed, setJustClaimed] = useState(false);
   const {
     handlePlaceBet,
     handleClaimPayout,
@@ -93,10 +94,65 @@ export default function PredictionCards() {
 
   // Update claimableAmountRef when claimableBets changes
   useEffect(() => {
-    const sum = claimableBets.reduce((tot, b) => tot + b.payout, 0);
-    setClaimableRewards(sum);
-  }, [claimableBets]);
+    // While we’re in the “just claimed” phase, force the badge to stay at 0:
+    if (justClaimed) {
+      setClaimableRewards(0);
+      return;
+    }
 
+    const sum = claimableBets.reduce((tot, b) => tot + (b.payout || 0), 0);
+    setClaimableRewards(sum);
+
+    if (claimableBets.length === 0) {
+      setClaimableRewards(0);
+    }
+  }, [claimableBets, justClaimed]);
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    const handleClaimComplete = () => {
+      // Clear timeout if it exists
+      if (timeoutId) clearTimeout(timeoutId);
+
+      // Set a timeout to refresh data after claim
+      timeoutId = setTimeout(async () => {
+        try {
+          await Promise.all([
+            fetchUserBets(),
+            fetchMoreRounds && fetchMoreRounds(),
+          ]);
+
+          // Update balance
+          if (connected && publicKey && connectionRef.current) {
+            const newLamports = await connectionRef.current.getBalance(
+              publicKey
+            );
+            setUserBalance(newLamports / LAMPORTS_PER_SOL);
+          }
+        } catch (error) {
+          console.error("Error refreshing after claim:", error);
+        }
+      }, 1000);
+    };
+
+    // Listen for claim completion
+    if (!isClaiming && claimableRewards === 0 && claimableBets.length === 0) {
+      handleClaimComplete();
+    }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [
+    isClaiming,
+    claimableRewards,
+    claimableBets.length,
+    connected,
+    publicKey,
+    fetchUserBets,
+    fetchMoreRounds,
+  ]);
   useEffect(() => {
     if (connected && publicKey) {
       fetchUserBets();
@@ -189,18 +245,12 @@ export default function PredictionCards() {
     try {
       const ok = await handlePlaceBet(roundId, direction === "up", amount);
       if (ok) {
-    
         const lamports = await connectionRef.current!.getBalance(publicKey);
         setUserBalance(lamports / LAMPORTS_PER_SOL);
-        await Promise.all([
-          fetchUserBets(),
-          fetchMoreRounds()
-        ]);
-        
+        await Promise.all([fetchUserBets(), fetchMoreRounds()]);
         // Force a re-render of the cards
         setSwiperReady(false);
         setTimeout(() => setSwiperReady(true), 100);
-      
       }
       return ok;
     } catch (error) {
@@ -213,48 +263,48 @@ export default function PredictionCards() {
       transports: ["websocket"],
       reconnection: true,
     });
-  
+
     const handleRoundUpdate = (data: any) => {
       console.log("Round update received:", data);
-      
+
       // Refresh round data when round state changes
-      if (data.type === 'roundEnded' || data.type === 'roundStarted') {
+      if (data.type === "roundEnded" || data.type === "roundStarted") {
         fetchMoreRounds();
         fetchUserBets();
       }
     };
-  
+
     const handleBetPlaced = (data: any) => {
       console.log("New bet placed:", data);
-      
+
       // Refresh rounds to update prize pools
       fetchMoreRounds();
     };
-  
-    socket.on('roundUpdate', handleRoundUpdate);
-    socket.on('newBetPlaced', handleBetPlaced);
-  
+
+    socket.on("roundUpdate", handleRoundUpdate);
+    socket.on("newBetPlaced", handleBetPlaced);
+
     return () => {
-      socket.off('roundUpdate', handleRoundUpdate);
-      socket.off('newBetPlaced', handleBetPlaced);
+      socket.off("roundUpdate", handleRoundUpdate);
+      socket.off("newBetPlaced", handleBetPlaced);
       socket.disconnect();
     };
   }, [fetchMoreRounds, fetchUserBets]);
   useEffect(() => {
     const handleBetPlaced = (event: CustomEvent) => {
       console.log("Bet placed event received:", event.detail);
-      
+
       // Refresh data after bet placement
       setTimeout(() => {
         fetchUserBets();
         fetchMoreRounds();
       }, 1000); // Small delay to ensure backend is updated
     };
-  
-    window.addEventListener('betPlaced', handleBetPlaced as EventListener);
-    
+
+    window.addEventListener("betPlaced", handleBetPlaced as EventListener);
+
     return () => {
-      window.removeEventListener('betPlaced', handleBetPlaced as EventListener);
+      window.removeEventListener("betPlaced", handleBetPlaced as EventListener);
     };
   }, [fetchUserBets, fetchMoreRounds]);
   function SkeletonCard() {
@@ -277,110 +327,8 @@ export default function PredictionCards() {
     );
   }
 
-  // const handleClaimRewards = useCallback(async () => {
-  //   if (!connected || !publicKey || !connectionRef.current || !program) {
-  //     // toast.error("Please connect your wallet to claim rewards");
-  //     toast.custom((t) => <ConnectWalletBetToast />, {
-  //       position: "top-right",
-  //     });
-  //     return;
-  //   }
+  // Replace the handleClaimRewards function with better state management:
 
-  //   if (claimableBets.length === 0) {
-  //     toast.custom((t) => <NoClaimableBetsToast theme={theme} />, {
-  //       position: "top-right",
-  //     });
-  //     return;
-  //   }
-
-  //   setIsClaiming(true);
-  //   try {
-  //     // Collect instructions for all claimable bets
-  //     const instructions = await Promise.all(
-  //       claimableBets.map((bet: { roundNumber: number }) =>
-  //         handleClaimPayout(bet.roundNumber)
-  //       )
-  //     );
-
-  //     // Create a new transaction
-  //     const transaction = new Transaction();
-  //     instructions.forEach((instruction) => transaction.add(instruction));
-
-  //     // Get recent blockhash
-  //     const { blockhash } = await connectionRef.current.getLatestBlockhash();
-  //     transaction.recentBlockhash = blockhash;
-  //     transaction.feePayer = publicKey;
-
-  //     // Send and confirm transaction
-  //     const signature = await sendTransaction(
-  //       transaction,
-  //       connectionRef.current,
-  //       {
-  //         skipPreflight: false, // Run preflight checks
-  //       }
-  //     );
-
-  //     await connectionRef.current.confirmTransaction(signature, "confirmed");
-
-  //     // Refresh bets after claiming
-  //     await fetchUserBets();
-
-  //     // Reset claimable rewards
-  //     setClaimableRewards(0);
-  //     const newLamports = await connectionRef.current.getBalance(publicKey);
-  //     setUserBalance(newLamports / LAMPORTS_PER_SOL);
-  
-
-  //     toast.custom(
-  //       (t) => (
-  //         <ClaimSuccessToast
-  //           theme={theme}
-  //           claimableAmount={claimableRewards}
-  //         />
-  //       ),
-  //       {
-  //         position: "top-center",
-  //       }
-  //     );
-  //     // console.log(`Batched payout claimed successfully: ${signature}`);
-  //   } catch (error: any) {
-  //     console.error("Failed to claim rewards:", error);
-  //     let errorMessage = "Failed to claim rewards. Please try again.";
-  //     if (error.message.includes("6012")) {
-  //       errorMessage = "Contract is paused.";
-  //     } else if (error.message.includes("6006")) {
-  //       errorMessage = "Payout already claimed.";
-  //     } else if (error.message.includes("6003")) {
-  //       errorMessage = "Round has not ended yet.";
-  //     } else if (error.message.includes("6004")) {
-  //       errorMessage = "Round has not closed yet.";
-  //     } else if (error.message.includes("6015")) {
-  //       errorMessage = "No rewards available for this round.";
-  //     } else if (error.message.includes("6007")) {
-  //       errorMessage = "Invalid round number.";
-  //     } else if (error.message.includes("6010")) {
-  //       errorMessage = "Insufficient funds in escrow.";
-  //     } else if (error.message.includes("Signature request denied")) {
-  //       errorMessage = "Transaction was not signed.";
-  //     }
-
-  //     toast.custom((t) => <ClaimFailureToast theme={theme} />, {
-  //       position: "top-right",
-  //     });
-  //     // toast.error(errorMessage);
-  //   } finally {
-  //     setIsClaiming(false);
-  //   }
-  // }, [
-  //   connected,
-  //   publicKey,
-  //   program,
-  //   claimableBets,
-  //   claimableRewards,
-  //   sendTransaction,
-  //   fetchUserBets,
-  //   handleClaimPayout,
-  // ]);
   const handleClaimRewards = useCallback(async () => {
     if (!connected || !publicKey || !connectionRef.current || !program) {
       toast.custom((t) => <ConnectWalletBetToast />, {
@@ -388,76 +336,70 @@ export default function PredictionCards() {
       });
       return;
     }
-  
+
     if (claimableBets.length === 0) {
       toast.custom((t) => <NoClaimableBetsToast theme={theme} />, {
         position: "top-right",
       });
       return;
     }
-  
+
     setIsClaiming(true);
-    const claimedAmount = claimableRewards;
+    const claimedAmount = claimableRewards; // Store before clearing
+
     try {
-      // Store the amount before claiming for the toast
-     
-      
-      // Collect instructions for all claimable bets
       const instructions = await Promise.all(
         claimableBets.map((bet: { roundNumber: number }) =>
           handleClaimPayout(bet.roundNumber)
         )
       );
-  
-      // Create a new transaction
+
       const transaction = new Transaction();
       instructions.forEach((instruction) => transaction.add(instruction));
-  
-      // Get recent blockhash
+
       const { blockhash } = await connectionRef.current.getLatestBlockhash();
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = publicKey;
-  
-      // Send and confirm transaction
+
       const signature = await sendTransaction(
         transaction,
         connectionRef.current,
-        {
-          skipPreflight: false,
-        }
+        { skipPreflight: false }
       );
-  
+
       await connectionRef.current.confirmTransaction(signature, "confirmed");
-  
-      // IMPORTANT: Refresh all user data after successful claim
+
+     setJustClaimed(true);
+
+// 2) Also clear the numeric reward‐amount state
+setClaimableRewards(0);
+
+      // Refresh user bets and balance in parallel
       await Promise.all([
-        fetchUserBets(), // This will update claimableBets and claimableRewards
-        // Refresh user balance
+        fetchUserBets().finally(() => {
+          setJustClaimed(false);
+        }),
         (async () => {
-          const newLamports = await connectionRef.current!.getBalance(publicKey);
+          const newLamports = await connectionRef.current!.getBalance(
+            publicKey
+          );
           setUserBalance(newLamports / LAMPORTS_PER_SOL);
         })(),
       ]);
-  
-      // Show success toast with the claimed amount
+      // Force a complete re-render by updating swiper
+      setSwiperReady(false);
+      setTimeout(() => setSwiperReady(true), 500);
+
       toast.custom(
         (t) => (
-          <ClaimSuccessToast
-            theme={theme}
-            claimableAmount={claimedAmount} // Use the stored amount
-          />
+          <ClaimSuccessToast theme={theme} claimableAmount={claimedAmount} />
         ),
-        {
-          position: "top-center",
-        }
+        { position: "top-center" }
       );
-  
-      console.log(`Batched payout claimed successfully: ${signature}`);
     } catch (error: any) {
       console.error("Failed to claim rewards:", error);
+
       let errorMessage = "Failed to claim rewards. Please try again.";
-      
-      // Your existing error handling...
       if (error.message.includes("6012")) {
         errorMessage = "Contract is paused.";
       } else if (error.message.includes("6006")) {
@@ -475,7 +417,7 @@ export default function PredictionCards() {
       } else if (error.message.includes("Signature request denied")) {
         errorMessage = "Transaction was not signed.";
       }
-  
+
       toast.custom((t) => <ClaimFailureToast theme={theme} />, {
         position: "top-right",
       });
@@ -491,7 +433,7 @@ export default function PredictionCards() {
     sendTransaction,
     fetchUserBets,
     handleClaimPayout,
-    theme, // Add theme to dependencies
+    theme,
   ]);
   const getSlidesPerView = () => {
     if (!mounted) return 1;
@@ -507,8 +449,9 @@ export default function PredictionCards() {
       const baseStartTime =
         typeof baseRound.closeTime === "number"
           ? baseRound.closeTime + offsetNumber * (config?.roundDuration || 360)
-          : Math.floor(Date.now() / 1000) + offsetNumber * (config?.roundDuration || 360);
-  
+          : Math.floor(Date.now() / 1000) +
+            offsetNumber * (config?.roundDuration || 360);
+
       return {
         number: roundNumber.toString(),
         startTime: baseStartTime,
@@ -523,12 +466,12 @@ export default function PredictionCards() {
     },
     [config?.lockDuration, config?.roundDuration] // only re‐create when lockDuration or roundDuration changes
   );
-  
+
   const formatCardVariant = useCallback(
     (round: Round, current: number) => {
       const status = getRoundStatus(round); // e.g. "LIVE" | "LOCKED" | "ENDED" | etc.
       const n = Number(round.number);
-  
+
       if (n === current) return "next";
       if (n === current - 1) return "live";
       if (n > current) return "later";
@@ -917,7 +860,6 @@ export default function PredictionCards() {
     return numPrice > 1000000 ? numPrice / 1e8 : numPrice;
   };
 
-  
   const isDataLoaded = finalDisplayRoundsForSwiper.length > 4;
   const skeletonInitial = Math.floor(7 / 2);
   const initial = isDataLoaded ? liveIndex : skeletonInitial;
@@ -927,6 +869,7 @@ export default function PredictionCards() {
       <div className="grid grid-cols-12 gap-4 lg:gap-6 xl:gap-[40px]">
         <div className="flex flex-col gap-6 md:gap-8 lg:gap-[40px] col-span-12 xl:col-span-9">
           <MarketHeader
+            key={`header-${claimableRewards}-${isClaiming}-${claimableBets.length}`}
             liveRoundPrice={liveRoundPrice}
             priceColor={priceColor}
             isLocked={isLocked}
@@ -940,7 +883,7 @@ export default function PredictionCards() {
             onClaim={handleClaimRewards}
             formatTimeLeft={formatTimeLeft}
           />
-          
+
           {!connected ? (
             // Show wallet connection prompt instead of cards when not connected
             <div className="flex flex-col items-center justify-center min-h-[400px] gap-6">
@@ -1042,7 +985,6 @@ export default function PredictionCards() {
                         currentRoundNumber
                       );
 
-                      
                       // if (cardVariant === 'expired') {
                       //   console.log(`Expired Round ${round.number}:`, {
                       //     lockPrice: round.lockPrice,
@@ -1065,8 +1007,12 @@ export default function PredictionCards() {
                               closePrice: formatPrice(round.endPrice),
                               currentPrice: (() => {
                                 // For expired rounds, use the close price as current price
-                                if (cardVariant === 'expired') {
-                                  return formatPrice(round.endPrice) || formatPrice(round.lockPrice) || liveRoundPrice;
+                                if (cardVariant === "expired") {
+                                  return (
+                                    formatPrice(round.endPrice) ||
+                                    formatPrice(round.lockPrice) ||
+                                    liveRoundPrice
+                                  );
                                 }
                                 // For live/calculating rounds, use live price
                                 return liveRoundPrice;
@@ -1123,7 +1069,7 @@ export default function PredictionCards() {
 
           {connected && userBets.length > 0 && (
             // <Suspense fallback={<PuffLoader color="#06C729" size={30} />}>
-              <BetsHistory userBets={userBets} />
+            <BetsHistory userBets={userBets} />
             // </Suspense>
           )}
         </div>
