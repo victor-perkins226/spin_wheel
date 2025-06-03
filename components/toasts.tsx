@@ -20,14 +20,14 @@ export function ClaimNotConnectedToast({
       className={`
         glass  rounded-2xl
         shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
-        flex flex-col items-start p-4 mt-12
+        flex flex-col items-start p-4 mt-8
         ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
       `}
       style={{
         animation: "fadeInDown 200ms ease-out forwards",
       }}
     >
-      <p className="max-w-sm mx-auto text-lg font-semibold">
+      <p className="max-w-sm mx-auto text-xs font-semibold">
         Please connect your wallet to claim rewards
       </p>
     </div>
@@ -47,14 +47,14 @@ export function NoClaimableBetsToast({
       className={`
         glass text-center  rounded-2xl
         shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
-        flex flex-col items-start p-4 mt-12
+        flex flex-col items-start p-4 mt-8
         ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
       `}
       style={{
         animation: "fadeInDown 200ms ease-out forwards",
       }}
     >
-      <p className="max-w-sm mx-auto text-lg font-semibold">
+      <p className="max-w-sm mx-auto text-xs font-semibold">
         No claimable bets available
       </p>
     </div>
@@ -115,18 +115,18 @@ export function ClaimSuccessToastMini({
         className={`
           w-full glass text-center px-8 rounded-2xl
           shadow-xl animate-toast-bounce ring-1 ring-black ring-opacity-5 overflow-hidden
-          flex flex-col items-center p-4 pb-12 mt-16
+          flex flex-col items-center p-4 mt-8
           ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
         `}
         style={{
           animation: "fadeInDown 200ms ease-out forwards",
         }}
       >
-        <h3 className="font-bold text-2xl animate-toast-pulse mb-2">
+        <h3 className="font-bold text-sm animate-toast-pulse mb-2">
           Cheers to more withdrawals
         </h3>
   
-        <p className="max-w-sm mx-auto text-sm">
+        <p className="max-w-sm mx-auto text-xs">
           You have withdrawn {claimableAmount.toFixed(4)} SOL
         </p>
       </div>
@@ -146,7 +146,7 @@ export function ClaimFailureToast({
       className={`
         glass text-center animate-toast-bounce rounded-2xl
         shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
-        flex flex-col items-start p-4 pb-8 mt-16
+        flex flex-col items-start p-4 mt-8
         ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
       `}
       style={{
@@ -162,11 +162,11 @@ export function ClaimFailureToast({
         />
       </div> */}
 
-      <h3 className="font-bold text-2xl text-center animate-toast-pulse mb-2">
+      <h3 className="font-bold text-sm text-center animate-toast-pulse mb-2">
         Withdrawal Failed
       </h3>
 
-      <p className="text-sm">
+      <p className="text-xs">
         You were unable to withdraw, please recheck and try again
       </p>
     </div>
@@ -222,16 +222,16 @@ export function BetSuccessToastMini({
         className={`
           glass animate-toast-bounce-in
           rounded-2xl shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
-          flex flex-col items-start p-4 pb-12 mt-16
+          flex flex-col items-start p-4 mt-8
         `}
         style={{
           animation: "fadeInDown 200ms ease-out forwards",
         }}
       >
-        <h3 className="font-bold text-2xl mb-2 animate-toast-pulse">
+        <h3 className="font-bold text-sm mb-2 animate-toast-pulse">
           Bet successful
         </h3>
-        <p className="max-w-sm mx-auto text-sm">
+        <p className="max-w-sm mx-auto text-xs">
           You have successfully placed a bet, cheers to potential wins
         </p>
       </div>
@@ -251,7 +251,7 @@ export function BetFailedToast({
       className={`
         glass text-left animate-toast-bounce rounded-2xl
         shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
-        flex flex-col items-start p-4 pb-8 mt-16
+        flex flex-col items-start p-4 mt-8
         ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
       `}
       style={{
@@ -267,11 +267,11 @@ export function BetFailedToast({
         />
       </div> */}
 
-      <h3 className="font-bold text-2xl text-center animate-toast-pulse mb-2">
+      <h3 className="font-bold text-sm text-center animate-toast-pulse mb-2">
         Bet Failed
       </h3>
 
-      <p className="text-sm">
+      <p className="text-xs">
         You were unable to place the bet, please try again later
       </p>
     </div>
@@ -291,14 +291,14 @@ export function AlreadyPlacedBetToast({
       className={`
         glass rounded-2xl
         shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
-        flex flex-col items-start p-4 mt-12
+        flex flex-col items-start p-4 mt-8
         ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
       `}
       style={{
         animation: "fadeInDown 200ms ease-out forwards",
       }}
     >
-      <p className="max-w-sm mx-auto text-lg font-semibold">
+      <p className="max-w-sm mx-auto text-xs font-semibold">
         You have already placed a bet on this round.
       </p>
     </div>
@@ -318,14 +318,14 @@ export function InvalidAmountToast({
       className={`
          glass text-left rounded-2xl
         shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
-        flex flex-col items-start p-4 mt-12
+        flex flex-col items-start p-4 mt-8
         ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
       `}
       style={{
         animation: "fadeInDown 200ms ease-out forwards",
       }}
     >
-      <p className="max-w-sm mx-auto text-lg font-semibold">
+      <p className="max-w-sm mx-auto text-xs font-semibold">
         Please enter a valid amount
       </p>
     </div>
@@ -345,14 +345,14 @@ export function BettingNotAvailableToast({
       className={`
         glass rounded-2xl
         shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
-        flex flex-col items-center p-4 mt-12
+        flex flex-col items-center p-4 mt-8
         ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
       `}
       style={{
         animation: "fadeInDown 200ms ease-out forwards",
       }}
     >
-      <p className="max-w-sm mx-auto text-lg font-semibold">
+      <p className="max-w-sm mx-auto text-xs font-semibold">
         Betting is not available for this round
       </p>
     </div>

@@ -667,11 +667,16 @@ export default function PredictionCards() {
     initialSlideJumped.current = true;
   }, [swiperReady]);
 
+  const didFetchAtZero = useRef(false);
   useEffect(() => {
-    if (timeLeft === 0) {
+    if (timeLeft === 0 && !didFetchAtZero.current) {
+      didFetchAtZero.current = true;
       fetchUserBets();
       initialSlideJumped.current = false;
       safeFetchMoreRounds();
+    }
+    if (timeLeft! > 0) {
+      didFetchAtZero.current = false;
     }
   }, [timeLeft, fetchUserBets, safeFetchMoreRounds]);
 
@@ -874,6 +879,7 @@ export default function PredictionCards() {
                         currentRoundNumber
                       );
 
+                      
                       // if (cardVariant === 'expired') {
                       //   console.log(`Expired Round ${round.number}:`, {
                       //     lockPrice: round.lockPrice,

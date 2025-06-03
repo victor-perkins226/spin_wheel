@@ -668,7 +668,7 @@
           card_container glass rounded-[20px] p-[15px] sm:p-[25px]
           min-w-[240px] sm:min-w-[273px] w-full
     
-          ${variant === "expired" ? "opacity-50 cursor-not-allowed filte hover:opacity-90 " : ""}
+          ${variant === "expired" ? "opacity-50 cursor-not-allowed hover:opacity-80 " : ""}
           ${variant === "live"    ? "border-2 border-green-500 shadow-lg"            : ""}
           ${variant === "next"    ? "bg-blue-50 border border-blue-300"             : ""}
         `}
@@ -688,7 +688,7 @@
                 {
                   variant === "expired" ? (
                     <>
-                    <svg viewBox="0 0 24 24"  width="21px" className="text-white" xmlns="http://www.w3.org/2000/svg"><path d="M12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22ZM12 4C16.42 4 20 7.58 20 12C20 13.85 19.37 15.55 18.31 16.9L7.1 5.69C8.45 4.63 10.15 4 12 4ZM5.69 7.1L16.9 18.31C15.55 19.37 13.85 20 12 20C7.58 20 4 16.42 4 12C4 10.15 4.63 8.45 5.69 7.1Z"></path></svg>
+                    <svg viewBox="0 0 24 24"  width="21px" fill="white" className="text-white" xmlns="http://www.w3.org/2000/svg"><path d="M12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22ZM12 4C16.42 4 20 7.58 20 12C20 13.85 19.37 15.55 18.31 16.9L7.1 5.69C8.45 4.63 10.15 4 12 4ZM5.69 7.1L16.9 18.31C15.55 19.37 13.85 20 12 20C7.58 20 4 16.42 4 12C4 10.15 4.63 8.45 5.69 7.1Z"></path></svg>
                     <p className="capitalize">{variant}</p>
                     </>
                   ): variant === "live" ? (
@@ -697,11 +697,16 @@
                     <p className="capitalize">{variant}</p>
                     <div  className="rounded-full size-3 animate-pulse bg-green-600"></div>
                     </>
-                  ): (<>
-                  <SVG width={18} height={18} iconName="clock" />
+                  ): variant === "next" ?  (<>
+                  <SVG width={18} height={18} iconName="play-fill" />
                   <p className="capitalize">{variant}</p>
                   </>
                     
+                  ): (
+                    <>
+                  <SVG width={18} height={18} iconName="clock" />
+                  <p className="capitalize">{variant}</p>
+                  </>
                   )
                 }
                 
