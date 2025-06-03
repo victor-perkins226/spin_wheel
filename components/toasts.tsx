@@ -184,7 +184,7 @@ export function BetSuccessToast({
   return (
     <div
       className={`
-        animate-toast-bounce-in w-full glass text-center h-[400px] max-w-[600px]
+        glass animate-toast-bounce-in w-full glass text-center h-[400px] max-w-[600px]
         rounded-2xl shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
         flex flex-col items-center p-4 pb-12 mt-16
         ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
@@ -220,10 +220,9 @@ export function BetSuccessToastMini({
     return (
       <div
         className={`
-          animate-toast-bounce-in
+          glass animate-toast-bounce-in
           rounded-2xl shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
           flex flex-col items-start p-4 pb-12 mt-16
-          ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
         `}
         style={{
           animation: "fadeInDown 200ms ease-out forwards",
@@ -367,15 +366,15 @@ export function ConnectWalletBetToast() {
   return (
     <div
       className={`
-         glass ] rounded-2xl
+         glass rounded-2xl
         shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
-        flex flex-col items-start p-4 mt-12
+        flex flex-col items-start 
       `}
       style={{
         animation: "fadeInDown 200ms ease-out forwards",
       }}
     >
-      <p className="max-w-sm mx-auto text-lg font-semibold">
+      <p className="text-sm font-semibold">
         Please connect your wallet first
       </p>
     </div>

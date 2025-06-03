@@ -242,7 +242,7 @@
             </>
           ),
           {
-            position: "top-center",
+            position: "top-right",
           }
         );
         return;
@@ -251,44 +251,10 @@
         // toast("Betting is not available for this round");
         toast.custom(
           (t) => (
-            <div
-              className={`
-              w-full glass text-center animate-toast-bounce h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
-              shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
-              flex flex-col items-center p-4 pb-8 mt-16
-              ${
-                theme === "dark"
-                  ? "bg-gray-800 text-white"
-                  : "bg-white text-black"
-              }
-            `}
-              style={{
-                // slide in/out from top
-                animation: t.visible
-                  ? "fadeInDown 200ms ease-out forwards"
-                  : "fadeOutUp 150ms ease-in forwards",
-              }}
-            >
-              <div className="w-full animate-pulse h-[280px] relative mb-4">
-                <Image
-                  src={BetFailed}
-                  alt="lock"
-                  fill
-                  className="object-contain rounded-xl"
-                />
-              </div>
-
-              <h3 className="font-bold text-2xl text-center animate-toast-pulse   mb-2">
-                Bet Failed
-              </h3>
-
-              <p className=" text-sm">
-                You were unable to place the bet, please try again later
-              </p>
-            </div>
+            <BetFailedToast theme={theme} />
           ),
           {
-            position: "top-center",
+            position: "top-right",
           }
         );
         return;
@@ -302,7 +268,7 @@
             </>
           ),
           {
-            position: "top-center",
+            position: "top-right",
           }
         );
         return;
@@ -698,11 +664,14 @@
 
     return (
       <div
-        className={`card_container glass rounded-[20px] p-[15px] sm:p-[25px] ${
-          variant === "live"
-            ? "min-w-[240px] sm:min-w-[273px] w-full"
-            : "min-w-[240px] sm:min-w-[273px] w-full"
-        }`}
+        className={`
+          card_container glass rounded-[20px] p-[15px] sm:p-[25px]
+          min-w-[240px] sm:min-w-[273px] w-full
+    
+          ${variant === "expired" ? "opacity-50 cursor-not-allowed filte hover:opacity-90 " : ""}
+          ${variant === "live"    ? "border-2 border-green-500 shadow-lg"            : ""}
+          ${variant === "next"    ? "bg-blue-50 border border-blue-300"             : ""}
+        `}
       >
         <div
           className={`${
@@ -711,13 +680,32 @@
         >
           <div
             className={`${
-              variant === "expired" ? "opacity-80" : ""
+              variant === "expired" ? "opacity-50" : ""
             } flex flex-col`}
           >
             <div className="flex justify-between items-center font-semibold text-[20px]">
               <div className="flex items-center gap-[10px]">
-                <SVG width={12} height={12} iconName="play-fill" />
-                <p className="capitalize">{variant}</p>
+                {
+                  variant === "expired" ? (
+                    <>
+                    <svg viewBox="0 0 24 24"  width="21px" className="text-white" xmlns="http://www.w3.org/2000/svg"><path d="M12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22ZM12 4C16.42 4 20 7.58 20 12C20 13.85 19.37 15.55 18.31 16.9L7.1 5.69C8.45 4.63 10.15 4 12 4ZM5.69 7.1L16.9 18.31C15.55 19.37 13.85 20 12 20C7.58 20 4 16.42 4 12C4 10.15 4.63 8.45 5.69 7.1Z"></path></svg>
+                    <p className="capitalize">{variant}</p>
+                    </>
+                  ): variant === "live" ? (
+                    <>
+                    <SVG width={18} height={18} iconName="play-fill" />
+                    <p className="capitalize">{variant}</p>
+                    <div  className="rounded-full size-3 animate-pulse bg-green-600"></div>
+                    </>
+                  ): (<>
+                  <SVG width={18} height={18} iconName="clock" />
+                  <p className="capitalize">{variant}</p>
+                  </>
+                    
+                  )
+                }
+                
+                
               </div>
               <p>#{roundId}</p>
             </div>
@@ -833,19 +821,21 @@
           {inputError && (
             <p className="mt-1 text-red-500 text-sm">{inputError}</p>
           )}
-          <input
-            type="range"
-            min="0.01"
-            max={maxAmount}
-            step="0.01"
-            value={Math.min(amount, maxAmount)} // Ensure value doesn't exceed max
-            onChange={(e) => {
-              const value = parseFloat(e.target.value);
-              const clampedValue = Math.max(0.01, Math.min(value, maxAmount));
-              setAmount(Math.round(clampedValue * 100) / 100);
-            }}
-            className="w-full h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer my-5 accent-gray-500 custom-slider"
-          />
+           <input
+   type="range"
+   min="0.01"
+   max={maxAmount}
+   step="0.01"
+   value={Math.min(amount, maxAmount)} // Ensure value doesn't exceed max
+   onChange={(e) => {
+     const value = parseFloat(e.target.value);
+     const clampedValue = Math.max(0.01, Math.min(value, maxAmount));
+     const rounded = Math.round(clampedValue * 100) / 100;
+     setAmount(rounded);
+     setInputValue(String(rounded));
+   }}
+   className="w-full h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer my-5 accent-gray-500 custom-slider"
+ />
           <div className="flex gap-y-[12px] gap-x-[4px] justify-between flex-wrap">
             {CUSTOM_INPUTS.map((el, key) => (
               <div
@@ -873,7 +863,7 @@
             {isSubmitting ? (
               <PuffLoader color="#ffffff" size={20} />
             ) : (
-              `Buy ${mode?.toUpperCase() || ""} ${amount.toFixed(2)} SOL`
+              `Buy ${mode?.toUpperCase() || ""}`
             )}
           </Button>
         </div>
