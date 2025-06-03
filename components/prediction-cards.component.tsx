@@ -166,18 +166,11 @@ export default function PredictionCards() {
 
   useEffect(() => {
     if (!connected || !publicKey || !connectionRef.current) return;
-
-    const fetchBalance = async () => {
-      try {
-        const balance = await connectionRef.current!.getBalance(publicKey);
-        setUserBalance(balance / LAMPORTS_PER_SOL);
-      } catch (error) {
-        console.error("Failed to fetch balance:", error);
-      }
-    };
-
-    fetchBalance();
-  }, [connected, publicKey, currentRound?.number]);
+    (async () => {
+      const balance = await connectionRef.current!.getBalance(publicKey);
+      setUserBalance(balance / LAMPORTS_PER_SOL);
+    })();
+  }, [connected, publicKey]);
 
   const handleBet = async (
     direction: "up" | "down",
@@ -345,79 +338,58 @@ export default function PredictionCards() {
   };
 
   // Create dummy later rounds
-  const createDummyLaterRound = (
-    baseRound: Round,
-    offsetNumber: number
-  ): Round => {
-    const roundNumber = Number(baseRound.number) + offsetNumber;
-    const baseStartTime =
-      typeof baseRound.closeTime === "number"
-        ? baseRound.closeTime + offsetNumber * (config?.roundDuration || 360)
-        : Math.floor(Date.now() / 1000) +
-          offsetNumber * (config?.roundDuration || 360);
-
-    return {
-      number: roundNumber.toString(),
-      startTime: baseStartTime,
-      lockTime: baseStartTime + (config?.lockDuration || 180),
-      closeTime: baseStartTime + (config?.roundDuration || 360),
-      totalAmount: 0,
-      totalBullAmount: 0,
-      totalBearAmount: 0,
-      isActive: false,
-      status: "later",
-    } as unknown as Round;
-  };
-
-  // Update your card rendering logic
-  const formatCardVariant = (round: Round, current: number) => {
-    const status = getRoundStatus(round); // e.g. STARTED | LOCKED | CALCULATING | ENDED
-    const n = Number(round.number);
-
-    if (n === current) return "next";
-
-    if (n === current - 1) {
-      return "live";
-    }
-
-    if (n > current) return "later";
-
-    return "expired";
-  };
+  const createDummyLaterRound = useCallback(
+    (baseRound: Round, offsetNumber: number): Round => {
+      const roundNumber = Number(baseRound.number) + offsetNumber;
+      const baseStartTime =
+        typeof baseRound.closeTime === "number"
+          ? baseRound.closeTime + offsetNumber * (config?.roundDuration || 360)
+          : Math.floor(Date.now() / 1000) + offsetNumber * (config?.roundDuration || 360);
+  
+      return {
+        number: roundNumber.toString(),
+        startTime: baseStartTime,
+        lockTime: baseStartTime + (config?.lockDuration || 180),
+        closeTime: baseStartTime + (config?.roundDuration || 360),
+        totalAmount: 0,
+        totalBullAmount: 0,
+        totalBearAmount: 0,
+        isActive: false,
+        status: "later",
+      } as unknown as Round;
+    },
+    [config?.lockDuration, config?.roundDuration] // only re‐create when lockDuration or roundDuration changes
+  );
+  
+  const formatCardVariant = useCallback(
+    (round: Round, current: number) => {
+      const status = getRoundStatus(round); // e.g. "LIVE" | "LOCKED" | "ENDED" | etc.
+      const n = Number(round.number);
+  
+      if (n === current) return "next";
+      if (n === current - 1) return "live";
+      if (n > current) return "later";
+      return "expired";
+    },
+    [getRoundStatus] // only re‐create if getRoundStatus reference changes (or if you want to inline getRoundStatus, wrap that in useCallback too)
+  );
   const handleSlideChange = () => {
     if (!swiperRef.current) return;
     const swiper = swiperRef.current;
   };
 
   // Add a more robust version of safeFetchMoreRounds that handles API errors
-  const safeFetchMoreRounds = useCallback(async () => {
-    if (isFetchingRounds) return; // debounce
-    try {
-      setIsFetchingRounds(true); // show loader
-      await fetchMoreRounds?.(); // same hook you already call
-    } catch (error: any) {
-      // Handle axios errors
-      if (error?.name === "AxiosError") {
-        console.error("API error when fetching rounds:", error.message);
-        // Don't crash the app, just show a toast message
-      } else {
-        console.error("Error fetching rounds:", error);
-      }
-      // Give the server a moment to recover before trying again
-      setTimeout(() => {
-        setIsFetchingRounds(false);
-      }, 10000); // Wait 10 seconds before allowing another attempt
-      return;
-    }
-    setIsFetchingRounds(false); // hide loader
-  }, [fetchMoreRounds, isFetchingRounds]);
 
-  useEffect(() => {
-    if (timeLeft === 0) {
-      initialSlideJumped.current = false;
-      safeFetchMoreRounds(); // Use the guarded version
+  const safeFetchMoreRounds = useCallback(async () => {
+    setIsFetchingRounds(true);
+    try {
+      await fetchMoreRounds?.();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsFetchingRounds(false);
     }
-  }, [timeLeft, safeFetchMoreRounds]);
+  }, [fetchMoreRounds]);
 
   const currentRoundNumber =
     Number(config?.currentRound) ?? Number(currentRound?.number) ?? null;
@@ -549,11 +521,12 @@ export default function PredictionCards() {
     expiredRounds,
     previousRounds,
     currentRoundNumber,
-    config,
+    config?.lockDuration,
+    config?.roundDuration,
     createDummyLaterRound,
     formatCardVariant,
   ]);
-  console.log(config)
+  // console.log(config)
   // Update the ref with the latest non-empty computed rounds
   useEffect(() => {
     if (computedDisplayRounds.length > 0) {
@@ -600,7 +573,7 @@ export default function PredictionCards() {
     }
 
     return [];
-  }, [computedDisplayRounds, currentRoundNumber]);
+  }, [computedDisplayRounds]);
 
   const liveIndex = useMemo(() => {
     try {
@@ -644,7 +617,7 @@ export default function PredictionCards() {
     }
   }, [liveIndex]);
 
-  console.log("Final display rounds for Swiper:", finalDisplayRoundsForSwiper);
+  // console.log("Final display rounds for Swiper:", finalDisplayRoundsForSwiper);
   useEffect(() => {
     const swiper = swiperRef.current;
     if (!swiper || swiperReady || liveIndex < 0) return;
@@ -696,10 +669,11 @@ export default function PredictionCards() {
 
   useEffect(() => {
     if (timeLeft === 0) {
+      fetchUserBets();
       initialSlideJumped.current = false;
       safeFetchMoreRounds();
     }
-  }, [timeLeft, safeFetchMoreRounds]);
+  }, [timeLeft, fetchUserBets, safeFetchMoreRounds]);
 
   // Improve visibility change handler with better API error handling
   useEffect(() => {
@@ -734,9 +708,9 @@ export default function PredictionCards() {
                   err?.name === "AxiosError" &&
                   err?.response?.status === 500
                 ) {
-                  console.log(
-                    "Server error when fetching user bets, will retry later"
-                  );
+                  // console.log(
+                  //   "Server error when fetching user bets, will retry later"
+                  // );
                 }
               })
             );
@@ -900,14 +874,14 @@ export default function PredictionCards() {
                         currentRoundNumber
                       );
 
-                      if (cardVariant === 'expired') {
-                        console.log(`Expired Round ${round.number}:`, {
-                          lockPrice: round.lockPrice,
-                          endPrice: round.endPrice,
-                          formattedLockPrice: formatPrice(round.lockPrice),
-                          formattedClosePrice: formatPrice(round.endPrice)
-                        });
-                      }
+                      // if (cardVariant === 'expired') {
+                      //   console.log(`Expired Round ${round.number}:`, {
+                      //     lockPrice: round.lockPrice,
+                      //     endPrice: round.endPrice,
+                      //     formattedLockPrice: formatPrice(round.lockPrice),
+                      //     formattedClosePrice: formatPrice(round.endPrice)
+                      //   });
+                      // }
 
                       return (
                         <SwiperSlide
@@ -956,7 +930,7 @@ export default function PredictionCards() {
                             currentRoundId={Number(config?.currentRound)}
                             bufferTimeInSeconds={0}
                             liveRoundPrice={liveRoundPrice}
-                            userBets={connected ? userBets : []} // Only show user bets if connected
+                            userBets={userBets} // Only show user bets if connected
                             isLocked={isLocked}
                             timeLeft={timeLeft}
                           />

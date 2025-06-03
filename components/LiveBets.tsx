@@ -289,7 +289,7 @@ function LiveBets({ currentRound }: LiveBetsProps) {
   return (
     <>
       <style jsx>{animationStyles}</style>
-      <div className="hidden mt-[3rem] xl:flex col-span-3 flex-col gap-[63px] items-end">
+      <div className="hidden mt-[3rem] xl:flex col-span-3 flex-col gap-[43px] items-end">
         {/* Theme Toggle Button */}
         <ThemeToggle />
 
@@ -298,7 +298,7 @@ function LiveBets({ currentRound }: LiveBetsProps) {
           className={getLeaderboardButtonStyle()}
           onClick={() => (window.location.href = "/leaderboard")}
         >
-          <div className="flex  items-center gap-2">
+          <div className="flex py-1 items-center gap-2">
             <SVG iconName="medal" width={20} height={20} />
             Leaderboard
           </div>
