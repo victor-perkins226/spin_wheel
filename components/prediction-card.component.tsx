@@ -90,7 +90,7 @@
   !isNaN(parseFloat(inputValue)) && // parses to a number
   parseFloat(inputValue) > 0 &&     // strictly positive
   parseFloat(inputValue) <= maxAmount; // does not exceed their balance
-  const buyDisabled = isSubmitting || !(amount > 0 && amount <= maxAmount);
+  const buyDisabled = isSubmitting || !(amount > 0 && amount <= maxAmount+1);
     const [scriptBetPlaced, setScriptBetPlaced] = useState(false);
 
     const { theme } = useTheme();
@@ -349,7 +349,9 @@
     const handleCustomAmount = (percentage: number) => {
       const calculatedAmount = maxAmount * percentage;
       const clampedAmount = Math.max(0.01, Math.min(calculatedAmount, maxAmount));
-      setAmount(Math.round(clampedAmount * 100) / 100);
+      const rounded = Math.round(clampedAmount * 100) / 100;
+      setAmount(rounded);
+      setInputValue(String(rounded)); // keep the text field in sync
     };
 
     const getButtonStyle = (direction: "up" | "down") => {
