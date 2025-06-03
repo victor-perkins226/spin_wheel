@@ -86,10 +86,10 @@ export default function PredictionCard({
   const { connected, publicKey } = useWallet();
   const { connection } = useConnection();
   const isValidAmount =
-    inputValue !== "" && // not empty
-    !isNaN(parseFloat(inputValue)) && // parses to a number
-    parseFloat(inputValue) > 0 && // strictly positive
-    parseFloat(inputValue) <= maxAmount; // does not exceed their balance
+    inputValue !== "" &&
+    !isNaN(parseFloat(inputValue)) &&
+    parseFloat(inputValue) > 0 &&
+    parseFloat(inputValue) <= maxAmount;
   const buyDisabled = isSubmitting || !isValidAmount;
   const [scriptBetPlaced, setScriptBetPlaced] = useState(false);
 
@@ -182,19 +182,44 @@ export default function PredictionCard({
       socket.off("newBetPlaced", handleNewBet);
     };
   }, [connected, publicKey, roundId, socket]);
+  useEffect(() => {
+    if (!roundData) return;
 
+    const handlePrizePoolUpdate = (data: any) => {
+      if (data.roundId === roundId) {
+        // Update local prize pool state
+        setPrizePoolLocal(data.newPrizePool / LAMPORTS_PER_SOL);
+      }
+    };
+
+    socket.on("prizePoolUpdate", handlePrizePoolUpdate);
+
+    return () => {
+      socket.off("prizePoolUpdate", handlePrizePoolUpdate);
+    };
+  }, [roundId, socket, roundData]);
   const userBetStatus =
     userBets?.find((bet) => bet.roundId === roundId) || null;
   const hasUserBet = userBetStatus !== null || justBet || scriptBetPlaced;
   const getPriceMovement = () => {
     if (!roundData) return { difference: 0, direction: "up" as "up" | "down" };
-    const currentPrice =
-      variant === "expired" && roundData.closePrice > 0
-        ? roundData.closePrice
-        : liveRoundPrice || roundData.lockPrice;
-    const lockPrice = roundData.lockPrice;
+
+    // Use the appropriate price based on round state
+    let currentPrice: number;
+
+    if (variant === "expired" || variant === "locked") {
+      // For ended rounds, use the close price if available
+      currentPrice =
+        roundData.closePrice > 0 ? roundData.closePrice : roundData.lockPrice;
+    } else {
+      // For live/active rounds, use live price
+      currentPrice = liveRoundPrice || roundData.lockPrice;
+    }
+
+    const lockPrice = lockedPriceLocal || roundData.lockPrice;
     const difference = Math.abs(currentPrice - lockPrice);
     const direction = currentPrice >= lockPrice ? "up" : "down";
+
     return { difference, direction };
   };
 
@@ -344,11 +369,22 @@ export default function PredictionCard({
 
         if (betStatus === true) {
           setJustBet(true);
+          // Force immediate UI update
+          setIsFlipped(false);
+          setMode("");
+
+          // Trigger parent component refresh
+          if (typeof window !== "undefined") {
+            // Emit custom event to trigger parent refresh
+            window.dispatchEvent(
+              new CustomEvent("betPlaced", {
+                detail: { roundId, direction: mode, amount },
+              })
+            );
+          }
         }
       } finally {
         setIsSubmitting(false);
-        setIsFlipped(false);
-        setMode("");
         setAmount(0.1);
         setInputValue("0.10");
       }
@@ -691,7 +727,11 @@ export default function PredictionCard({
               : ""
           }
           ${variant === "live" ? "gradient-border glass rounded-[22px] " : ""}
-          ${variant === "next" ? "bg-blue-50   rounded-[20px] glass border border-blue-300" : ""}
+          ${
+            variant === "next"
+              ? "bg-blue-50   rounded-[20px] glass border border-blue-300"
+              : ""
+          }
         `}
     >
       <div className=" bg-[#2a2a4c]  rounded-[20px] min-w-[240px] sm:min-w-[273px] w-full p-4">
@@ -875,7 +915,7 @@ export default function PredictionCard({
               const clampedValue = Math.max(0.01, Math.min(value, maxAmount));
               const rounded = Math.round(clampedValue * 100) / 100;
               setAmount(clampedValue);
-              setInputValue(String(clampedValue))
+              setInputValue(String(clampedValue));
             }}
             className="w-full h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer my-5 accent-gray-500 custom-slider"
           />

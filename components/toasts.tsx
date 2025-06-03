@@ -278,6 +278,43 @@ export function BetFailedToast({
   );
 }
 
+export function TransactionFailedToast({
+  theme,
+}: {
+  theme: string | undefined;
+}) {
+  return (
+    <div
+      className={`
+        glass text-left animate-toast-bounce rounded-2xl
+        shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
+        flex flex-col items-start p-4 mt-8
+        ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
+      `}
+      style={{
+        animation: "fadeInDown 200ms ease-out forwards",
+      }}
+    >
+      {/* <div className="w-full animate-pulse h-[280px] relative mb-4">
+        <Image
+          src={BetFailed}
+          alt="Bet Failed"
+          fill
+          className="object-contain rounded-xl"
+        />
+      </div> */}
+
+      <h3 className="font-bold text-sm text-center animate-toast-pulse mb">
+       Transaction Cancelled
+      </h3>
+{/* 
+      <p className="text-xs">
+        You were unable to place the bet, please try again later
+      </p> */}
+    </div>
+  );
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // 7) AlreadyPlacedBetToast
 ////////////////////////////////////////////////////////////////////////////////

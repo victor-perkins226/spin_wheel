@@ -27,6 +27,8 @@ import { useSolPredictor } from "@/hooks/useBuyClaim";
 // import { BetsHistory } from "./BetsHistory";
 // import LineChart from "./LineChart";
 import { useLivePrice } from "@/lib/price-utils";
+
+import io from "socket.io-client";
 import { useProgram } from "@/hooks/useProgram";
 import toast from "react-hot-toast";
 import { useTheme } from "next-themes";
@@ -42,6 +44,7 @@ import {
   ConnectWalletBetToast,
   NoClaimableBetsToast,
 } from "./toasts";
+import { API_URL } from "@/lib/config";
 const BetsHistory = React.lazy(() => import("./BetsHistory"));
 
 const LineChart = React.lazy(() => import("./LineChart"));
@@ -186,22 +189,18 @@ export default function PredictionCards() {
     try {
       const ok = await handlePlaceBet(roundId, direction === "up", amount);
       if (ok) {
-        toast.custom(
-          (t) => (
-            <>
-              <BetSuccessToastMini theme={theme} />
-            </>
-          ),
-          { position: "top-right" }
-        );
+    
         const lamports = await connectionRef.current!.getBalance(publicKey);
         setUserBalance(lamports / LAMPORTS_PER_SOL);
-        await fetchUserBets();
-      await fetchMoreRounds();
-      } else {
-        toast.custom((t) => <BetFailedToast theme={theme} />, {
-          position: "top-right",
-        });
+        await Promise.all([
+          fetchUserBets(),
+          fetchMoreRounds()
+        ]);
+        
+        // Force a re-render of the cards
+        setSwiperReady(false);
+        setTimeout(() => setSwiperReady(true), 100);
+      
       }
       return ok;
     } catch (error) {
@@ -209,7 +208,55 @@ export default function PredictionCards() {
       // toast.error("Failed to place bet");
     }
   };
-
+  useEffect(() => {
+    const socket = io(API_URL, {
+      transports: ["websocket"],
+      reconnection: true,
+    });
+  
+    const handleRoundUpdate = (data: any) => {
+      console.log("Round update received:", data);
+      
+      // Refresh round data when round state changes
+      if (data.type === 'roundEnded' || data.type === 'roundStarted') {
+        fetchMoreRounds();
+        fetchUserBets();
+      }
+    };
+  
+    const handleBetPlaced = (data: any) => {
+      console.log("New bet placed:", data);
+      
+      // Refresh rounds to update prize pools
+      fetchMoreRounds();
+    };
+  
+    socket.on('roundUpdate', handleRoundUpdate);
+    socket.on('newBetPlaced', handleBetPlaced);
+  
+    return () => {
+      socket.off('roundUpdate', handleRoundUpdate);
+      socket.off('newBetPlaced', handleBetPlaced);
+      socket.disconnect();
+    };
+  }, [fetchMoreRounds, fetchUserBets]);
+  useEffect(() => {
+    const handleBetPlaced = (event: CustomEvent) => {
+      console.log("Bet placed event received:", event.detail);
+      
+      // Refresh data after bet placement
+      setTimeout(() => {
+        fetchUserBets();
+        fetchMoreRounds();
+      }, 1000); // Small delay to ensure backend is updated
+    };
+  
+    window.addEventListener('betPlaced', handleBetPlaced as EventListener);
+    
+    return () => {
+      window.removeEventListener('betPlaced', handleBetPlaced as EventListener);
+    };
+  }, [fetchUserBets, fetchMoreRounds]);
   function SkeletonCard() {
     return (
       <div className="card_container glass rounded-[20px] p-[15px] sm:p-[25px] w-full animate-pulse">
@@ -350,9 +397,10 @@ export default function PredictionCards() {
     }
   
     setIsClaiming(true);
+    const claimedAmount = claimableRewards;
     try {
       // Store the amount before claiming for the toast
-      const claimedAmount = claimableRewards;
+     
       
       // Collect instructions for all claimable bets
       const instructions = await Promise.all(

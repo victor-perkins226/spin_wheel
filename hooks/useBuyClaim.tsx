@@ -10,6 +10,8 @@ import { UserBet, ClaimableBet, UserBetAccount } from "@/types/round";
 import Success from "@/public/assets/success-bet.png";
 import toast from "react-hot-toast";
 import { PROGRAM_ID } from "@/lib/config";
+import { BetFailedToast, BetSuccessToast, TransactionFailedToast } from "@/components/toasts";
+import { useTheme } from "next-themes";
 
 // Define the return type for the hook
 interface SolPredictorHook {
@@ -29,6 +31,7 @@ export const useSolPredictor = (): SolPredictorHook => {
     const [userBets, setUserBets] = useState<UserBet[]>([]);
     const [isPlacingBet, setIsPlacingBet] = useState(false);
     const pendingTransactionRef = useRef<string | null>(null);
+    const { theme } = useTheme();
 
     const [configPda] = PublicKey.findProgramAddressSync([Buffer.from("config")], programId);
     const getRoundPda = (roundNumber: number) =>
@@ -335,92 +338,41 @@ export const useSolPredictor = (): SolPredictorHook => {
                     })
                     .signers([])
                     .rpc();
-
+                
+                    toast.custom((t) => <BetSuccessToast theme={theme} />, {
+                        position: "top-right",
+                      });
                 await fetchUserBets();
                 return true;
                 
             } catch (rpcError: any) {
-                console.error("RPC Error details:", rpcError);
+                              console.error("RPC Error details:", rpcError);
                 
-                // Handle ProgramError specifically
-                if (rpcError instanceof ProgramError) {
-                    const errorCode = rpcError.code;
-                    console.log("Program error code:", errorCode);
-                    
-                    switch (errorCode) {
-                        case 6012:
-                            // toast("Contract is paused.");
-                            break;
-                        case 6013:
-                            // toast("Bet amount must be at least 0.001 SOL.");
-                            break;
-                        case 6014:
-                            // toast("You have already bet in this round.");
-                            break;
-                        case 6022:
-                            // toast("Round is locked for betting.");
-                            break;
-                        case 6001:
-                            // toast("Round is not active.");
-                            break;
-                        case 6007:
-                            // toast("Invalid round number.");
-                            break;
-                        case 6010:
-                            // toast("Insufficient funds in escrow.");
-                            break;
-                        default:
-                            // toast(`Program error: ${rpcError.msg || `Code ${errorCode}`}`);
-                            break;
-                    }
-                    return false;
-                }
-
-                // Handle other RPC errors
-                if (rpcError.message?.includes("This transaction has already been processed")) {
-                    // toast("Transaction already processed. Please check your bets.");
-                    await fetchUserBets();
-                    return false;
-                }
-
-                if (rpcError.message?.includes("Transaction was not confirmed")) {
-                    // toast("Transaction failed to confirm. Please try again with a new transaction.");
-                    return false;
-                }
-
-                if (rpcError.message?.includes("Blockhash not found")) {
-                    // toast("Transaction expired. Please try again.");
-                    return false;
-                }
-
-                if (rpcError.message?.includes("User rejected") || rpcError.message?.includes("User denied")) {
-                    // toast("Transaction was cancelled.");
-                    return false;
-                }
-
-                if (rpcError.message?.includes("insufficient funds")) {
-                    // toast("Insufficient SOL balance to place bet.");
-                    return false;
-                }
-
-                if (rpcError.message?.includes("Account does not exist")) {
-                    // toast("Round not yet initialized. Please try again in a moment.");
-                    return false;
-                }
-
-                // Log detailed error for debugging
-                console.error("Detailed RPC error:", rpcError);
-                if (rpcError.logs) {
-                    console.error("Error logs:", rpcError.logs);
-                }
-
-                // toast(`Failed to place bet: ${rpcError.message || "Unknown error"}`);
-                return false;
-            }
-            
-        } catch (error: any) {
-            console.error("Place bet failed", error);
-            return false;
+                              // When the user cancels the wallet signature dialog:
+                              if (rpcError.name === "WalletSignTransactionError" ||
+                                  rpcError.message?.includes("User rejected") ||
+                                  rpcError.message?.includes("User denied")) {
+                                toast.custom((t) => <TransactionFailedToast theme={theme} />, {
+                                  position: "top-right",
+                                });
+                                return false;
+                              }
+                
+                              if (rpcError instanceof ProgramError) {
+                                toast.custom((t) => <BetFailedToast theme={theme} />, {
+                                  position: "top-right",
+                                });
+                                return false;
+                              }
+                
+                              toast.custom((t) => <BetFailedToast theme={theme} />, {
+                                position: "top-right",
+                              });
+                              return false;
+                          }
+          
+      } catch (rpcError: any) {
+          return false;
             
             // Final fallback error handling
             // toast(`An unexpected error occurred: ${error.message || "Unknown error"}`);
