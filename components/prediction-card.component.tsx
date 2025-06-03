@@ -90,7 +90,7 @@ export default function PredictionCard({
     !isNaN(parseFloat(inputValue)) && // parses to a number
     parseFloat(inputValue) > 0 && // strictly positive
     parseFloat(inputValue) <= maxAmount; // does not exceed their balance
-  const buyDisabled = isSubmitting || !(amount > 0 && amount <= maxAmount + 1);
+  const buyDisabled = isSubmitting || !isValidAmount;
   const [scriptBetPlaced, setScriptBetPlaced] = useState(false);
 
   const [lockedPriceLocal, setLockedPriceLocal] = useState<number>(
@@ -682,15 +682,15 @@ export default function PredictionCard({
   return (
     <div
       className={`
-           p-[2px]
-          card_container rounded-[20px]
-    
+  
+          card_container rounded-[18px]
+          mt-4
           ${
             variant === "expired"
               ? "opacity-50 glass cursor-not-allowed hover:opacity-80 "
               : ""
           }
-          ${variant === "live" ? "gradient-border glass rounded-[20px] " : ""}
+          ${variant === "live" ? "gradient-border glass rounded-[22px] " : ""}
           ${variant === "next" ? "bg-blue-50   rounded-[20px] glass border border-blue-300" : ""}
         `}
     >

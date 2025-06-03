@@ -268,10 +268,7 @@ input[type="number"] {
 /* 1. The “card” itself only needs a solid fill (or transparent),
       and a fixed border‐radius. */
       .gradient-border {
-        position: relative;
-        background: #1d1f20;        /* or whatever solid color you want inside */
-        border-radius: 20px;         /* matches the border thickness below */
-        z-index: 0;                 /* put this above the ::before layer */
+                     /* put this above the ::before layer */
       }
       
       /* 2. Use a ::before that is slightly larger (by 3px on each side)
@@ -279,10 +276,6 @@ input[type="number"] {
       .gradient-border::before {
         content: "";
         position: absolute;
-        top: -3px;
-        left: -3px;
-        width: calc(100% + 6px);    /* 100% + 2×borderWidth */
-        height: calc(100% + 6px);   /* 100% + 2×borderWidth */
         background: linear-gradient(
           60deg,
           #f79533,
@@ -294,7 +287,6 @@ input[type="number"] {
           #07b39b,
           #6fba82
         );
-        border-radius: 20px;          /* double the inner radius (3px) */
         z-index: -1;                /* sit the gradient “behind” the card */
         animation: animatedgradient 3s ease infinite alternate;
         background-size: 300% 300%;
@@ -313,16 +305,21 @@ input[type="number"] {
       }
       
       .gradient-border {
-        border-radius: 20px;
+        position: relative;
+        background: #1d1f20;        /* or whatever solid color you want inside */
+        border-radius: 22px;         /* matches the border thickness below */
+        z-index: 0;  
+        border: var(--borderWidth) solid transparent; /* this is the border thickness */
+
       }
       
       .gradient-border::before {
-        top: calc(-1 * var(--borderWidth));
-        left: calc(-1 * var(--borderWidth));
-        width: calc(100% + var(--borderWidth) * 2);
+        top: -3px;
+        left: -3px;
+        width: calc(100% + 6.5px);
         height: calc(100% + var(--borderWidth) * 2);
-        border-radius: 20px;
+        border-radius: 22px;
+        padding-top:0.25rem ;
       }
       
-      /* Everything else stays the same. */
       
