@@ -1,12 +1,20 @@
 "use client"
 
-import React, { Children, FC, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   ConnectionProvider,
   WalletProvider,
 } from "@solana/wallet-adapter-react";
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
-import { PhantomWalletAdapter } from "@solana/wallet-adapter-wallets";
+import {
+  PhantomWalletAdapter,
+  SolflareWalletAdapter,
+  CloverWalletAdapter,
+  LedgerWalletAdapter,
+  TorusWalletAdapter,
+  TrezorWalletAdapter,
+  BitgetWalletAdapter
+} from "@solana/wallet-adapter-wallets";
 import {
   WalletModalProvider,
   WalletDisconnectButton,
@@ -22,18 +30,44 @@ export const WalletContextProvider = ({ children }) => {
   const network = WalletAdapterNetwork.Devnet;
 
   // You can also provide a custom RPC endpoint.
-  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+  const endpoint = useMemo(
+    () => "https://lb.drpc.org/ogrpc?network=solana-devnet&dkey=AqnRwY5nD0C_uEv_hPfBwlLj0fFzMcQR8JKdzoXPVSjK",
+    []
+  );
 
+  // Client-side only code
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Instantiate adapters inside useMemo to avoid re-creation on every render
   const wallets = useMemo(
-    () => [ new PhantomWalletAdapter()],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    () => [
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter({ network }),
+      new LedgerWalletAdapter(),
+      new CloverWalletAdapter(),
+      new TorusWalletAdapter(),
+      new TrezorWalletAdapter(),
+      new BitgetWalletAdapter(),
+    ],
     [network]
   );
 
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
-        <WalletModalProvider> {children}</WalletModalProvider>
+        <WalletModalProvider>
+          {/* If not mounted (server-side), render children without wallet UI */}
+          {mounted ? (
+            <>
+              {children}
+            </>
+          ) : (
+            <div style={{ visibility: "hidden" }}>{children}</div>
+          )}
+        </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
   );

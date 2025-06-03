@@ -1,103 +1,183 @@
 @import "tailwindcss";
 
-:root {
-  --background: #1f1f43;
-  --foreground: #ededed;
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 142.1 76.2% 36.3%;
+    --primary-foreground: 355.7 100% 97.3%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 142.1 76.2% 36.3%;
+    --radius: 0.5rem;
+
+    /* Sidebar specific variables */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 142.1 76.2% 36.3%;
+
+    /* Glass effect for light theme */
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+  }
+
+  .dark {
+    --background: #1f1f43;
+    --foreground: #E8E8E8;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 142.1 70.6% 45.3%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 142.4 71.8% 29.2%;
+
+    /* Sidebar specific variables */
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 0 0% 98%;
+    --sidebar-primary-foreground: 240 5.9% 10%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 142.1 76.2% 36.3%;
+
+    /* Glass effect for dark theme */
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.2);
+  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-}
-
-/* Add this to your globals.css file */
-@keyframes priceUpdate {
-  0% {
-    transform: scale(1);
-    opacity: 0.8;
-  }
-  50% {
-    transform: scale(1.15);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-.price-update-animation {
-  animation: priceUpdate 0.5s ease-out;
-}
-
-.price-up {
-  color: #06C729; /* Green for price increase */
-}
-
-.price-down {
-  color: #FD6152; /* Red for price decrease */
-}
-
-.price-neutral {
-  color: #FEFEFE; /* White when unchanged */
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .container {
-  /* max-width: 1355px; */
   @apply mx-auto max-w-[1355px] px-4;
 }
 
-.apexcharts-tooltip.apexcharts-theme-light, .apexcharts-tooltip-title {
-  background: #1f1f43 !important;
-  color: #ffffff !important;
+/* Updated glass effect that responds to theme */
+.glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(40px);
+  backdrop-filter: blur(40px);
+  border: 1px solid var(--glass-border);
+  transition: all 0.3s ease;
 }
 
-.apexcharts-tooltip {
-  color: #000 !important;
-  background: #1f1f43 !important;
-    opacity: 1 !important;           /* prevent fade-out */ 
-    transition: none !important;     /* disable hide animation */
-    pointer-events: auto !important; /* allow hovering over the tooltip */
-  
+/* Light theme specific glass effect */
+.glass:not(.dark .glass) {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
-
-.apexcharts-tooltip * {
-  pointer-events: auto !important;
+/* Dark theme glass effect (original) */
+.dark .glass {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
- .apexcharts-tooltip .apexcharts-tooltip-series-group.active {
-  background: #1f1f43 !important;
-}
-
+/* Wallet adapter dropdown positioning */
 .wallet-adapter-dropdown-list {
   top: -50% !important;
   right: 110% !important;
 }
 
+/* Wallet button styling for both themes */
+.wallet-adapter-button {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(40px) !important;
+  border: 1px solid var(--glass-border) !important;
+  color: var(--foreground) !important;
+  transition: all 0.3s ease !important;
+}
+
+.wallet-adapter-button:hover {
+  opacity: 0.8 !important;
+}
+
+@keyframes fadeOut {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.animate-fadeOut {
+  animation: fadeOut 0.6s ease-in-out;
+}
+/* Swiper pagination */
 .swiper-pagination-centered {
   left: 50% !important;
   transform: translateX(-50%) !important;
 }
 
-/* Customize range thumb */
+/* Custom range slider */
 input[type="range"].custom-slider::-webkit-slider-thumb {
   appearance: none;
   height: 35px;
   width: 35px;
   border-radius: 9999px;
-  background-color: #61616d; /* gray-400 */
+  background-color: hsl(var(--primary));
   cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
 input[type="range"].custom-slider::-moz-range-thumb {
   height: 35px;
   width: 35px;
   border-radius: 9999px;
-  background-color: #a1a1aa;
+  background-color: hsl(var(--primary));
   cursor: pointer;
+  border: none;
+  transition: background-color 0.3s ease;
 }
 
-/* If not using Tailwind's animate-spin */
+/* Range track styling */
+input[type="range"].custom-slider::-webkit-slider-track {
+  background: hsl(var(--muted));
+  height: 8px;
+  border-radius: 9999px;
+}
+
+input[type="range"].custom-slider::-moz-range-track {
+  background: hsl(var(--muted));
+  height: 8px;
+  border-radius: 9999px;
+  border: none;
+}
+
+/* Spinner animation */
 @keyframes spin {
   0% {
     transform: rotate(0deg);
@@ -108,29 +188,138 @@ input[type="range"].custom-slider::-moz-range-thumb {
 }
 
 .loader {
-  border-top-color: #6366f1; /* indigo-500 */
+  border-top-color: hsl(var(--primary));
   animation: spin 1s linear infinite;
 }
 
-.glass {
-  background: rgba(255, 255, 255, 0.05);
-  -webkit-backdrop-filter: blur(40px);
-  backdrop-filter: blur(40px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
+/* Utility classes */
 .flipped {
-  transform: "rotateY(180deg)";
+  transform: rotateY(180deg);
 }
 
+/* Remove number input arrows */
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-/* Firefox */
 input[type="number"] {
   -moz-appearance: textfield;
-  appearance: textfield;
 }
+
+/* Theme transition for all elements */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeOutUp {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-10px); }
+}
+
+@keyframes vibrate {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  20%  { transform: translate(-2px, 2px) rotate(-1deg); }
+  40%  { transform: translate(-2px, -2px) rotate(1deg); }
+  60%  { transform: translate(2px, 2px) rotate(-1deg); }
+  80%  { transform: translate(2px, -2px) rotate(1deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+.animate-vibrate {
+  animation: vibrate 0.4s linear infinite;
+}
+
+@keyframes toast-bounce-in {
+  0%   { transform: scale(0.8); opacity: 0; }
+  60%  { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+.animate-toast-bounce-in {
+  animation: toast-bounce-in 300ms ease-out forwards;
+}
+
+@keyframes toast-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.8; transform: scale(1.05); }
+}
+
+.animate-toast-pulse {
+  animation: toast-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes toast-spin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-toast-spin {
+  animation: toast-spin 2s linear infinite;
+}
+
+/* 1. The “card” itself only needs a solid fill (or transparent),
+      and a fixed border‐radius. */
+      .gradient-border {
+                     /* put this above the ::before layer */
+      }
+      
+      /* 2. Use a ::before that is slightly larger (by 3px on each side)
+            to draw the animated gradient around all four edges. */
+      .gradient-border::before {
+        content: "";
+        position: absolute;
+        background: linear-gradient(
+          60deg,
+          #f79533,
+          #f37055,
+          #ef4e7b,
+          #a166ab,
+          #5073b8,
+          #1098ad,
+          #07b39b,
+          #6fba82
+        );
+        z-index: -1;                /* sit the gradient “behind” the card */
+        animation: animatedgradient 3s ease infinite alternate;
+        background-size: 300% 300%;
+      }
+      
+      /* 3. The same keyframes you already had: */
+      @keyframes animatedgradient {
+        0%   { background-position: 0% 50%; }
+        50%  { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+      
+      /* 4. Finally, if you want to parameterize the 3px value instead of hard-coding, */
+      :root {
+        --borderWidth: 3px;
+      }
+      
+      .gradient-border {
+        position: relative;
+        background: #1d1f20;        /* or whatever solid color you want inside */
+        border-radius: 22px;         /* matches the border thickness below */
+        z-index: 0;  
+        border: var(--borderWidth) solid transparent; /* this is the border thickness */
+
+      }
+      
+      .gradient-border::before {
+        top: -3px;
+        left: -3px;
+        width: calc(100% + 6.5px);
+        height: calc(100% + var(--borderWidth) * 2);
+        border-radius: 22px;
+        padding-top:0.25rem ;
+      }
+      
+      

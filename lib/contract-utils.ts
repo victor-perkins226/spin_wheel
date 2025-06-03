@@ -1,25 +1,26 @@
 import {
   Connection,
   PublicKey,
-  SystemProgram,
   LAMPORTS_PER_SOL,
+  Transaction,
+  TransactionSignature,
 } from "@solana/web3.js";
 import * as anchor from "@project-serum/anchor";
-import idl from "../lib/idl.json"; // Adjust the path accordingly
+import idl from "../lib/idl.json";
 import toast from "react-hot-toast";
 
 // place bet
 export async function placeBet(
-  connection,
-  programId,
-  contractAddress,
-  userPubkey,
-  signTransaction,
-  sendTransaction,
-  roundId,
-  direction,
-  amount
-) {
+  connection: Connection,
+  programId: PublicKey,
+  contractAddress: PublicKey,
+  userPubkey: PublicKey,
+  signTransaction: (transaction: Transaction) => Promise<Transaction>,
+  sendTransaction: any, // Not used but kept for compatibility
+  roundId: number,
+  direction: string,
+  amount: number
+): Promise<string | null> {
   try {
     console.log("🔁 placeBet called with:", {
       programId: programId.toBase58(),
@@ -65,7 +66,7 @@ export async function placeBet(
 
     const provider = new anchor.AnchorProvider(
       connection,
-      { userPubkey, signTransaction } as any,
+      { publicKey: userPubkey, signTransaction } as any,
       { commitment: "confirmed" }
     );
 
@@ -78,11 +79,8 @@ export async function placeBet(
     const escrowPda = getEscrowPda(roundId);
     const userBetPda = getUserBetPda(userPubkey, roundId);
 
-
-    console.log(configPda,"config pda");
-    
-    console.log(roundPda,"roundPda");
-    
+    console.log(configPda, "config pda");
+    console.log(roundPda, "roundPda");
 
     let isBull = false;
 
@@ -102,33 +100,54 @@ export async function placeBet(
       })
       .transaction();
 
-     
-
     console.log("====================================");
     console.log(tx, "tx");
     console.log("====================================");
 
-    const { blockhash } = await connection.getLatestBlockhash();
+    // Get fresh blockhash with lastValidBlockHeight for better confirmation
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized');
     tx.recentBlockhash = blockhash;
     tx.feePayer = userPubkey;
 
     const signedTx = await signTransaction(tx);
-    const signature = await connection.sendRawTransaction(
-      signedTx.serialize(),
-      {
-        preflightCommitment: "processed",
+    
+    try {
+      const signature = await connection.sendRawTransaction(
+        signedTx.serialize(),
+        {
+          skipPreflight: false,
+          preflightCommitment: "processed",
+        }
+      );
+
+      // Use the new confirmation method with block height
+      await connection.confirmTransaction({
+        signature,
+        blockhash,
+        lastValidBlockHeight
+      }, "confirmed");
+
+      console.log("✅ Bet placed successfully. Tx Signature:", signature);
+      return signature;
+    } catch (sendError: any) {
+      // Handle specific duplicate transaction error
+      if (sendError.message?.includes("This transaction has already been processed")) {
+        console.log("Transaction already processed, checking if it was successful");
+        // toast("Transaction already processed. Please check your bets.");
+        return null;
       }
-    );
+      throw sendError;
+    }
 
-   
-
-    await connection.confirmTransaction(signature, "confirmed");
-
-    console.log("✅ Bet placed successfully. Tx Signature:", signature);
-
-    return signature;
-  } catch (error) {
+  } catch (error: any) {
     console.error("❌ Error in placeBet:", error);
+    
+    // Handle duplicate transaction specifically
+    if (error.message?.includes("This transaction has already been processed")) {
+      console.log("Transaction already processed, treating as potential success");
+      return null;
+    }
+    
     if (error.logs) console.error("🔍 Anchor logs:\n", error.logs.join("\n"));
     throw error;
   }
@@ -136,14 +155,14 @@ export async function placeBet(
 
 // claim payout
 export async function claimPayout(
-  connection,
-  programId,
-  contractAddress,
-  userPubkey,
-  signTransaction,
-  sendTransaction,
-  roundId
-) {
+  connection: Connection,
+  programId: PublicKey,
+  contractAddress: PublicKey,
+  userPubkey: PublicKey,
+  signTransaction: (transaction: Transaction) => Promise<Transaction>,
+  sendTransaction: any, // Not used but kept for compatibility
+  roundId: number
+): Promise<void> {
   try {
     console.log("🔁 claimRewards called with:", {
       programId: programId.toBase58(),
@@ -151,14 +170,14 @@ export async function claimPayout(
       userPubkey: userPubkey.toBase58(),
       roundId: roundId,
     });
+
     // Derive PDAs
     const [configPda] = PublicKey.findProgramAddressSync(
       [Buffer.from("config")],
       programId
     );
 
-    console.log(configPda,"config pda");
-    
+    console.log(configPda, "config pda");
 
     const getRoundPda = (roundNumber: number) =>
       PublicKey.findProgramAddressSync(
@@ -189,7 +208,7 @@ export async function claimPayout(
 
     const provider = new anchor.AnchorProvider(
       connection,
-      { userPubkey, signTransaction } as any,
+      { publicKey: userPubkey, signTransaction } as any,
       { commitment: "confirmed" }
     );
 
@@ -229,8 +248,8 @@ export async function claimPayout(
 
     await connection.confirmTransaction(signature, "confirmed");
 
-    console.log("✅ Bet placed successfully. Tx Signature:", signature);
-  } catch (error) {
+    console.log("✅ Claim payout successful. Tx Signature:", signature);
+  } catch (error: any) {
     console.error("❌ Error in claimRewards:", error);
     if (error.logs) console.error("🔍 Anchor logs:\n", error.logs.join("\n"));
     throw error;

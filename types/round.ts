@@ -2,33 +2,38 @@ import { BN } from "@project-serum/anchor";
 
 // types/round.ts
 export interface Round {
-    id?: number;
-    number: number | string; // Handle string from API (e.g., "862")
-    startTime: Date | number | null;
+    number: number;
+    startTime: string; // ISO string for Date
     status: "started" | "locked" | "ended";
-    lockTime: Date | number | undefined;
-    closeTime: Date | number | undefined;
-    lockPrice?: number;
-    endPrice?: number;
-    isActive?: boolean;
-    totalBullAmount?: number;
-    totalBearAmount?: number;
-    totalAmount?: number;
-    rewardBaseCalAmount?: number;
-    rewardAmount?: number;
-}
+    lockTime: number; // Unix timestamp (seconds)
+    closeTime: number; // Unix timestamp (seconds)
+    lockPrice:  number; // String to handle large u64 numbers
+    endPrice: number; // String to handle large u64 numbers
+    isActive: boolean;
+    totalBullAmount: number; // String for u64
+    totalBearAmount:  number; // String for u64
+    totalAmount:  number; // String for u64
+    rewardBaseCalAmount: number; // String for u64
+    rewardAmount: number; // String for u64
+  }
 
-export interface Config {
-    roundDuration: number;
-    currentRound: number;
+  export interface Config {
+    operatorMultisig: string; // PublicKey as string
+    adminMultisig: string; // PublicKey as string
+    admin: string; // PublicKey as string
+    executor: string; // PublicKey as string
+    roundDuration: number; // u64 as number (assuming it fits in JS number)
+    minBetAmount: string; // u64 as string for large numbers
+    treasuryFee: number; // u64 as number (assuming it fits)
+    lockDuration: number; // u64 as number
+    treasuryAmount: string; // u64 as string
+    currentRound: number; // u64 as number
     isPaused: boolean;
-    minBetAmount: number;
-    treasuryFee: number;
-    lockDuration: number;
-    bufferSeconds: number;
+    bufferSeconds: number; // u64 as number
     genesisStarted: boolean;
     genesisLocked: boolean;
-}
+    bump: number; // u8 as number
+  }
 
 export interface UserBet {
     id: string; // Added for BetsHistory

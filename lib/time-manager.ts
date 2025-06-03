@@ -1,3 +1,5 @@
+import { API_URL } from "./config";
+
 const ROUND_START_KEY = "roundStartTime";
 const ROUND_DURATION_KEY = "roundDuration";
 const LOCK_DURATION_KEY = "lockDuration";
@@ -21,7 +23,7 @@ export const syncWithServerTime = async (): Promise<void> => {
     // Get server time from the API
     const startTime = Date.now();
     const response = await fetch(
-      "https://sol-prediction-backend.onrender.com/round/config"
+      `${API_URL}/round/config`
     );
     const endTime = Date.now();
     const roundTripTime = endTime - startTime;
@@ -188,7 +190,7 @@ export const fetchRoundDetails = async (roundId: number): Promise<any> => {
   // Otherwise fetch from API
   try {
     const response = await fetch(
-      `https://sol-prediction-backend.onrender.com/round/${roundId}`
+      `${API_URL}/round/${roundId}`
     );
     if (!response.ok) {
       throw new Error(`Failed to fetch round ${roundId}`);
@@ -231,7 +233,7 @@ export const fetchConfig = async (): Promise<any> => {
   // Otherwise fetch from API
   try {
     const response = await fetch(
-      "https://sol-prediction-backend.onrender.com/round/config"
+      `${API_URL}/round/config`
     );
     if (!response.ok) {
       throw new Error("Failed to fetch configuration");

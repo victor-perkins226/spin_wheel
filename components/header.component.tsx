@@ -1,28 +1,35 @@
 import Image from "next/image";
-import React, { useState, useEffect } from "react";
-import Logo from "@/public/assets/logo.svg";
+import React, { useEffect, useState } from "react";
+import darkLogo from "@/public/assets/logo.svg";
+import lightLogo from "@/public/assets/lightLogo.png";
 import Link from "next/link";
-import Button from "./button.component";
 import routes from "@/helpers/routes";
 import SVG from "./svg.component";
-import { WalletDisconnectButton, WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { useWallet } from "@solana/wallet-adapter-react";
-
-const NAVLINKS = [
-  { link: routes.home(), label: "Home" },
-  { link: routes.leaderboard(), label: "Leaderboard" },
-  { link: "", label: "Trade" },
-  { link: "", label: "Whitepaper" },
-];
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { useTheme } from "next-themes";
 
 export default function Header() {
-  const { publicKey, connected, disconnect } = useWallet();
+  const { theme } = useTheme();
+
+
+  const [mounted, setMounted] = useState(false);
+
+  // Prevent hydration mismatch by checking if component has mounted
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <div className="container">
       <header className="hidden glass mt-[58px] rounded-[20px] md:flex justify-between items-center p-[20px] max-w-[1290] mx-auto">
         <Link href={routes.home()}>
-          <Image className="w-[140px]" src={Logo} alt="fortuva logo" />
+          {mounted && (
+            <Image
+              className="w-[140px]"
+              src={theme === "dark" ? darkLogo : lightLogo}
+              alt="fortuva logo"
+            />
+          )}
         </Link>
 
         {/* <nav className="flex gap-[16px] xl:gap-[70px]">
@@ -38,11 +45,8 @@ export default function Header() {
         </nav> */}
 
         {/* {renderWalletButton()} */}
-        <div>
-          <WalletMultiButton />
-        </div>
 
-
+        <WalletMultiButton />
         {/* <WalletDisconnectButton/> */}
       </header>
 
