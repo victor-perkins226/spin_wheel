@@ -201,6 +201,7 @@ export default function PredictionCard({
   const userBetStatus =
     userBets?.find((bet) => bet.roundId === roundId) || null;
   const hasUserBet = userBetStatus !== null || justBet || scriptBetPlaced;
+  
   const getPriceMovement = () => {
     if (!roundData) return { difference: 0, direction: "up" as "up" | "down" };
 
@@ -369,10 +370,6 @@ export default function PredictionCard({
 
         if (betStatus === true) {
           setJustBet(true);
-          // Force immediate UI update
-          setIsFlipped(false);
-          setMode("");
-
           // Trigger parent component refresh
           if (typeof window !== "undefined") {
             // Emit custom event to trigger parent refresh
@@ -385,6 +382,8 @@ export default function PredictionCard({
         }
       } finally {
         setIsSubmitting(false);
+        setIsFlipped(false);
+        setMode("");
         setAmount(0.1);
         setInputValue("0.10");
       }
@@ -414,7 +413,6 @@ export default function PredictionCard({
 
   const renderNextRoundContent = () => {
     if (variant !== "next") return null;
-    // const hasUserBet = userBetStatus !== null;
 
     let buttonDisabled = isLocked || hasUserBet;
     if (!roundData) {

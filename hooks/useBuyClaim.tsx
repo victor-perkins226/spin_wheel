@@ -10,7 +10,7 @@ import { UserBet, ClaimableBet, UserBetAccount } from "@/types/round";
 import Success from "@/public/assets/success-bet.png";
 import toast from "react-hot-toast";
 import { PROGRAM_ID } from "@/lib/config";
-import { BetFailedToast, BetSuccessToast, TransactionFailedToast } from "@/components/toasts";
+import { BetFailedToast, BetSuccessToast, BetSuccessToastMini, TransactionFailedToast } from "@/components/toasts";
 import { useTheme } from "next-themes";
 
 // Define the return type for the hook
@@ -247,141 +247,273 @@ export const useSolPredictor = (): SolPredictorHook => {
         }
       }, [publicKey, connected, program]);
       
-    const handlePlaceBet = useCallback(async (roundId: number, isBull: boolean, amount: number) => {
-        if (!publicKey) {
-            // toast("Please connect your wallet.");
+    // const handlePlaceBet = useCallback(async (roundId: number, isBull: boolean, amount: number) => {
+    //     if (!publicKey) {
+    //         // toast("Please connect your wallet.");
+    //         return false;
+    //     }
+
+    //     if (!connected || !program) {
+    //         // toast("Please connect your wallet and ensure program is loaded.");
+    //         return false;
+    //     }
+
+    //     if (amount <= 0) {
+    //         // toast("Please enter a valid bet amount.");
+    //         return false;
+    //     }
+
+    //     if (amount < 0.001) {
+    //         // toast("Minimum bet amount is 0.001 SOL.");
+    //         return false;
+    //     }
+
+    //     // Prevent duplicate submissions
+    //     if (isPlacingBet) {
+    //         // toast("Transaction in progress, please wait...");
+    //         return false;
+    //     }
+
+    //     // Create unique transaction identifier
+    //     const transactionId = `${roundId}-${isBull}-${amount}-${Date.now()}`;
+    //     if (pendingTransactionRef.current === transactionId) {
+    //         // toast("Duplicate transaction detected, please wait...");
+    //         return false;
+    //     }
+
+    //     setIsPlacingBet(true);
+    //     pendingTransactionRef.current = transactionId;
+
+    //     try {
+    //         const roundPda = getRoundPda(roundId);
+    //         const escrowPda = getEscrowPda(roundId);
+    //         const userBetPda = getUserBetPda(publicKey, roundId);
+
+    //         try {
+    //             const roundAccount = await program.account.round.fetch(roundPda);
+    //             if (roundAccount) {
+    //                 const now = Date.now() / 1000;
+    //                 const lockTime = Number(roundAccount.lockTime);
+    //                 if (now >= lockTime) {
+    //                     // toast("This round is no longer accepting bets.");
+    //                     return false;
+    //                 }
+
+    //                 if (!roundAccount.isActive) {
+    //                     // toast("This round is not active.");
+    //                     return false;
+    //                 }
+    //             }
+    //         } catch (roundError: any) {
+    //             if (!roundError.message?.includes("Account does not exist")) {
+    //                 console.error("Error validating round:", roundError);
+    //                 // toast("Failed to validate round. Please try again.");
+    //                 return false;
+    //             }
+    //             console.log(`Round ${roundId} account doesn't exist yet, proceeding with bet placement`);
+    //         }
+
+    //         const lamports = Math.floor(amount * LAMPORTS_PER_SOL);;
+
+    //         console.log("Placing bet with params:", {
+    //             roundId,
+    //             isBull,
+    //             amount,
+    //             lamports,
+    //             userPubkey: publicKey.toBase58(),
+    //             transactionId
+    //         });
+
+    //         try {
+    //             // Use .rpc() method with proper error handling
+    //             const tx = await program!.methods
+    //                 .placeBet(new BN(lamports), isBull, new BN(roundId))
+    //                 .accounts({
+    //                     config: configPda,
+    //                     round: roundPda,
+    //                     userBet: userBetPda,
+    //                     user: publicKey,
+    //                     escrow: escrowPda,
+    //                     systemProgram: SystemProgram.programId,
+    //                 })
+    //                 .signers([])
+    //                 .rpc();
+                
+    //                 toast.custom((t) => <BetSuccessToast theme={theme} />, {
+    //                     position: "top-right",
+    //                   });
+                
+    //         } catch (rpcError: any) {
+    //                           console.error("RPC Error details:", rpcError);
+                
+    //                           // When the user cancels the wallet signature dialog:
+    //                           if (rpcError.name === "WalletSignTransactionError" ||
+    //                               rpcError.message?.includes("User rejected") ||
+    //                               rpcError.message?.includes("User denied")) {
+    //                             toast.custom((t) => <TransactionFailedToast theme={theme} />, {
+    //                               position: "top-right",
+    //                             });
+    //                             return false;
+    //                           }
+                
+    //                           if (rpcError instanceof ProgramError) {
+    //                             toast.custom((t) => <BetFailedToast theme={theme} />, {
+    //                               position: "top-right",
+    //                             });
+    //                             return false;
+    //                           }
+                
+    //                           toast.custom((t) => <BetFailedToast theme={theme} />, {
+    //                             position: "top-right",
+    //                           });
+    //                           return false;
+    //                       }
+          
+    //                       try {
+    //                                await fetchUserBets();
+    //                            } catch (fetchErr) {
+    //                                console.error("fetchUserBets() failed after a successful bet:", fetchErr);
+    //                                // (no toast here—your bet already succeeded)
+    //                            }
+    //                            return true;
+                
+    //   } catch (rpcError: any) {
+    //       return false;
+            
+    //         // Final fallback error handling
+    //         // toast(`An unexpected error occurred: ${error.message || "Unknown error"}`);
+    //     } finally {
+    //         setIsPlacingBet(false);
+    //         pendingTransactionRef.current = null;
+    //     }
+    // }, [publicKey, connected, getRoundPda, getEscrowPda, getUserBetPda, program, configPda, fetchUserBets]);
+    const handlePlaceBet = useCallback(
+        async (roundId: number, isBull: boolean, amount: number) => {
+          if (!publicKey) return false;
+          if (!connected || !program) return false;
+          if (amount <= 0) return false;
+          if (amount < 0.001) return false;
+          if (isPlacingBet) return false;
+      
+          // Create a unique‐enough identifier so we don’t send the same slot+amount twice
+          const transactionId = `${roundId}-${isBull}-${amount}-${Date.now()}`;
+          if (pendingTransactionRef.current === transactionId) {
             return false;
-        }
-
-        if (!connected || !program) {
-            // toast("Please connect your wallet and ensure program is loaded.");
-            return false;
-        }
-
-        if (amount <= 0) {
-            // toast("Please enter a valid bet amount.");
-            return false;
-        }
-
-        if (amount < 0.001) {
-            // toast("Minimum bet amount is 0.001 SOL.");
-            return false;
-        }
-
-        // Prevent duplicate submissions
-        if (isPlacingBet) {
-            // toast("Transaction in progress, please wait...");
-            return false;
-        }
-
-        // Create unique transaction identifier
-        const transactionId = `${roundId}-${isBull}-${amount}-${Date.now()}`;
-        if (pendingTransactionRef.current === transactionId) {
-            // toast("Duplicate transaction detected, please wait...");
-            return false;
-        }
-
-        setIsPlacingBet(true);
-        pendingTransactionRef.current = transactionId;
-
-        try {
+          }
+      
+          pendingTransactionRef.current = transactionId;
+          setIsPlacingBet(true);
+      
+          try {
+            // 1) Derive our PDAs
             const roundPda = getRoundPda(roundId);
             const escrowPda = getEscrowPda(roundId);
             const userBetPda = getUserBetPda(publicKey, roundId);
-
+      
+            // 2) (Optional) Quick on‐chain checks to see if the round is still accepting bets
             try {
-                const roundAccount = await program.account.round.fetch(roundPda);
-                if (roundAccount) {
-                    const now = Date.now() / 1000;
-                    const lockTime = Number(roundAccount.lockTime);
-                    if (now >= lockTime) {
-                        // toast("This round is no longer accepting bets.");
-                        return false;
-                    }
-
-                    if (!roundAccount.isActive) {
-                        // toast("This round is not active.");
-                        return false;
-                    }
-                }
-            } catch (roundError: any) {
-                if (!roundError.message?.includes("Account does not exist")) {
-                    console.error("Error validating round:", roundError);
-                    // toast("Failed to validate round. Please try again.");
-                    return false;
-                }
-                console.log(`Round ${roundId} account doesn't exist yet, proceeding with bet placement`);
+              const roundAccount = await program.account.round.fetch(roundPda);
+              const now = Date.now() / 1000;
+              const lockTime = Number(roundAccount.lockTime);
+      
+              if (now >= lockTime || !roundAccount.isActive) {
+                return false;
+              }
+            } catch (roundErr: any) {
+              // If the account truly doesn’t exist, it’ll throw “Account does not exist”—we let it proceed.
+              if (!roundErr.message?.includes("does not exist")) {
+                console.error("Error validating round:", roundErr);
+                return false;
+              }
             }
-
-            const lamports = Math.floor(amount * LAMPORTS_PER_SOL);;
-
-            console.log("Placing bet with params:", {
-                roundId,
-                isBull,
-                amount,
-                lamports,
-                userPubkey: publicKey.toBase58(),
-                transactionId
-            });
-
+      
+            const lamports = Math.floor(amount * LAMPORTS_PER_SOL);
+      
+            // 3) Call the on‐chain RPC. We wrap only the rpc() inside its own try/catch.
+            let txSignature: string;
             try {
-                // Use .rpc() method with proper error handling
-                const tx = await program!.methods
-                    .placeBet(new BN(lamports), isBull, new BN(roundId))
-                    .accounts({
-                        config: configPda,
-                        round: roundPda,
-                        userBet: userBetPda,
-                        user: publicKey,
-                        escrow: escrowPda,
-                        systemProgram: SystemProgram.programId,
-                    })
-                    .signers([])
-                    .rpc();
-                
-                    toast.custom((t) => <BetSuccessToast theme={theme} />, {
-                        position: "top-right",
-                      });
-                await fetchUserBets();
-                return true;
-                
+              txSignature = await program!
+                .methods
+                .placeBet(new BN(lamports), isBull, new BN(roundId))
+                .accounts({
+                  config: configPda,
+                  round: roundPda,
+                  userBet: userBetPda,
+                  user: publicKey,
+                  escrow: escrowPda,
+                  systemProgram: SystemProgram.programId,
+                })
+                .signers([])
+                .rpc();
+      
+              // As soon as rpc() returns, we know the transaction was submitted.
+              // Show the “Bet Success” toast immediately:
+              toast.custom((t) => <BetSuccessToastMini theme={theme} />, {
+                position: "top-right",
+              });
             } catch (rpcError: any) {
-                              console.error("RPC Error details:", rpcError);
-                
-                              // When the user cancels the wallet signature dialog:
-                              if (rpcError.name === "WalletSignTransactionError" ||
-                                  rpcError.message?.includes("User rejected") ||
-                                  rpcError.message?.includes("User denied")) {
-                                toast.custom((t) => <TransactionFailedToast theme={theme} />, {
-                                  position: "top-right",
-                                });
-                                return false;
-                              }
-                
-                              if (rpcError instanceof ProgramError) {
-                                toast.custom((t) => <BetFailedToast theme={theme} />, {
-                                  position: "top-right",
-                                });
-                                return false;
-                              }
-                
-                              toast.custom((t) => <BetFailedToast theme={theme} />, {
-                                position: "top-right",
-                              });
-                              return false;
-                          }
-          
-      } catch (rpcError: any) {
-          return false;
-            
-            // Final fallback error handling
-            // toast(`An unexpected error occurred: ${error.message || "Unknown error"}`);
-        } finally {
+              const msg = rpcError.message || "";
+      
+              // ── If Solana reports “already been processed,” we assume the first send succeeded, so we simply refresh and exit. ──
+              if (msg.includes("already been processed")) {
+                console.warn("Transaction already seen on‐chain; treating as confirmed.");
+      
+                // (Optionally, you could show a different toast here:
+                //  toast.custom((t) => <BetSuccessToast theme={theme} />, { position: "top-right" }); )
+      
+                try {
+                  await fetchUserBets();
+                } catch (fetchErr) {
+                  console.error("fetchUserBets() failed after an 'already processed' error:", fetchErr);
+                }
+                return true;
+              }
+      
+              // ── If the user simply cancelled the wallet signature dialog ──
+              if (
+                rpcError.name === "WalletSignTransactionError" ||
+                msg.includes("User rejected") ||
+                msg.includes("User denied")
+              ) {
+                toast.custom((t) => <TransactionFailedToast theme={theme} />, {
+                  position: "top-right",
+                });
+                return false;
+              }
+      
+              // ── If it’s an Anchor “ProgramError” (i.e. your on‐chain instruction failed) ──
+              if (rpcError instanceof ProgramError) {
+                toast.custom((t) => <BetFailedToast theme={theme} />, {
+                  position: "top-right",
+                });
+                return false;
+              }
+      
+              // ── For any other unexpected RPC‐level error ──
+              toast.custom((t) => <BetFailedToast theme={theme} />, {
+                position: "top-right",
+              });
+              return false;
+            }
+      
+            // 4) Only once we know on‐chain RPC has succeeded (and toast is already shown), refresh local bets:
+            try {
+              await fetchUserBets();
+            } catch (fetchErr) {
+              console.error("fetchUserBets() failed after a successful bet:", fetchErr);
+              // We do NOT show a toast here, because the bet itself succeeded.
+            }
+      
+            return true;
+          } finally {
+            // Always clear the “placing” flag & pendingTransactionRef, even if the user hit an error above
             setIsPlacingBet(false);
             pendingTransactionRef.current = null;
-        }
-    }, [publicKey, connected, getRoundPda, getEscrowPda, getUserBetPda, program, configPda, fetchUserBets]);
-
+          }
+        },
+        [publicKey, connected, program, configPda, fetchUserBets, getRoundPda, getEscrowPda, getUserBetPda, isPlacingBet, theme]
+      );
+      
     const handleClaimPayout = useCallback(async (roundId: number) => {
         if (!publicKey || !connected || !program) {
             throw new Error('Wallet not connected or program not initialized');

@@ -1,4 +1,4 @@
-// components/MarketHeader.tsx
+
 import React, { useMemo } from "react";
 import Image from "next/image";
 import NumberFlow from "@number-flow/react";
