@@ -513,7 +513,7 @@
         <>
           {isLocked ? (
             <div className="flex-1 glass h-[300px] flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
-              <div className="flex flex-col items-center gap-3 justify-center h-[300px]">
+              <div className="flex flex-col items-center gap-3 justify-center h-[280px]">
                 <DotLoader
                   color="#ffffff"
                   size={40}
@@ -676,9 +676,9 @@
           card_container glass rounded-[20px] p-[15px] sm:p-[25px]
           min-w-[240px] sm:min-w-[273px] w-full
     
-          ${variant === "expired" ? "opacity-50 cursor-not-allowed hover:opacity-80 " : ""}
-          ${variant === "live"    ? "border-2 border-green-500 shadow-lg"            : ""}
-          ${variant === "next"    ? "bg-blue-50 border border-blue-300"             : ""}
+          ${variant === "expired" ? "opacity-50 glass cursor-not-allowed hover:opacity-80 " : ""}
+          ${variant === "live"    ? "gradient-border rounded-b-2 "  : ""}
+          ${variant === "next"    ? "bg-blue-50 glass border border-blue-300" : ""}
         `}
       >
         <div
@@ -818,31 +818,31 @@
     if (raw === "" || /^(?:0|[1-9]\d*)(?:\.\d{0,10})?$/.test(raw)) {
       setInputValue(raw);
 
-      // parse and clamp immediately (so slider jumps too)
+      // parse and clamp amount, but do NOT overwrite inputValue
       const parsed = parseFloat(raw);
       if (!isNaN(parsed) && parsed > 0) {
         const clamped = Math.min(parsed, maxAmount);
         setAmount(Math.round(clamped * 100) / 100);
       } else {
-        // anything non‐numeric or zero/negative just sets amount to 0
         setAmount(0);
       }
     }
   }}
   onBlur={() => {
-    // fallback: if they blur with empty or invalid, reset to 0.01
     const parsed = parseFloat(inputValue);
     if (isNaN(parsed) || parsed <= 0) {
       setAmount(0);
+      // leave inputValue blank so user can re‐enter as needed
       setInputValue("");
     } else {
+      // clamp amount but do not alter inputValue’s decimal formatting
       const clamped = Math.min(parsed, maxAmount);
       setAmount(Math.round(clamped * 100) / 100);
-      setInputValue(String(Math.round(clamped * 100) / 100));
     }
   }}
   className="glass h-[65px] text-right rounded-[20px] pr-4 font-semibold text-[16px] outline-0"
 />
+
           {inputError && (
             <p className="mt-1 text-red-500 text-sm">{inputError}</p>
           )}

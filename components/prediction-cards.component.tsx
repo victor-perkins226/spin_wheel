@@ -195,6 +195,7 @@ export default function PredictionCards() {
           { position: "top-right" }
         );
         await fetchUserBets();
+      await fetchMoreRounds();
       } else {
         toast.custom((t) => <BetFailedToast theme={theme} />, {
           position: "top-right",
@@ -681,61 +682,61 @@ export default function PredictionCards() {
   }, [timeLeft, fetchUserBets, safeFetchMoreRounds]);
 
   // Improve visibility change handler with better API error handling
-  useEffect(() => {
-    let isRefreshing = false;
+  // useEffect(() => {
+  //   let isRefreshing = false;
 
-    const handleVisibility = async () => {
-      if (document.visibilityState === "visible" && !isRefreshing) {
-        isRefreshing = true;
+  //   const handleVisibility = async () => {
+  //     if (document.visibilityState === "visible" && !isRefreshing) {
+  //       isRefreshing = true;
 
-        initialSlideJumped.current = false;
+  //       initialSlideJumped.current = false;
 
-        try {
-          const tasks = [];
+  //       try {
+  //         const tasks = [];
 
-          tasks.push(
-            safeFetchMoreRounds().catch((err) => {
-              console.error(
-                "Error refreshing rounds on visibility change:",
-                err
-              );
-            })
-          );
+  //         tasks.push(
+  //           safeFetchMoreRounds().catch((err) => {
+  //             console.error(
+  //               "Error refreshing rounds on visibility change:",
+  //               err
+  //             );
+  //           })
+  //         );
 
-          if (fetchUserBets) {
-            tasks.push(
-              fetchUserBets().catch((err) => {
-                console.error(
-                  "Error fetching user bets on visibility change:",
-                  err
-                );
-                if (
-                  err?.name === "AxiosError" &&
-                  err?.response?.status === 500
-                ) {
-                  // console.log(
-                  //   "Server error when fetching user bets, will retry later"
-                  // );
-                }
-              })
-            );
-          }
+  //         if (fetchUserBets) {
+  //           tasks.push(
+  //             fetchUserBets().catch((err) => {
+  //               console.error(
+  //                 "Error fetching user bets on visibility change:",
+  //                 err
+  //               );
+  //               if (
+  //                 err?.name === "AxiosError" &&
+  //                 err?.response?.status === 500
+  //               ) {
+  //                 // console.log(
+  //                 //   "Server error when fetching user bets, will retry later"
+  //                 // );
+  //               }
+  //             })
+  //           );
+  //         }
 
-          await Promise.allSettled(tasks);
-        } catch (error) {
-          console.error("Error during visibility change refresh:", error);
-        } finally {
-          setTimeout(() => {
-            isRefreshing = false;
-          }, 2000);
-        }
-      }
-    };
+  //         await Promise.allSettled(tasks);
+  //       } catch (error) {
+  //         console.error("Error during visibility change refresh:", error);
+  //       } finally {
+  //         setTimeout(() => {
+  //           isRefreshing = false;
+  //         }, 2000);
+  //       }
+  //     }
+  //   };
 
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () =>
-      document.removeEventListener("visibilitychange", handleVisibility);
-  }, [fetchMoreRounds, fetchUserBets, safeFetchMoreRounds]);
+  //   document.addEventListener("visibilitychange", handleVisibility);
+  //   return () =>
+  //     document.removeEventListener("visibilitychange", handleVisibility);
+  // }, [fetchMoreRounds, fetchUserBets, safeFetchMoreRounds]);
 
   const formatTimeLeft = (seconds: number | null) => {
     if (seconds === null || seconds <= 0) return "Locked";
@@ -959,9 +960,9 @@ export default function PredictionCards() {
           </div>
 
           {connected && userBets.length > 0 && (
-            <Suspense fallback={<PuffLoader color="#06C729" size={30} />}>
+            // <Suspense fallback={<PuffLoader color="#06C729" size={30} />}>
               <BetsHistory userBets={userBets} />
-            </Suspense>
+            // </Suspense>
           )}
         </div>
         <LiveBets
