@@ -85,6 +85,12 @@
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { connected, publicKey } = useWallet();
     const { connection } = useConnection();
+    const isValidAmount =
+  inputValue !== "" &&       // not empty
+  !isNaN(parseFloat(inputValue)) && // parses to a number
+  parseFloat(inputValue) > 0 &&     // strictly positive
+  parseFloat(inputValue) <= maxAmount; // does not exceed their balance
+  const buyDisabled = isSubmitting || !(amount > 0 && amount <= maxAmount);
     const [scriptBetPlaced, setScriptBetPlaced] = useState(false);
 
     const { theme } = useTheme();
@@ -801,28 +807,40 @@
             </div>
           </div>
           <input
-            type="text" // allows any characters
-            value={inputValue}
-            placeholder="Enter Value:"
-            onChange={(e) => {
-              const raw = e.target.value;
-              if (raw === "" || /^(?:0|[1-9]\d*)(?:\.\d{0,10})?$/.test(raw)) {
-                setInputValue(raw);
-              }
-            }}
-            onBlur={() => {
-              const parsed = parseFloat(inputValue);
-              if (isNaN(parsed) || parsed <= 0) {
-                setAmount(0.01);
-                setInputValue("0.01");
-              } else {
-                const clamped = Math.min(parsed, maxAmount);
-                setAmount(clamped);
-                setInputValue(String(clamped));
-              }
-            }}
-            className="glass h-[65px] text-right rounded-[20px] pr-4 font-semibold text-[16px] outline-0"
-          />
+  type="text"
+  value={inputValue}
+  placeholder="Enter Value:"
+  onChange={(e) => {
+    const raw = e.target.value;
+    // allow blank or a number with up to 10 decimals
+    if (raw === "" || /^(?:0|[1-9]\d*)(?:\.\d{0,10})?$/.test(raw)) {
+      setInputValue(raw);
+
+      // parse and clamp immediately (so slider jumps too)
+      const parsed = parseFloat(raw);
+      if (!isNaN(parsed) && parsed > 0) {
+        const clamped = Math.min(parsed, maxAmount);
+        setAmount(Math.round(clamped * 100) / 100);
+      } else {
+        // anything non‐numeric or zero/negative just sets amount to 0
+        setAmount(0);
+      }
+    }
+  }}
+  onBlur={() => {
+    // fallback: if they blur with empty or invalid, reset to 0.01
+    const parsed = parseFloat(inputValue);
+    if (isNaN(parsed) || parsed <= 0) {
+      setAmount(0);
+      setInputValue("");
+    } else {
+      const clamped = Math.min(parsed, maxAmount);
+      setAmount(Math.round(clamped * 100) / 100);
+      setInputValue(String(Math.round(clamped * 100) / 100));
+    }
+  }}
+  className="glass h-[65px] text-right rounded-[20px] pr-4 font-semibold text-[16px] outline-0"
+/>
           {inputError && (
             <p className="mt-1 text-red-500 text-sm">{inputError}</p>
           )}
@@ -853,24 +871,23 @@
             ))}
           </div>
           <Button
-            className="cursor-pointer flex items-center justify-center"
-            disabled={isSubmitting}
-            onClick={handlePlaceBet}
-            style={{
-              background:
-                mode === "up"
-                  ? "linear-gradient(90deg, #06C729 0%, #04801B 100%)"
-                  : mode === "down"
-                  ? "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)"
-                  : "",
-            }}
-          >
-            {isSubmitting ? (
-              <PuffLoader color="#ffffff" size={20} />
-            ) : (
-              `Buy ${mode?.toUpperCase() || ""}`
-            )}
-          </Button>
+  disabled={buyDisabled}
+  
+  style={{
+    cursor: buyDisabled ? "not-allowed" : "pointer",
+    background: buyDisabled
+      ? "#9CA3AF" // gray when disabled
+      : mode === "up"
+      ? "linear-gradient(90deg, #06C729 0%, #04801B 100%)"
+      : mode === "down"
+      ? "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)"
+      : "",
+  }}
+  className="cursor-pointer flex items-center justify-center"
+  onClick={handlePlaceBet}
+>
+  {isSubmitting ? <PuffLoader color="#ffffff" size={20} /> : `Buy ${mode?.toUpperCase() || ""}`}
+</Button>
         </div>
       </div>
     );
