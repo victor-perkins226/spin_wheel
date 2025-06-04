@@ -447,6 +447,54 @@ useEffect(() => {
     handleClaimPayout,
     theme,
   ]);
+  useEffect(() => {
+    const onClaimRound = (e: CustomEvent) => {
+      const { roundId } = e.detail as { roundId: number };
+  
+      if (!claimableBets.find((b) => b.roundNumber === roundId)) {
+        // No claimable bet for that round? Bail out.
+        return;
+      }
+  
+      // call your existing `handleClaimPayout` for just that one round:
+      (async () => {
+        try {
+          setIsClaiming(true);
+          // build a transaction that claims only roundId
+          const instruction = await handleClaimPayout(roundId);
+          const tx = new Transaction().add(instruction);
+          const { blockhash } = await connectionRef.current!.getLatestBlockhash();
+          tx.recentBlockhash = blockhash;
+          tx.feePayer = publicKey!;
+  
+          const sig = await sendTransaction(tx, connectionRef.current!, {
+            skipPreflight: false
+          });
+          await connectionRef.current!.confirmTransaction(sig, "confirmed");
+  
+          // now refresh (user-only) 
+          await fetchUserBets();
+          setIsClaiming(false);
+          toast.custom(
+            (t) => <ClaimSuccessToast theme={theme} claimableAmount={0 /* or specific */} />,
+            { position: "top-center" }
+          );
+        } catch (err) {
+          console.error("Single‐round claim failed", err);
+          setIsClaiming(false);
+          toast.custom((t) => <ClaimFailureToast theme={theme} />, {
+            position: "top-right",
+          });
+        }
+      })();
+    };
+  
+    window.addEventListener("claimRound", onClaimRound as EventListener);
+    return () => {
+      window.removeEventListener("claimRound", onClaimRound as EventListener);
+    };
+  }, [claimableBets, handleClaimPayout, fetchUserBets, connectionRef, publicKey, sendTransaction, theme]);
+  
   const getSlidesPerView = () => {
     if (!mounted) return 1;
     if (screenWidth < 640) return 1;

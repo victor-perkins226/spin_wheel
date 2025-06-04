@@ -452,7 +452,7 @@ useEffect(() => {
                             />
                           </div>
                           <span className={getAmountTextStyle()}>
-                            {bet.amount.toFixed(2)} SOL
+                            {bet.amount.toFixed(3)} SOL
                           </span>
                         </div>
                       </td>

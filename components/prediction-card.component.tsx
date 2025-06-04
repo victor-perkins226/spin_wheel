@@ -109,6 +109,8 @@ export default function PredictionCard({
     }
   }, [roundId, roundData]);
 
+
+
   const { theme } = useTheme();
 
   const { config } = useRoundManager(5, 0);
@@ -200,10 +202,19 @@ export default function PredictionCard({
       socket.off("prizePoolUpdate", handlePrizePoolUpdate);
     };
   }, [roundId, socket, roundData]);
-  const userBetStatus =
-    userBets?.find((bet) => bet.roundId === roundId) || null;
-  const hasUserBet = userBetStatus !== null || justBet || scriptBetPlaced;
-  
+    const [betValue, setBetValue] = useState<number | null>(null);
+    const userBetStatus = useMemo(
+      () => userBets?.find((bet) => bet.roundId === roundId) ?? null,
+      [userBets, roundId]
+    );
+    const hasUserBet = betValue !== null || justBet || scriptBetPlaced;
+    useEffect(() => {
+      // Whenever userBets updates, if there’s a bet for this round, cache it:
+      if (userBetStatus) {
+        // If you already store amount in SOL, remove the division; adjust accordingly:
+        setBetValue(userBetStatus.amount);
+      }
+     }, [userBetStatus]);
   const getPriceMovement = () => {
     if (!roundData) return { difference: 0, direction: "up" as "up" | "down" };
 
@@ -373,6 +384,7 @@ export default function PredictionCard({
         if (betStatus === true) {
           setJustBet(true);
           setPrizePoolLocal(prev => prev + amount);
+          setBetValue(amount);
           if (typeof window !== "undefined") {
             // Emit custom event to trigger parent refresh
             window.dispatchEvent(
@@ -814,6 +826,30 @@ export default function PredictionCard({
               </div>
             )}
           </div>
+          {hasUserBet && userBetStatus && betValue !== null && (
+        <div className="mt-2 px-2 py-1 glass rounded text-sm font-medium">
+          Your Bet: {betValue.toFixed(4)} SOL
+        </div>
+      )}
+          {variant === "expired" &&
+           userBetStatus &&
+           roundData &&
+           ((roundData.closePrice > roundData.lockPrice && userBetStatus.direction === "up") ||
+            (roundData.closePrice < roundData.lockPrice && userBetStatus.direction === "down")) && (
+             <div
+               className="mt-1 px-2 py-1 bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 rounded text-xs font-semibold cursor-pointer inline-block"
+               onClick={() => {
+                 // Emit a custom event to let the parent know “claim roundId”
+                 if (typeof window !== "undefined") {
+                   window.dispatchEvent(
+                     new CustomEvent("claimRound", { detail: { roundId } })
+                   );
+                 }
+               }}
+             >
+               🎉 You Won! Claim
+             </div>
+          )}
           <Button
             style={{ background: getButtonStyle("up") }}
             className={`glass flex flex-col gap-4 py-[16px] ${
