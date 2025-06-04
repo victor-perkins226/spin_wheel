@@ -446,6 +446,17 @@ export const useSolPredictor = (): SolPredictorHook => {
                 .signers([])
                 .rpc();
       
+                const confirmation = await program.provider.connection.confirmTransaction(
+                  txSignature,
+                  'confirmed' // or 'finalized' for extra safety
+                );
+
+                if (confirmation.value.err) {
+                  console.error('Transaction failed:', confirmation.value.err);
+                  return false;
+                }
+        
+        
               // As soon as rpc() returns, we know the transaction was submitted.
               // Show the “Bet Success” toast immediately:
               toast.custom((t) => <BetSuccessToastMini theme={theme} />, {

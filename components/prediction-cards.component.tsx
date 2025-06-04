@@ -88,71 +88,76 @@ export default function PredictionCards() {
     isLocked,
     getRoundStatus,
   } = useRoundManager(5, 0);
-
+  const [isRefreshingAfterClaim, setIsRefreshingAfterClaim] = useState(false);
   const [isFetchingRounds, setIsFetchingRounds] = useState(false);
   const previousComputedRoundsRef = useRef<Round[]>([]); // Ref to store last valid computed rounds
-
+  const [liveTotal, setLiveTotal] = useState<number>(0);
   // Update claimableAmountRef when claimableBets changes
-  useEffect(() => {
-    // While we’re in the “just claimed” phase, force the badge to stay at 0:
-    if (justClaimed) {
-      setClaimableRewards(0);
-      return;
-    }
+ 
+// Replace your existing claimableRewards effect with this simplified version:
+// Replace your existing claimableRewards effect with this improved version:
+useEffect(() => {
+  const sum = claimableBets.reduce((tot, b) => tot + (b.payout || 0), 0);
+  setClaimableRewards(sum);
+}, [claimableBets]); // Remove isClaiming dependency
 
-    const sum = claimableBets.reduce((tot, b) => tot + (b.payout || 0), 0);
-    setClaimableRewards(sum);
+// Add this effect to handle periodic refresh of user bets
+useEffect(() => {
+  if (!connected || !publicKey) return;
 
-    if (claimableBets.length === 0) {
-      setClaimableRewards(0);
-    }
-  }, [claimableBets, justClaimed]);
+  // Set up periodic refresh of user bets every 30 seconds
+  const interval = setInterval(() => {
+    fetchUserBets();
+  }, 30000);
 
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+  return () => clearInterval(interval);
+}, [connected, publicKey, fetchUserBets]);
 
-    const handleClaimComplete = () => {
-      // Clear timeout if it exists
-      if (timeoutId) clearTimeout(timeoutId);
+  // useEffect(() => {
+  //   let timeoutId: NodeJS.Timeout;
 
-      // Set a timeout to refresh data after claim
-      timeoutId = setTimeout(async () => {
-        try {
-          await Promise.all([
-            fetchUserBets(),
-            fetchMoreRounds && fetchMoreRounds(),
-          ]);
+  //   const handleClaimComplete = () => {
+  //     // Clear timeout if it exists
+  //     if (timeoutId) clearTimeout(timeoutId);
 
-          // Update balance
-          if (connected && publicKey && connectionRef.current) {
-            const newLamports = await connectionRef.current.getBalance(
-              publicKey
-            );
-            setUserBalance(newLamports / LAMPORTS_PER_SOL);
-          }
-        } catch (error) {
-          console.error("Error refreshing after claim:", error);
-        }
-      }, 1000);
-    };
+  //     // Set a timeout to refresh data after claim
+  //     timeoutId = setTimeout(async () => {
+  //       try {
+  //         await Promise.all([
+  //           fetchUserBets(),
+  //           fetchMoreRounds && fetchMoreRounds(),
+  //         ]);
 
-    // Listen for claim completion
-    if (!isClaiming && claimableRewards === 0 && claimableBets.length === 0) {
-      handleClaimComplete();
-    }
+  //         // Update balance
+  //         if (connected && publicKey && connectionRef.current) {
+  //           const newLamports = await connectionRef.current.getBalance(
+  //             publicKey
+  //           );
+  //           setUserBalance(newLamports / LAMPORTS_PER_SOL);
+  //         }
+  //       } catch (error) {
+  //         console.error("Error refreshing after claim:", error);
+  //       }
+  //     }, 1000);
+  //   };
 
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [
-    isClaiming,
-    claimableRewards,
-    claimableBets.length,
-    connected,
-    publicKey,
-    fetchUserBets,
-    fetchMoreRounds,
-  ]);
+  //   // Listen for claim completion
+  //   if (!isClaiming && claimableRewards === 0 && claimableBets.length === 0) {
+  //     handleClaimComplete();
+  //   }
+
+  //   return () => {
+  //     if (timeoutId) clearTimeout(timeoutId);
+  //   };
+  // }, [
+  //   isClaiming,
+  //   claimableRewards,
+  //   claimableBets.length,
+  //   connected,
+  //   publicKey,
+  //   fetchUserBets,
+  //   fetchMoreRounds,
+  // ]);
   useEffect(() => {
     if (connected && publicKey) {
       fetchUserBets();
@@ -263,14 +268,21 @@ export default function PredictionCards() {
       transports: ["websocket"],
       reconnection: true,
     });
-
-    const handleRoundUpdate = (data: any) => {
+   const handleRoundUpdate = (data: any) => {
       console.log("Round update received:", data);
 
       // Refresh round data when round state changes
+      if (data.type === "roundEnded" || data.type === "roundCompleted") {
+        // Refresh user bets immediately when any round ends
+        // This will update claimableBets which triggers claimableRewards update
+        setTimeout(() => {
+          fetchUserBets();
+        }, 2000); // Small delay to ensure backend has processed the round completion
+      }
+  
+      // Refresh round data when round state changes
       if (data.type === "roundEnded" || data.type === "roundStarted") {
         fetchMoreRounds();
-        fetchUserBets();
       }
     };
 
@@ -369,10 +381,6 @@ export default function PredictionCards() {
 
       await connectionRef.current.confirmTransaction(signature, "confirmed");
 
-     setJustClaimed(true);
-
-// 2) Also clear the numeric reward‐amount state
-setClaimableRewards(0);
 
       // Refresh user bets and balance in parallel
       await Promise.all([
@@ -386,6 +394,10 @@ setClaimableRewards(0);
           setUserBalance(newLamports / LAMPORTS_PER_SOL);
         })(),
       ]);
+
+      setClaimableRewards(0);
+      setJustClaimed(false);
+
       // Force a complete re-render by updating swiper
       setSwiperReady(false);
       setTimeout(() => setSwiperReady(true), 500);
@@ -497,10 +509,16 @@ setClaimableRewards(0);
     }
   }, [fetchMoreRounds]);
 
+
+  // 2) Handle updates coming from <LiveBets />
+  const handleLiveTotalChange = (sum: number) => {
+    setLiveTotal(sum);
+  };
+
   const currentRoundNumber =
     Number(config?.currentRound) ?? Number(currentRound?.number) ?? null;
 
-  if (currentRoundNumber == null) return <DotLoader />;
+  // if (currentRoundNumber == null) {return <DotLoader />};
   const nextRoundNumber = currentRoundNumber + 1;
   const nextRound =
     previousRounds.find((r: Round) => Number(r.number) === nextRoundNumber) ??
@@ -773,75 +791,33 @@ setClaimableRewards(0);
     initialSlideJumped.current = true;
   }, [swiperReady]);
 
-  const didFetchAtZero = useRef(false);
-  useEffect(() => {
-    if (timeLeft === 0 && !didFetchAtZero.current) {
-      didFetchAtZero.current = true;
+  const prevTimeLeft = useRef<number | null>(null);
+useEffect(() => {
+  // Detect when timeLeft transitions from > 0 to 0 (round just completed)
+  if (prevTimeLeft.current !== null && prevTimeLeft.current > 0 && timeLeft === 0) {
+    console.log("Round just completed, refreshing user bets...");
+    // Delay to ensure backend has processed the round completion
+    setTimeout(() => {
       fetchUserBets();
-      initialSlideJumped.current = false;
-      safeFetchMoreRounds();
-    }
-    if (timeLeft! > 0) {
-      didFetchAtZero.current = false;
-    }
-  }, [timeLeft, fetchUserBets, safeFetchMoreRounds]);
-
-  // Improve visibility change handler with better API error handling
-  // useEffect(() => {
-  //   let isRefreshing = false;
-
-  //   const handleVisibility = async () => {
-  //     if (document.visibilityState === "visible" && !isRefreshing) {
-  //       isRefreshing = true;
-
-  //       initialSlideJumped.current = false;
-
-  //       try {
-  //         const tasks = [];
-
-  //         tasks.push(
-  //           safeFetchMoreRounds().catch((err) => {
-  //             console.error(
-  //               "Error refreshing rounds on visibility change:",
-  //               err
-  //             );
-  //           })
-  //         );
-
-  //         if (fetchUserBets) {
-  //           tasks.push(
-  //             fetchUserBets().catch((err) => {
-  //               console.error(
-  //                 "Error fetching user bets on visibility change:",
-  //                 err
-  //               );
-  //               if (
-  //                 err?.name === "AxiosError" &&
-  //                 err?.response?.status === 500
-  //               ) {
-  //                 // console.log(
-  //                 //   "Server error when fetching user bets, will retry later"
-  //                 // );
-  //               }
-  //             })
-  //           );
-  //         }
-
-  //         await Promise.allSettled(tasks);
-  //       } catch (error) {
-  //         console.error("Error during visibility change refresh:", error);
-  //       } finally {
-  //         setTimeout(() => {
-  //           isRefreshing = false;
-  //         }, 2000);
-  //       }
-  //     }
-  //   };
-
-  //   document.addEventListener("visibilitychange", handleVisibility);
-  //   return () =>
-  //     document.removeEventListener("visibilitychange", handleVisibility);
-  // }, [fetchMoreRounds, fetchUserBets, safeFetchMoreRounds]);
+    }, 3000);
+  }
+  prevTimeLeft.current = timeLeft;
+}, [timeLeft, fetchUserBets]);
+const didFetchAtZero = useRef(false);
+useEffect(() => {
+  if (timeLeft === 0 && !didFetchAtZero.current) {
+    didFetchAtZero.current = true;
+    // Refresh both user bets and rounds when round completes
+    Promise.all([
+      fetchUserBets(),
+      safeFetchMoreRounds()
+    ]);
+    initialSlideJumped.current = false;
+  }
+  if (timeLeft! > 0) {
+    didFetchAtZero.current = false;
+  }
+}, [timeLeft, fetchUserBets, safeFetchMoreRounds]);
 
   const formatTimeLeft = (seconds: number | null) => {
     if (seconds === null || seconds <= 0) return "Locked";
@@ -878,7 +854,7 @@ setClaimableRewards(0);
             theme={theme === "dark" ? "dark" : "light"}
             connected={connected}
             userBalance={userBalance}
-            claimableRewards={claimableRewards}
+            claimableRewards={isRefreshingAfterClaim ? 0 : claimableRewards}
             isClaiming={isClaiming}
             onClaim={handleClaimRewards}
             formatTimeLeft={formatTimeLeft}
@@ -1048,6 +1024,7 @@ setClaimableRewards(0);
                             userBets={userBets} // Only show user bets if connected
                             isLocked={isLocked}
                             timeLeft={timeLeft}
+                            liveTotalForThisRound={liveTotal}
                           />
                         </SwiperSlide>
                       );
@@ -1074,6 +1051,7 @@ setClaimableRewards(0);
           )}
         </div>
         <LiveBets
+        onLiveTotalChange={handleLiveTotalChange}
           currentRound={Number(currentRound?.number) ?? null}
           key={currentRound?.number}
         />

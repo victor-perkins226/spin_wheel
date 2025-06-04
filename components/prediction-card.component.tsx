@@ -53,6 +53,7 @@ interface IProps {
   userBets?: UserBet[];
   isLocked: boolean;
   timeLeft: number | null;
+  liveTotalForThisRound: number;
 }
 
 const CUSTOM_INPUTS = [
@@ -74,6 +75,7 @@ export default function PredictionCard({
   userBets,
   isLocked,
   timeLeft,
+  liveTotalForThisRound,
 }: IProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [mode, setMode] = useState<"up" | "down" | "">("");
@@ -448,7 +450,7 @@ export default function PredictionCard({
         </div>
       );
     }
-
+    const nextPrizePool = liveTotalForThisRound;
     return (
       <div className="flex-1 glass h-[300px] flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
         <div className="flex flex-col items-center gap-[7px]">
@@ -461,7 +463,7 @@ export default function PredictionCard({
           />
           <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
             <p>Prize Pool</p>
-            <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
+            <p>{nextPrizePool.toFixed(4)} SOL</p>
           </div>
           {/* <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
               <p>Time Left</p>
