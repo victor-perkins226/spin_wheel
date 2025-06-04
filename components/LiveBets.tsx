@@ -36,9 +36,10 @@ const socket = io(WS_URL, {
 
 interface LiveBetsProps {
   currentRound: number | null; // Allow null for loading/undefined states
+  onLiveTotalChange: (total: number) => void; // Optional callback for total change
 }
 
-function LiveBets({ currentRound }: LiveBetsProps) {
+function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
   const { theme } = useTheme();
   const [liveBets, setLiveBets] = useState<Bet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -258,6 +259,11 @@ useEffect(() => {
     }
   }, [newBetSignatures]);
 
+  useEffect(() => {
+    const sum = liveBets.reduce((s, b) => s + b.amount, 0);
+    onLiveTotalChange?.(sum);
+  }, [liveBets]);
+
   if (!mounted) {
     return null;
   }
@@ -309,6 +315,8 @@ useEffect(() => {
         : "hover:bg-black/5 text-foreground shadow-sm"
     }`;
   };
+
+
 
   return (
     <>

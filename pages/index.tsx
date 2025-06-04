@@ -38,7 +38,7 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
           <main className="flex items-center justify-center ">
             <div
               className={`
-                w-full max-w-[600px] h-[500px]pt-12  text-center rounded-2xl
+                w-full max-w-[600px] h-[500px] pt-12  text-center rounded-2xl
                 flex flex-col items-center justify-center p-4
               `}
             >
@@ -55,7 +55,7 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
                 Access is restricted in your region.
               </h3>
 
-              <p className="text-lg text-gray-700 dark:text-gray-300">
+              <p className="text-lg ">
                 We can&apos;t provide service in your area because of local rules.
                 Please try from another location or check your settings.
               </p>
