@@ -370,7 +370,7 @@ export default function PredictionCard({
 
         if (betStatus === true) {
           setJustBet(true);
-          // Trigger parent component refresh
+          setPrizePoolLocal(prev => prev + amount);
           if (typeof window !== "undefined") {
             // Emit custom event to trigger parent refresh
             window.dispatchEvent(
@@ -407,9 +407,21 @@ export default function PredictionCard({
       } else {
         return "linear-gradient(228.15deg, rgba(255, 255, 255, 0.2) -64.71%, rgba(255, 255, 255, 0.05) 102.6%)";
       }
-    }
+    }  if ((variant === "next" ) && hasUserBet && userBetStatus) {
+          if (userBetStatus.direction === direction) {
+            // If they bet “up”, paint UP green; if “down”, paint DOWN red.
+            return direction === "up"
+              ? "linear-gradient(90deg, #06C729 0%, #04801B 100%)"
+              : "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)";
+          } else {
+            // The opposite side is greyed out:
+            return "#9CA3AF";
+          }
+        }
+
     return "";
   };
+
 
   const renderNextRoundContent = () => {
     if (variant !== "next") return null;
@@ -449,7 +461,7 @@ export default function PredictionCard({
           />
           <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
             <p>Prize Pool</p>
-            <p>{roundData.prizePool.toFixed(4)} SOL</p>
+            <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
           </div>
           {/* <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
               <p>Time Left</p>
@@ -558,7 +570,7 @@ export default function PredictionCard({
           <div className="flex-1 glass h-[300px] flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
             <div className="flex flex-col items-center gap-3 justify-center h-[280px]">
               <DotLoader
-                color="#ffffff"
+                color={theme === "light" ? "#000": "#ffffff"}
                 size={40}
                 aria-label="Loading Spinner"
                 data-testid="loader"
@@ -587,8 +599,8 @@ export default function PredictionCard({
                     format={{
                       style: "currency",
                       currency: "USD",
-                      minimumFractionDigits: 4,
-                      maximumFractionDigits: 4,
+                      minimumFractionDigits: 3,
+                      maximumFractionDigits: 3,
                     }}
                     className={`${getPriceTextStyle()} ${
                       priceDirection === "up"
@@ -732,7 +744,7 @@ export default function PredictionCard({
           }
         `}
     >
-      <div className=" bg-[#2a2a4c]  rounded-[20px] min-w-[240px] sm:min-w-[273px] w-full p-4">
+      <div className={` ${theme === "light" ? 'bg-[#fffffff1]': 'bg-[#2a2a4c]'}  rounded-[20px] min-w-[240px] sm:min-w-[273px] w-full p-4`}>
         <div
           className={`${
             isFlipped ? "hidden" : "flex"
