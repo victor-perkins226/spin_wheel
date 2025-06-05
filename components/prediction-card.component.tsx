@@ -902,11 +902,7 @@ export default function PredictionCard({
               </div>
             )}
           </div>
-          {hasUserBet && userBetStatus && betValue !== null && (
-            <div className="mt-2 px-2 py-1 glass rounded text-sm font-medium">
-              Your Bet: {betValue.toFixed(4)} SOL
-            </div>
-          )}
+     
           {variant === "expired" &&
             userBetStatus &&
             roundData &&
