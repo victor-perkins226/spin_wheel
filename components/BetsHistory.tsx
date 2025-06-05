@@ -52,7 +52,7 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
   }
 
   const displayStatus = (bet: UserBet) => {
-    if (bet.roundId === currentRound) {
+    if (bet.roundId >= currentRound - 1) {
       return "PENDING";
     }
     return bet.status;
