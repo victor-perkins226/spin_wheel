@@ -54,6 +54,7 @@ interface IProps {
   isLocked: boolean;
   timeLeft: number | null;
   liveTotalForThisRound: number;
+  isClaimable?: boolean;
 }
 
 const CUSTOM_INPUTS = [
@@ -86,6 +87,7 @@ export default function PredictionCard({
   isLocked,
   timeLeft,
   liveTotalForThisRound,
+  isClaimable,
 }: IProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [mode, setMode] = useState<"up" | "down" | "">("");
@@ -814,7 +816,7 @@ export default function PredictionCard({
   return (
     <div
       className={`
-  
+        relative
           card_container rounded-[18px]
           mt-4
           ${
@@ -902,8 +904,9 @@ export default function PredictionCard({
               </div>
             )}
           </div>
-     
+
           {variant === "expired" &&
+            isClaimable &&
             userBetStatus &&
             roundData &&
             ((roundData.closePrice > roundData.lockPrice &&
@@ -911,7 +914,13 @@ export default function PredictionCard({
               (roundData.closePrice < roundData.lockPrice &&
                 userBetStatus.direction === "down")) && (
               <div
-                className="mt-1 px-2 py-1 bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 rounded text-xs font-semibold cursor-pointer inline-block"
+                className={`
+                  ${
+                    theme === "dark"
+                      ? "text-green-200 bg-green-200"
+                      : "bg-green-800 text-green-800"
+                  }
+                  mt-1 px-2 py-1 mx-auto left-[30px] rounded-2xl z-10 w-[80%] h-[40px] flex items-center justify-center  absolute top-[240px text-xs font-semibold cursor-pointer`}
                 onClick={() => {
                   // Emit a custom event to let the parent know “claim roundId”
                   if (typeof window !== "undefined") {

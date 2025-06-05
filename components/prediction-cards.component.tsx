@@ -110,7 +110,7 @@ useEffect(() => {
   // Set up periodic refresh of user bets every 30 seconds
   const interval = setInterval(() => {
     fetchUserBets();
-  }, 30000);
+  }, 10000);
 
   return () => clearInterval(interval);
 }, [connected, publicKey, fetchUserBets]);
@@ -258,7 +258,7 @@ useEffect(() => {
     if (!connected || !publicKey || !connectionRef.current) {
       // toast.error("Please connect your wallet to place a bet");
 
-      return;
+      return false;
     }
 
     try {
@@ -271,10 +271,11 @@ useEffect(() => {
         setSwiperReady(false);
         setTimeout(() => setSwiperReady(true), 100);
       }
-      return ok;
+      return ok || false;
     } catch (error) {
       console.error("Failed to place bet:", error);
       // toast.error("Failed to place bet");
+      return false;
     }
   };
 
@@ -284,6 +285,7 @@ useEffect(() => {
     const handleRoundUpdate = (data: any) => {
       if (data.type === "roundEnded" || data.type === "roundStarted") {
         safeFetchMoreRounds();
+        fetchUserBets();
       }
     };
 
@@ -520,6 +522,7 @@ useEffect(() => {
   const createDummyLaterRound = useCallback(
     (baseRound: Round, offsetNumber: number): Round => {
       const roundNumber = Number(baseRound.number) + offsetNumber;
+   
       const baseStartTime =
         typeof baseRound.closeTime === "number"
           ? baseRound.closeTime + offsetNumber * (config?.roundDuration || 360)
@@ -998,6 +1001,9 @@ useEffect(() => {
                         return null;
                       }
                       const roundNumber = Number(round.number);
+                      const isClaimableForThisRound = claimableBets.some(
+                        (b) => b.roundNumber === roundNumber
+                      );
                       const startTimeMs =
                         typeof round.startTime === "number" &&
                         !isNaN(round.startTime)
@@ -1090,6 +1096,7 @@ useEffect(() => {
                             isLocked={isLocked}
                             timeLeft={timeLeft}
                             liveTotalForThisRound={liveTotal}
+                            isClaimable={isClaimableForThisRound}
                           />
                         </SwiperSlide>
                       );
