@@ -462,12 +462,12 @@ export default function PredictionCards() {
   useEffect(() => {
     const onClaimRound = (e: CustomEvent) => {
       const { roundId } = e.detail as { roundId: number };
-
+  
       if (!claimableBets.find((b) => b.roundNumber === roundId)) {
         // No claimable bet for that round? Bail out.
         return;
       }
-
+  
       // call your existing `handleClaimPayout` for just that one round:
       (async () => {
         try {
@@ -475,26 +475,23 @@ export default function PredictionCards() {
           // build a transaction that claims only roundId
           const instruction = await handleClaimPayout(roundId);
           const tx = new Transaction().add(instruction);
-          const { blockhash } =
-            await connectionRef.current!.getLatestBlockhash();
+          const { blockhash } = await connectionRef.current!.getLatestBlockhash();
           tx.recentBlockhash = blockhash;
           tx.feePayer = publicKey!;
-
+  
           const sig = await sendTransaction(tx, connectionRef.current!, {
-            skipPreflight: false,
+            skipPreflight: false
           });
           await connectionRef.current!.confirmTransaction(sig, "confirmed");
-
-          // now refresh (user-only)
+  
+          // now refresh (user-only) 
           await fetchUserBets();
           setIsClaiming(false);
+  
+          // 🔥 Replace the `0` below with the actual payout amount from claimableBets:
+          const thisPayout = claimableBets.find((b) => b.roundNumber === roundId)?.payout ?? 0;
           toast.custom(
-            (t) => (
-              <ClaimSuccessToast
-                theme={theme}
-                claimableAmount={0 /* or specific */}
-              />
-            ),
+            (t) => <ClaimSuccessToast theme={theme} claimableAmount={thisPayout} />,
             { position: "top-center" }
           );
         } catch (err) {
@@ -506,7 +503,7 @@ export default function PredictionCards() {
         }
       })();
     };
-
+  
     window.addEventListener("claimRound", onClaimRound as EventListener);
     return () => {
       window.removeEventListener("claimRound", onClaimRound as EventListener);
