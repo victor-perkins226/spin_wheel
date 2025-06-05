@@ -92,6 +92,8 @@ export default function PredictionCards() {
   const [isFetchingRounds, setIsFetchingRounds] = useState(false);
   const previousComputedRoundsRef = useRef<Round[]>([]); // Ref to store last valid computed rounds
   const [liveTotal, setLiveTotal] = useState<number>(0);
+
+  
   // Update claimableAmountRef when claimableBets changes
  
 // Replace your existing claimableRewards effect with this simplified version:
@@ -183,6 +185,18 @@ useEffect(() => {
 
     // return () => clearInterval(interval); // Cleanup on unmount
   }, [livePrice]);
+  const safeFetchMoreRounds = useCallback(async () => {
+    setIsFetchingRounds(true);
+    try {
+      await fetchMoreRounds?.();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsFetchingRounds(false);
+    }
+  }, [fetchMoreRounds]);
+
+
 
   useEffect(() => {
     connectionRef.current = new Connection(
@@ -263,62 +277,62 @@ useEffect(() => {
       // toast.error("Failed to place bet");
     }
   };
-  useEffect(() => {
-    const socket = io(API_URL, {
-      transports: ["websocket"],
-      reconnection: true,
-    });
-   const handleRoundUpdate = (data: any) => {
-      console.log("Round update received:", data);
 
-      // Refresh round data when round state changes
-      if (data.type === "roundEnded" || data.type === "roundCompleted") {
-        // Refresh user bets immediately when any round ends
-        // This will update claimableBets which triggers claimableRewards update
-        setTimeout(() => {
-          fetchUserBets();
-        }, 2000); // Small delay to ensure backend has processed the round completion
-      }
-  
-      // Refresh round data when round state changes
+  useEffect(() => {
+    const socket = io(API_URL, { transports: ["websocket"], reconnection: true });
+
+    const handleRoundUpdate = (data: any) => {
       if (data.type === "roundEnded" || data.type === "roundStarted") {
-        fetchMoreRounds();
+        safeFetchMoreRounds();
       }
     };
 
-    const handleBetPlaced = (data: any) => {
-      console.log("New bet placed:", data);
-
-      // Refresh rounds to update prize pools
-      fetchMoreRounds();
+    const handleNewBetPlaced = (data: any) => {
+      // We only want to refresh the prizePool when anyone places a bet:
+      safeFetchMoreRounds();
     };
 
     socket.on("roundUpdate", handleRoundUpdate);
-    socket.on("newBetPlaced", handleBetPlaced);
+    socket.on("newBetPlaced", handleNewBetPlaced);
 
     return () => {
       socket.off("roundUpdate", handleRoundUpdate);
-      socket.off("newBetPlaced", handleBetPlaced);
+      socket.off("newBetPlaced", handleNewBetPlaced);
       socket.disconnect();
     };
-  }, [fetchMoreRounds, fetchUserBets]);
+  }, [safeFetchMoreRounds]);
   useEffect(() => {
-    const handleBetPlaced = (event: CustomEvent) => {
-      console.log("Bet placed event received:", event.detail);
-
-      // Refresh data after bet placement
-      setTimeout(() => {
+    const onBetPlaced = (event: Event) => {
+      // If the *current user* just placed a bet, wait 1s then refresh
+      const timer = setTimeout(() => {
         fetchUserBets();
-        fetchMoreRounds();
-      }, 1000); // Small delay to ensure backend is updated
+        safeFetchMoreRounds();
+      }, 1000);
+      return () => clearTimeout(timer);
     };
 
-    window.addEventListener("betPlaced", handleBetPlaced as EventListener);
-
+    window.addEventListener("betPlaced", onBetPlaced);
     return () => {
-      window.removeEventListener("betPlaced", handleBetPlaced as EventListener);
+      window.removeEventListener("betPlaced", onBetPlaced);
     };
-  }, [fetchUserBets, fetchMoreRounds]);
+  }, [fetchUserBets, safeFetchMoreRounds]);
+  // useEffect(() => {
+  //   const handleBetPlaced = (event: CustomEvent) => {
+  //     console.log("Bet placed event received:", event.detail);
+
+  //     // Refresh data after bet placement
+  //     setTimeout(() => {
+  //       fetchUserBets();
+  //       fetchMoreRounds();
+  //     }, 1000); // Small delay to ensure backend is updated
+  //   };
+
+  //   window.addEventListener("betPlaced", handleBetPlaced as EventListener);
+
+  //   return () => {
+  //     window.removeEventListener("betPlaced", handleBetPlaced as EventListener);
+  //   };
+  // }, [fetchUserBets, fetchMoreRounds]);
   function SkeletonCard() {
     return (
       <div className="card_container glass rounded-[20px] p-[15px] sm:p-[25px] w-full animate-pulse">
@@ -396,7 +410,7 @@ useEffect(() => {
       ]);
 
       setClaimableRewards(0);
-      setJustClaimed(false);
+      setJustClaimed(true);
 
       // Force a complete re-render by updating swiper
       setSwiperReady(false);
@@ -546,16 +560,6 @@ useEffect(() => {
 
   // Add a more robust version of safeFetchMoreRounds that handles API errors
 
-  const safeFetchMoreRounds = useCallback(async () => {
-    setIsFetchingRounds(true);
-    try {
-      await fetchMoreRounds?.();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsFetchingRounds(false);
-    }
-  }, [fetchMoreRounds]);
 
 
   // 2) Handle updates coming from <LiveBets />
@@ -839,18 +843,31 @@ useEffect(() => {
     initialSlideJumped.current = true;
   }, [swiperReady]);
 
-  const prevTimeLeft = useRef<number | null>(null);
+
+const prevTimeLeft = useRef<number | null>(null);
+
 useEffect(() => {
-  // Detect when timeLeft transitions from > 0 to 0 (round just completed)
-  if (prevTimeLeft.current !== null && prevTimeLeft.current > 0 && timeLeft === 0) {
-    console.log("Round just completed, refreshing user bets...");
-    // Delay to ensure backend has processed the round completion
-    setTimeout(() => {
-      fetchUserBets();
-    }, 3000);
+  // If on mount, timeLeft is already 0, treat it as a “round ended” event.
+  if (prevTimeLeft.current == null && timeLeft === 0) {
+    // immediate sync (or you can delay a bit if you want):
+    fetchUserBets();
+    safeFetchMoreRounds();
+    prevTimeLeft.current = 0;
+    return;
   }
+
+  // Otherwise, detect a transition from >0 → 0:
+  if (prevTimeLeft.current! > 0 && timeLeft === 0) {
+    const timer = setTimeout(() => {
+      fetchUserBets();
+      safeFetchMoreRounds();
+    }, 2000);
+    return () => clearTimeout(timer);
+  }
+
   prevTimeLeft.current = timeLeft;
-}, [timeLeft, fetchUserBets]);
+}, [timeLeft, fetchUserBets, safeFetchMoreRounds]);
+
 const didFetchAtZero = useRef(false);
 useEffect(() => {
   if (timeLeft === 0 && !didFetchAtZero.current) {
@@ -902,7 +919,7 @@ useEffect(() => {
             theme={theme === "dark" ? "dark" : "light"}
             connected={connected}
             userBalance={userBalance}
-            claimableRewards={isRefreshingAfterClaim ? 0 : claimableRewards}
+            claimableRewards={justClaimed ? 0 : claimableRewards}
             isClaiming={isClaiming}
             onClaim={handleClaimRewards}
             formatTimeLeft={formatTimeLeft}
