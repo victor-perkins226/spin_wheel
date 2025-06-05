@@ -5,7 +5,7 @@ import { PublicKey, Connection, } from "@solana/web3.js";
 import { AnchorProvider, Program, Idl } from "@project-serum/anchor";
 
 import * as idl from "@/lib/idl.json";
-import { PROGRAM_ID } from "@/lib/config";
+import { PROGRAM_ID, RPC_URL } from "@/lib/config";
 
 const programId = new PublicKey(PROGRAM_ID)
 
@@ -14,7 +14,7 @@ export const useProgram = () => {
     const [error, setError] = useState<string | null>(null);
     const wallet = useAnchorWallet();
     const connection = useMemo(() => new Connection(
-        "https://lb.drpc.org/ogrpc?network=solana-devnet&dkey=AqnRwY5nD0C_uEv_hPfBwlLj0fFzMcQR8JKdzoXPVSjK",
+        RPC_URL,
         {
             commitment: "finalized",
             wsEndpoint: 'wss://lb.drpc.org/ogws?network=solana-devnet&dkey=AqnRwY5nD0C_uEv_hPfBwlLj0fFzMcQR8JKdzoXPVSjK',

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import Button from "./button.component";
 import SVG from "./svg.component";
 import BetFailed from "@/public/assets/BetFailure.png";
@@ -14,7 +14,7 @@ import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import toast from "react-hot-toast";
 import { DotLoader, PuffLoader } from "react-spinners";
 import { useTheme } from "next-themes";
-import io from "socket.io-client";
+import io, { Socket } from "socket.io-client";
 import { API_URL } from "@/lib/config";
 import { useRoundManager } from "@/hooks/roundManager";
 import {
@@ -64,6 +64,16 @@ const CUSTOM_INPUTS = [
   { label: "Max", value: 1.0 },
 ];
 const WS_URL = API_URL;
+let globalSocket: Socket | null = null;
+const getSocket = () => {
+  if (!globalSocket) {
+    globalSocket = io(WS_URL, {
+      transports: ["websocket"],
+      reconnection: true,
+    });
+  }
+  return globalSocket;
+};
 export default function PredictionCard({
   variant,
   roundId = 0,
@@ -87,12 +97,20 @@ export default function PredictionCard({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { connected, publicKey } = useWallet();
   const { connection } = useConnection();
-  const isValidAmount =
-    inputValue !== "" &&
-    !isNaN(parseFloat(inputValue)) &&
-    parseFloat(inputValue) > 0 &&
-    parseFloat(inputValue) <= maxAmount;
-  const buyDisabled = isSubmitting || !isValidAmount;
+  const isValidAmount = useMemo(
+    () =>
+      inputValue !== "" &&
+      !isNaN(parseFloat(inputValue)) &&
+      parseFloat(inputValue) > 0 &&
+      parseFloat(inputValue) <= maxAmount,
+    [inputValue, maxAmount]
+  );
+
+  const buyDisabled = useMemo(
+    () => isSubmitting || !isValidAmount,
+    [isSubmitting, isValidAmount]
+  );
+
   const [scriptBetPlaced, setScriptBetPlaced] = useState(false);
 
   const [lockedPriceLocal, setLockedPriceLocal] = useState<number>(
@@ -104,16 +122,27 @@ export default function PredictionCard({
 
   useEffect(() => {
     if (roundData) {
-      setLockedPriceLocal(roundData.lockPrice);
+      if (roundData.lockPrice > 0) {
+        setLockedPriceLocal(roundData.lockPrice);
+      } else if (
+        lockedPriceLocal === 0 &&
+        liveRoundPrice &&
+        liveRoundPrice > 0
+      ) {
+        setLockedPriceLocal(liveRoundPrice);
+      }
       setPrizePoolLocal(roundData.prizePool);
     }
-  }, [roundId, roundData]);
-
-
+  }, [roundId, roundData, liveRoundPrice, lockedPriceLocal]);
 
   const { theme } = useTheme();
 
   const { config } = useRoundManager(5, 0);
+
+  const roundIdRef = useRef(roundId);
+  const connectedRef = useRef(connected);
+  const publicKeyRef = useRef(publicKey);
+
   const calculateMultipliers = () => {
     if (!roundData) return { bullMultiplier: "0.00", bearMultiplier: "0.00" };
 
@@ -141,14 +170,14 @@ export default function PredictionCard({
     };
   };
 
-  const socket = useMemo(
-    () =>
-      io(WS_URL, {
-        transports: ["websocket"],
-        reconnection: true,
-      }),
-    []
-  );
+  const socket = useMemo(() => getSocket(), []);
+
+  // Update refs when values change
+  useEffect(() => {
+    roundIdRef.current = roundId;
+    connectedRef.current = connected;
+    publicKeyRef.current = publicKey;
+  });
 
   const { bullMultiplier, bearMultiplier } = calculateMultipliers();
 
@@ -186,35 +215,65 @@ export default function PredictionCard({
       socket.off("newBetPlaced", handleNewBet);
     };
   }, [connected, publicKey, roundId, socket]);
+  const handleNewBet = useCallback((newBet: any) => {
+    if (
+      newBet.data.user === publicKeyRef.current?.toString() &&
+      newBet.data.round_number === roundIdRef.current
+    ) {
+      setScriptBetPlaced(true);
+    }
+  }, []);
+
+  const handlePrizePoolUpdate = useCallback((data: any) => {
+    if (data.roundId === roundIdRef.current) {
+      setPrizePoolLocal(data.newPrizePool / LAMPORTS_PER_SOL);
+    }
+  }, []);
+
+  const handleRoundLocked = useCallback((data: any) => {
+    if (data.roundId === roundIdRef.current && data.lockPrice) {
+      setLockedPriceLocal(data.lockPrice);
+    }
+  }, []);
+
+  // Optimize socket event registration
+  useEffect(() => {
+    if (!connected || !publicKey) return;
+
+    socket.on("newBetPlaced", handleNewBet);
+    return () => {
+      socket.off("newBetPlaced", handleNewBet);
+    };
+  }, [connected, publicKey, socket, handleNewBet]);
+
   useEffect(() => {
     if (!roundData) return;
 
-    const handlePrizePoolUpdate = (data: any) => {
-      if (data.roundId === roundId) {
-        // Update local prize pool state
-        setPrizePoolLocal(data.newPrizePool / LAMPORTS_PER_SOL);
-      }
-    };
-
     socket.on("prizePoolUpdate", handlePrizePoolUpdate);
+    socket.on("roundLocked", handleRoundLocked);
 
     return () => {
       socket.off("prizePoolUpdate", handlePrizePoolUpdate);
+      socket.off("roundLocked", handleRoundLocked);
     };
-  }, [roundId, socket, roundData]);
-    const [betValue, setBetValue] = useState<number | null>(null);
-    const userBetStatus = useMemo(
-      () => userBets?.find((bet) => bet.roundId === roundId) ?? null,
-      [userBets, roundId]
-    );
-    const hasUserBet = betValue !== null || justBet || scriptBetPlaced;
-    useEffect(() => {
-      // Whenever userBets updates, if there’s a bet for this round, cache it:
-      if (userBetStatus) {
-        // If you already store amount in SOL, remove the division; adjust accordingly:
-        setBetValue(userBetStatus.amount);
-      }
-     }, [userBetStatus]);
+  }, [roundData, socket, handlePrizePoolUpdate, handleRoundLocked]);
+
+  const [betValue, setBetValue] = useState<number | null>(null);
+  const userBetStatus = useMemo(
+    () => userBets?.find((bet) => bet.roundId === roundId) ?? null,
+    [userBets, roundId]
+  );
+  const hasUserBet = useMemo(
+    () => betValue !== null || justBet || scriptBetPlaced,
+    [betValue, justBet, scriptBetPlaced]
+  );
+  useEffect(() => {
+    // Whenever userBets updates, if there’s a bet for this round, cache it:
+    if (userBetStatus) {
+      // If you already store amount in SOL, remove the division; adjust accordingly:
+      setBetValue(userBetStatus.amount);
+    }
+  }, [userBetStatus]);
   const getPriceMovement = () => {
     if (!roundData) return { difference: 0, direction: "up" as "up" | "down" };
 
@@ -230,7 +289,13 @@ export default function PredictionCard({
       currentPrice = liveRoundPrice || roundData.lockPrice;
     }
 
-    const lockPrice = lockedPriceLocal || roundData.lockPrice;
+    let lockPrice = lockedPriceLocal || roundData.lockPrice;
+    if (lockPrice <= 0 && liveRoundPrice && liveRoundPrice > 0) {
+      lockPrice = liveRoundPrice;
+      // Update local state for consistency
+      setLockedPriceLocal(liveRoundPrice);
+    }
+
     const difference = Math.abs(currentPrice - lockPrice);
     const direction = currentPrice >= lockPrice ? "up" : "down";
 
@@ -248,24 +313,25 @@ export default function PredictionCard({
     (timeLeft ?? 0) > bufferTimeInSeconds &&
     !hasUserBet;
 
-  const formatTimeLeft = (seconds: number | null) => {
+  const formatTimeLeft = useCallback((seconds: number | null) => {
     if (seconds === null || seconds <= 0) return "Locked";
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
       .toString()
       .padStart(2, "0")}`;
-  };
+  }, []);
 
   const formattedRoundData = roundData
     ? {
-        lockPrice: roundData.lockPrice,
+        lockPrice:
+          lockedPriceLocal > 0 ? lockedPriceLocal : liveRoundPrice || 0,
         closePrice:
           roundData.closePrice > 0
             ? roundData.closePrice
             : liveRoundPrice || roundData.lockPrice,
         currentPrice: liveRoundPrice || roundData.lockPrice,
-        prizePool: roundData.prizePool,
+        prizePool: prizePoolLocal,
         upBets: roundData.upBets,
         downBets: roundData.downBets,
         lockTimeRemaining:
@@ -383,7 +449,7 @@ export default function PredictionCard({
 
         if (betStatus === true) {
           setJustBet(true);
-          setPrizePoolLocal(prev => prev + amount);
+          setPrizePoolLocal((prev) => prev + amount);
           setBetValue(amount);
           if (typeof window !== "undefined") {
             // Emit custom event to trigger parent refresh
@@ -404,13 +470,19 @@ export default function PredictionCard({
     }
   };
 
-  const handleCustomAmount = (percentage: number) => {
-    const calculatedAmount = maxAmount * percentage;
-    const clampedAmount = Math.max(0.01, Math.min(calculatedAmount, maxAmount));
-    const rounded = Math.round(clampedAmount * 100) / 100;
-    setAmount(rounded);
-    setInputValue(String(rounded)); // keep the text field in sync
-  };
+  const handleCustomAmount = useCallback(
+    (percentage: number) => {
+      const calculatedAmount = maxAmount * percentage;
+      const clampedAmount = Math.max(
+        0.01,
+        Math.min(calculatedAmount, maxAmount)
+      );
+      const rounded = Math.round(clampedAmount * 100) / 100;
+      setAmount(rounded);
+      setInputValue(String(rounded));
+    },
+    [maxAmount]
+  );
 
   const getButtonStyle = (direction: "up" | "down") => {
     if (variant === "expired" || variant === "live") {
@@ -421,21 +493,21 @@ export default function PredictionCard({
       } else {
         return "linear-gradient(228.15deg, rgba(255, 255, 255, 0.2) -64.71%, rgba(255, 255, 255, 0.05) 102.6%)";
       }
-    }  if ((variant === "next" ) && hasUserBet && userBetStatus) {
-          if (userBetStatus.direction === direction) {
-            // If they bet “up”, paint UP green; if “down”, paint DOWN red.
-            return direction === "up"
-              ? "linear-gradient(90deg, #06C729 0%, #04801B 100%)"
-              : "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)";
-          } else {
-            // The opposite side is greyed out:
-            return "#9CA3AF";
-          }
-        }
+    }
+    if (variant === "next" && hasUserBet && userBetStatus) {
+      if (userBetStatus.direction === direction) {
+        // If they bet “up”, paint UP green; if “down”, paint DOWN red.
+        return direction === "up"
+          ? "linear-gradient(90deg, #06C729 0%, #04801B 100%)"
+          : "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)";
+      } else {
+        // The opposite side is greyed out:
+        return "#9CA3AF";
+      }
+    }
 
     return "";
   };
-
 
   const renderNextRoundContent = () => {
     if (variant !== "next") return null;
@@ -584,7 +656,7 @@ export default function PredictionCard({
           <div className="flex-1 glass h-[300px] flex flex-col justify-between gap-[13px] rounded-[20px] px-[19px] py-[8.5px]">
             <div className="flex flex-col items-center gap-3 justify-center h-[280px]">
               <DotLoader
-                color={theme === "light" ? "#000": "#ffffff"}
+                color={theme === "light" ? "#000" : "#ffffff"}
                 size={40}
                 aria-label="Loading Spinner"
                 data-testid="loader"
@@ -758,7 +830,11 @@ export default function PredictionCard({
           }
         `}
     >
-      <div className={` ${theme === "light" ? 'bg-[#fffffff1]': 'bg-[#2a2a4c]'}  rounded-[20px] min-w-[240px] sm:min-w-[273px] w-full p-4`}>
+      <div
+        className={` ${
+          theme === "light" ? "bg-[#fffffff1]" : "bg-[#2a2a4c]"
+        }  rounded-[20px] min-w-[240px] sm:min-w-[273px] w-full p-4`}
+      >
         <div
           className={`${
             isFlipped ? "hidden" : "flex"
@@ -827,29 +903,31 @@ export default function PredictionCard({
             )}
           </div>
           {hasUserBet && userBetStatus && betValue !== null && (
-        <div className="mt-2 px-2 py-1 glass rounded text-sm font-medium">
-          Your Bet: {betValue.toFixed(4)} SOL
-        </div>
-      )}
-          {variant === "expired" &&
-           userBetStatus &&
-           roundData &&
-           ((roundData.closePrice > roundData.lockPrice && userBetStatus.direction === "up") ||
-            (roundData.closePrice < roundData.lockPrice && userBetStatus.direction === "down")) && (
-             <div
-               className="mt-1 px-2 py-1 bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 rounded text-xs font-semibold cursor-pointer inline-block"
-               onClick={() => {
-                 // Emit a custom event to let the parent know “claim roundId”
-                 if (typeof window !== "undefined") {
-                   window.dispatchEvent(
-                     new CustomEvent("claimRound", { detail: { roundId } })
-                   );
-                 }
-               }}
-             >
-               🎉 You Won! Claim
-             </div>
+            <div className="mt-2 px-2 py-1 glass rounded text-sm font-medium">
+              Your Bet: {betValue.toFixed(4)} SOL
+            </div>
           )}
+          {variant === "expired" &&
+            userBetStatus &&
+            roundData &&
+            ((roundData.closePrice > roundData.lockPrice &&
+              userBetStatus.direction === "up") ||
+              (roundData.closePrice < roundData.lockPrice &&
+                userBetStatus.direction === "down")) && (
+              <div
+                className="mt-1 px-2 py-1 bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 rounded text-xs font-semibold cursor-pointer inline-block"
+                onClick={() => {
+                  // Emit a custom event to let the parent know “claim roundId”
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(
+                      new CustomEvent("claimRound", { detail: { roundId } })
+                    );
+                  }
+                }}
+              >
+                🎉 You Won! Claim
+              </div>
+            )}
           <Button
             style={{ background: getButtonStyle("up") }}
             className={`glass flex flex-col gap-4 py-[16px] ${
@@ -860,7 +938,15 @@ export default function PredictionCard({
             } `}
           >
             <div className="flex justify-center items-center gap-2">
-              <p className="text-[20px] font-[600] leading-0">UP</p>
+              {hasUserBet &&
+              userBetStatus?.direction === "up" &&
+              betValue !== null ? (
+                <p className="text-[20px] font-[600] leading-0">
+                  UP&nbsp;&middot;&nbsp;{betValue.toFixed(4)}&nbsp;SOL
+                </p>
+              ) : (
+                <p className="text-[20px] font-[600] leading-0">UP</p>
+              )}
             </div>
             <p className="text-[10px] font-[600] leading-0">
               {bullMultiplier}x payout
@@ -885,7 +971,15 @@ export default function PredictionCard({
             }`}
           >
             <div className="flex justify-center items-center gap-2">
-              <p className="text-[20px] font-[600] leading-0">DOWN</p>
+              {hasUserBet &&
+              userBetStatus?.direction === "down" &&
+              betValue !== null ? (
+                <p className="text-[20px] font-[600] leading-0">
+                  DOWN&nbsp;&middot;&nbsp;{betValue.toFixed(4)}&nbsp;SOL
+                </p>
+              ) : (
+                <p className="text-[20px] font-[600] leading-0">DOWN</p>
+              )}
             </div>
             <p className="text-[10px] font-[600] leading-0">
               {bearMultiplier}x payout

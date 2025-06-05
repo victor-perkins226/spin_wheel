@@ -44,7 +44,7 @@ import {
   ConnectWalletBetToast,
   NoClaimableBetsToast,
 } from "./toasts";
-import { API_URL } from "@/lib/config";
+import { API_URL, RPC_URL } from "@/lib/config";
 const BetsHistory = React.lazy(() => import("./BetsHistory"));
 
 const LineChart = React.lazy(() => import("./LineChart"));
@@ -186,7 +186,7 @@ useEffect(() => {
 
   useEffect(() => {
     connectionRef.current = new Connection(
-      "https://lb.drpc.org/ogrpc?network=solana-devnet&dkey=AqnRwY5nD0C_uEv_hPfBwlLj0fFzMcQR8JKdzoXPVSjK",
+      RPC_URL,
       {
         commitment: "finalized",
         wsEndpoint: undefined,
