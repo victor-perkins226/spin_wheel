@@ -824,6 +824,10 @@ export default function PredictionCard({
               ? "opacity-50 glass cursor-not-allowed hover:opacity-80 "
               : ""
           }
+          ${
+            variant === "expired" && isClaimable && userBetStatus
+            ? "cursor-pointer hover:opacity-80 opacity-90 glass" : ""
+          }
           ${variant === "live" ? "gradient-border glass rounded-[22px] " : ""}
           ${
             variant === "next"
@@ -917,10 +921,10 @@ export default function PredictionCard({
                 className={`
                   ${
                     theme === "dark"
-                      ? "text-green-200 bg-green-200"
-                      : "bg-green-800 text-green-800"
+                      ? " text-green-800 bg-green-200"
+                      : "bg-green-800 text-green-200 "
                   }
-                  mt-1 px-2 py-1 mx-auto left-[30px] rounded-2xl z-10 w-[80%] h-[40px] flex items-center justify-center  absolute top-[240px text-xs font-semibold cursor-pointer`}
+                  mt-1 px-2 py-1 mx-auto left-[30px] rounded-2xl z-10 w-[80%] h-[40px] flex items-center justify-center opacity-100  absolute top-[240px] text-xs font-semibold cursor-pointer`}
                 onClick={() => {
                   // Emit a custom event to let the parent know “claim roundId”
                   if (typeof window !== "undefined") {
