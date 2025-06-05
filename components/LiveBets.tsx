@@ -481,7 +481,7 @@ useEffect(() => {
                     <span className={`font-semibold ${getAmountTextStyle()}`}>
                       {liveBets
                         .reduce((sum, bet) => sum + bet.amount, 0)
-                        .toFixed(2)}{" "}
+                        .toFixed(3)}{" "}
                       SOL
                     </span>
                   </div>

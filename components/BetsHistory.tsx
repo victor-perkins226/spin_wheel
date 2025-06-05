@@ -5,9 +5,10 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface BetsHistoryProps {
   userBets: UserBet[];
+  currentRound: number;
 }
 
-export default function BetsHistory({ userBets }: BetsHistoryProps) {
+export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps) {
   const { theme } = useTheme();
   const [sortedBets, setSortedBets] = useState<UserBet[]>([]);
   const [mounted, setMounted] = useState(false);
@@ -49,6 +50,13 @@ export default function BetsHistory({ userBets }: BetsHistoryProps) {
   if (!mounted) {
     return null;
   }
+
+  const displayStatus = (bet: UserBet) => {
+    if (bet.roundId === currentRound) {
+      return "PENDING";
+    }
+    return bet.status;
+  };
 
   const getStatusColor = (status: string) => {
     const baseClasses = 'px-2 py-1 rounded-full text-xs font-medium';
@@ -141,7 +149,7 @@ export default function BetsHistory({ userBets }: BetsHistoryProps) {
                   <th className="pb-3 font-medium">Payout</th>
                 </tr>
               </thead>
-              <tbody>
+              {/* <tbody>
                 {currentBets.map((bet, index) => (
                   <tr 
                     key={`${bet.id}-${index}`} 
@@ -183,6 +191,52 @@ export default function BetsHistory({ userBets }: BetsHistoryProps) {
                     </td>
                   </tr>
                 ))}
+              </tbody> */}
+                <tbody>
+                {currentBets.map((bet, index) => {
+                  const statusToShow = displayStatus(bet);
+                  return (
+                    <tr 
+                      key={`${bet.id}-${index}`} 
+                      className={`${getBorderColor()} ${
+                        index !== 0 ? 'border-t' : ''
+                      } hover:bg-muted/20 transition-colors`}
+                    >
+                      <td className="py-3 text-foreground font-mono text-sm">
+                        #{bet.roundId}
+                      </td>
+                      <td className={`py-3 font-semibold ${getDirectionColor(bet.direction)}`}>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs">
+                            {bet.direction === 'up' ? '↗' : '↘'}
+                          </span>
+                          {bet.direction.toUpperCase()}
+                        </div>
+                      </td>
+                      <td className="py-3 text-foreground font-mono text-sm">
+                        {bet.amount.toFixed(2)} SOL
+                      </td>
+                      <td className="py-3">
+                        <span className={getStatusColor(statusToShow)}>
+                          {statusToShow}
+                        </span>
+                      </td>
+                      <td className="py-3 text-foreground font-mono text-sm">
+                        {statusToShow === 'WON' || statusToShow === 'CLAIMED' ? (
+                          <span className={theme === 'dark' ? 'text-green-400' : 'text-green-600'}>
+                            +{bet.payout.toFixed(2)} SOL
+                          </span>
+                        ) : statusToShow === 'LOST' ? (
+                          <span className={theme === 'dark' ? 'text-red-400' : 'text-red-600'}>
+                            -{bet.amount.toFixed(2)} SOL
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

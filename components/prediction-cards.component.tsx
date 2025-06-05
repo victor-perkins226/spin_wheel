@@ -93,27 +93,26 @@ export default function PredictionCards() {
   const previousComputedRoundsRef = useRef<Round[]>([]); // Ref to store last valid computed rounds
   const [liveTotal, setLiveTotal] = useState<number>(0);
 
-  
   // Update claimableAmountRef when claimableBets changes
- 
-// Replace your existing claimableRewards effect with this simplified version:
-// Replace your existing claimableRewards effect with this improved version:
-useEffect(() => {
-  const sum = claimableBets.reduce((tot, b) => tot + (b.payout || 0), 0);
-  setClaimableRewards(sum);
-}, [claimableBets]); // Remove isClaiming dependency
 
-// Add this effect to handle periodic refresh of user bets
-useEffect(() => {
-  if (!connected || !publicKey) return;
+  // Replace your existing claimableRewards effect with this simplified version:
+  // Replace your existing claimableRewards effect with this improved version:
+  useEffect(() => {
+    const sum = claimableBets.reduce((tot, b) => tot + (b.payout || 0), 0);
+    setClaimableRewards(sum);
+  }, [claimableBets]); // Remove isClaiming dependency
 
-  // Set up periodic refresh of user bets every 30 seconds
-  const interval = setInterval(() => {
-    fetchUserBets();
-  }, 10000);
+  // Add this effect to handle periodic refresh of user bets
+  useEffect(() => {
+    if (!connected || !publicKey) return;
 
-  return () => clearInterval(interval);
-}, [connected, publicKey, fetchUserBets]);
+    // Set up periodic refresh of user bets every 30 seconds
+    const interval = setInterval(() => {
+      fetchUserBets();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [connected, publicKey, fetchUserBets]);
 
   // useEffect(() => {
   //   let timeoutId: NodeJS.Timeout;
@@ -196,16 +195,11 @@ useEffect(() => {
     }
   }, [fetchMoreRounds]);
 
-
-
   useEffect(() => {
-    connectionRef.current = new Connection(
-      RPC_URL,
-      {
-        commitment: "finalized",
-        wsEndpoint: undefined,
-      }
-    );
+    connectionRef.current = new Connection(RPC_URL, {
+      commitment: "finalized",
+      wsEndpoint: undefined,
+    });
 
     const updateScreenWidth = () => {
       setScreenWidth(window.innerWidth);
@@ -280,7 +274,10 @@ useEffect(() => {
   };
 
   useEffect(() => {
-    const socket = io(API_URL, { transports: ["websocket"], reconnection: true });
+    const socket = io(API_URL, {
+      transports: ["websocket"],
+      reconnection: true,
+    });
 
     const handleRoundUpdate = (data: any) => {
       if (data.type === "roundEnded" || data.type === "roundStarted") {
@@ -397,7 +394,6 @@ useEffect(() => {
 
       await connectionRef.current.confirmTransaction(signature, "confirmed");
 
-
       // Refresh user bets and balance in parallel
       await Promise.all([
         fetchUserBets().finally(() => {
@@ -466,12 +462,12 @@ useEffect(() => {
   useEffect(() => {
     const onClaimRound = (e: CustomEvent) => {
       const { roundId } = e.detail as { roundId: number };
-  
+
       if (!claimableBets.find((b) => b.roundNumber === roundId)) {
         // No claimable bet for that round? Bail out.
         return;
       }
-  
+
       // call your existing `handleClaimPayout` for just that one round:
       (async () => {
         try {
@@ -479,20 +475,26 @@ useEffect(() => {
           // build a transaction that claims only roundId
           const instruction = await handleClaimPayout(roundId);
           const tx = new Transaction().add(instruction);
-          const { blockhash } = await connectionRef.current!.getLatestBlockhash();
+          const { blockhash } =
+            await connectionRef.current!.getLatestBlockhash();
           tx.recentBlockhash = blockhash;
           tx.feePayer = publicKey!;
-  
+
           const sig = await sendTransaction(tx, connectionRef.current!, {
-            skipPreflight: false
+            skipPreflight: false,
           });
           await connectionRef.current!.confirmTransaction(sig, "confirmed");
-  
-          // now refresh (user-only) 
+
+          // now refresh (user-only)
           await fetchUserBets();
           setIsClaiming(false);
           toast.custom(
-            (t) => <ClaimSuccessToast theme={theme} claimableAmount={0 /* or specific */} />,
+            (t) => (
+              <ClaimSuccessToast
+                theme={theme}
+                claimableAmount={0 /* or specific */}
+              />
+            ),
             { position: "top-center" }
           );
         } catch (err) {
@@ -504,13 +506,21 @@ useEffect(() => {
         }
       })();
     };
-  
+
     window.addEventListener("claimRound", onClaimRound as EventListener);
     return () => {
       window.removeEventListener("claimRound", onClaimRound as EventListener);
     };
-  }, [claimableBets, handleClaimPayout, fetchUserBets, connectionRef, publicKey, sendTransaction, theme]);
-  
+  }, [
+    claimableBets,
+    handleClaimPayout,
+    fetchUserBets,
+    connectionRef,
+    publicKey,
+    sendTransaction,
+    theme,
+  ]);
+
   const getSlidesPerView = () => {
     if (!mounted) return 1;
     if (screenWidth < 640) return 1;
@@ -522,7 +532,7 @@ useEffect(() => {
   const createDummyLaterRound = useCallback(
     (baseRound: Round, offsetNumber: number): Round => {
       const roundNumber = Number(baseRound.number) + offsetNumber;
-   
+
       const baseStartTime =
         typeof baseRound.closeTime === "number"
           ? baseRound.closeTime + offsetNumber * (config?.roundDuration || 360)
@@ -562,8 +572,6 @@ useEffect(() => {
   };
 
   // Add a more robust version of safeFetchMoreRounds that handles API errors
-
-
 
   // 2) Handle updates coming from <LiveBets />
   const handleLiveTotalChange = (sum: number) => {
@@ -648,9 +656,24 @@ useEffect(() => {
     const now = Math.floor(Date.now() / 1000);
 
     // 1. Find the live round (the one that just ended)
-    const liveRound = previousRounds.find(
+    let liveRound: Round | undefined = previousRounds.find(
       (r) => Number(r.number) === currentRoundNumber - 1
     );
+    if (!liveRound && typeof currentRoundNumber === "number") {
+      const dummyRoundNumber = currentRoundNumber - 1;
+      liveRound = {
+        number: dummyRoundNumber.toString(),
+        startTime: now - (config?.roundDuration || 360),
+        lockTime:
+          now - (config?.roundDuration || 360) + (config?.lockDuration || 180),
+        closeTime: now,
+        totalAmount: 0,
+        totalBullAmount: 0,
+        totalBearAmount: 0,
+        isActive: false,
+        status: "locked", // or “expired”/“live” – but it just reserves a placeholder slot.
+      } as unknown as Round;
+    }
 
     const nextRound =
       previousRounds.find((r) => Number(r.number) === currentRoundNumber) ||
@@ -691,7 +714,7 @@ useEffect(() => {
     // 5. Compose final array: static expired + dynamic live/next/later
     return [
       ...expiredRounds, // Only updated on explicit history fetches
-      liveRound,
+      liveRound!,
       nextRound,
       ...laterRounds,
       ...dummyLaterRounds,
@@ -846,46 +869,42 @@ useEffect(() => {
     initialSlideJumped.current = true;
   }, [swiperReady]);
 
+  const prevTimeLeft = useRef<number | null>(null);
 
-const prevTimeLeft = useRef<number | null>(null);
-
-useEffect(() => {
-  // If on mount, timeLeft is already 0, treat it as a “round ended” event.
-  if (prevTimeLeft.current == null && timeLeft === 0) {
-    // immediate sync (or you can delay a bit if you want):
-    fetchUserBets();
-    safeFetchMoreRounds();
-    prevTimeLeft.current = 0;
-    return;
-  }
-
-  // Otherwise, detect a transition from >0 → 0:
-  if (prevTimeLeft.current! > 0 && timeLeft === 0) {
-    const timer = setTimeout(() => {
+  useEffect(() => {
+    // If on mount, timeLeft is already 0, treat it as a “round ended” event.
+    if (prevTimeLeft.current == null && timeLeft === 0) {
+      // immediate sync (or you can delay a bit if you want):
       fetchUserBets();
       safeFetchMoreRounds();
-    }, 2000);
-    return () => clearTimeout(timer);
-  }
+      prevTimeLeft.current = 0;
+      return;
+    }
 
-  prevTimeLeft.current = timeLeft;
-}, [timeLeft, fetchUserBets, safeFetchMoreRounds]);
+    // Otherwise, detect a transition from >0 → 0:
+    if (prevTimeLeft.current! > 0 && timeLeft === 0) {
+      const timer = setTimeout(() => {
+        fetchUserBets();
+        safeFetchMoreRounds();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
 
-const didFetchAtZero = useRef(false);
-useEffect(() => {
-  if (timeLeft === 0 && !didFetchAtZero.current) {
-    didFetchAtZero.current = true;
-    // Refresh both user bets and rounds when round completes
-    Promise.all([
-      fetchUserBets(),
-      safeFetchMoreRounds()
-    ]);
-    initialSlideJumped.current = false;
-  }
-  if (timeLeft! > 0) {
-    didFetchAtZero.current = false;
-  }
-}, [timeLeft, fetchUserBets, safeFetchMoreRounds]);
+    prevTimeLeft.current = timeLeft;
+  }, [timeLeft, fetchUserBets, safeFetchMoreRounds]);
+
+  const didFetchAtZero = useRef(false);
+  useEffect(() => {
+    if (timeLeft === 0 && !didFetchAtZero.current) {
+      didFetchAtZero.current = true;
+      // Refresh both user bets and rounds when round completes
+      Promise.all([fetchUserBets(), safeFetchMoreRounds()]);
+      initialSlideJumped.current = false;
+    }
+    if (timeLeft! > 0) {
+      didFetchAtZero.current = false;
+    }
+  }, [timeLeft, fetchUserBets, safeFetchMoreRounds]);
 
   const formatTimeLeft = (seconds: number | null) => {
     if (seconds === null || seconds <= 0) return "Locked";
@@ -1118,12 +1137,15 @@ useEffect(() => {
 
           {connected && userBets.length > 0 && (
             // <Suspense fallback={<PuffLoader color="#06C729" size={30} />}>
-            <BetsHistory userBets={userBets} />
+            <BetsHistory
+              currentRound={currentRoundNumber!}
+              userBets={userBets}
+            />
             // </Suspense>
           )}
         </div>
         <LiveBets
-        onLiveTotalChange={handleLiveTotalChange}
+          onLiveTotalChange={handleLiveTotalChange}
           currentRound={Number(currentRound?.number) ?? null}
           key={currentRound?.number}
         />
