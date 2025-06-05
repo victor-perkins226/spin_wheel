@@ -113,6 +113,8 @@ export default function PredictionCard({
     [isSubmitting, isValidAmount]
   );
 
+  const [claimLoading, setClaimLoading] = useState(false);
+
   const [scriptBetPlaced, setScriptBetPlaced] = useState(false);
 
   const [lockedPriceLocal, setLockedPriceLocal] = useState<number>(
@@ -274,6 +276,11 @@ export default function PredictionCard({
     if (userBetStatus) {
       // If you already store amount in SOL, remove the division; adjust accordingly:
       setBetValue(userBetStatus.amount);
+    }
+  }, [userBetStatus]);
+  useEffect(() => {
+    if (userBetStatus?.status === "CLAIMED") {
+      setClaimLoading(false);
     }
   }, [userBetStatus]);
   const getPriceMovement = () => {
@@ -826,7 +833,8 @@ export default function PredictionCard({
           }
           ${
             variant === "expired" && isClaimable && userBetStatus
-            ? "cursor-pointer hover:opacity-80 opacity-90 glass" : ""
+              ? "cursor-pointer hover:opacity-80 opacity-90 glass"
+              : ""
           }
           ${variant === "live" ? "gradient-border glass rounded-[22px] " : ""}
           ${
@@ -917,27 +925,38 @@ export default function PredictionCard({
               userBetStatus.direction === "up") ||
               (roundData.closePrice < roundData.lockPrice &&
                 userBetStatus.direction === "down")) && (
-              <div
-                className={`
-                  ${
-                    theme === "dark"
-                      ? " text-green-200"
-                      : " text-green-800 "
-                  }
-                  glass
+              <div>
+                {claimLoading ? (
+                  <div
+                    className=" glass mt-1 px-2 py-1 mx-auto left-[30px] rounded-2xl z-10 w-[80%] h-[40px] flex items-center justify-center opacity-100  absolute top-[240px] text-xs font-semibold cursor-pointer"
+                  >
+                    <PuffLoader color="#06C729" size={24} />
+                  </div>
+                ) : (
+                  <div
+                    className={`
+                        ${
+                          theme === "dark"
+                            ? " text-green-200"
+                            : " text-green-800 "
+                        }
+                         glass
                   mt-1 px-2 py-1 mx-auto left-[30px] rounded-2xl z-10 w-[80%] h-[40px] flex items-center justify-center opacity-100  absolute top-[240px] text-xs font-semibold cursor-pointer`}
-                onClick={() => {
-                  // Emit a custom event to let the parent know “claim roundId”
-                  if (typeof window !== "undefined") {
-                    window.dispatchEvent(
-                      new CustomEvent("claimRound", { detail: { roundId } })
-                    );
-                  }
-                }}
-              >
-                🎉 You Won! Claim
+                    onClick={() => {
+                      setClaimLoading(true);
+                      if (typeof window !== "undefined") {
+                        window.dispatchEvent(
+                          new CustomEvent("claimRound", { detail: { roundId } })
+                        );
+                      }
+                    }}
+                  >
+                    🎉 You Won! Claim
+                  </div>
+                )}
               </div>
             )}
+
           <Button
             style={{ background: getButtonStyle("up") }}
             className={`glass flex flex-col gap-4 py-[16px] ${
