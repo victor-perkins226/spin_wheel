@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { UserBet } from '@/types/round';
 import { useTheme } from 'next-themes';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { formatNum } from '@/lib/utils';
 
 interface BetsHistoryProps {
   userBets: UserBet[];
@@ -214,7 +215,7 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
                         </div>
                       </td>
                       <td className="py-3 text-foreground font-mono text-sm">
-                        {bet.amount.toFixed(2)} SOL
+                        {formatNum(bet.amount)} SOL
                       </td>
                       <td className="py-3">
                         <span className={getStatusColor(statusToShow)}>
@@ -224,11 +225,11 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
                       <td className="py-3 text-foreground font-mono text-sm">
                         {statusToShow === 'WON' || statusToShow === 'CLAIMED' ? (
                           <span className={theme === 'dark' ? 'text-green-400' : 'text-green-600'}>
-                            +{bet.payout.toFixed(2)} SOL
+                            +{formatNum(bet.payout)} SOL
                           </span>
                         ) : statusToShow === 'LOST' ? (
                           <span className={theme === 'dark' ? 'text-red-400' : 'text-red-600'}>
-                            -{bet.amount.toFixed(2)} SOL
+                            -{formatNum(bet.amount)} SOL
                           </span>
                         ) : (
                           <span className="text-muted-foreground">-</span>
@@ -317,7 +318,7 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
             <div>
               <div className="text-xs text-muted-foreground mb-1">Total Wagered</div>
               <div className="text-sm font-semibold text-foreground">
-                {totalWagered.toFixed(2)} SOL
+                {formatNum(totalWagered)} SOL
               </div>
             </div>
             <div>
@@ -325,7 +326,7 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
               <div className={`text-sm font-semibold ${
                 theme === 'dark' ? 'text-green-400' : 'text-green-600'
               }`}>
-                {totalPayout.toFixed(2)} SOL
+                {formatNum(totalPayout)} SOL
               </div>
             </div>
             <div>
@@ -335,7 +336,7 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
                   ? theme === 'dark' ? 'text-green-400' : 'text-green-600'
                   : theme === 'dark' ? 'text-red-400' : 'text-red-600'
               }`}>
-                {netProfit >= 0 ? '+' : ''}{netProfit.toFixed(2)} SOL
+                {netProfit >= 0 ? '+' : ''}{formatNum(netProfit)} SOL
               </div>
             </div>
           </div>

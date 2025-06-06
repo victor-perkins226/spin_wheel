@@ -3,6 +3,7 @@ import React, { useMemo } from "react";
 import Image from "next/image";
 import NumberFlow from "@number-flow/react";
 import { PuffLoader } from "react-spinners";
+import { formatNum } from "@/lib/utils";
 
 export interface MarketHeaderProps {
   /** Latest SOL/USDT price (as a number, e.g. 172.5234) */
@@ -100,8 +101,8 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
                 <NumberFlow
                   value={liveRoundPrice}
                   format={{
-                    minimumFractionDigits: 4,
-                    maximumFractionDigits: 4,
+                    minimumFractionDigits: 3,
+                    maximumFractionDigits: 3,
                   }}
                   transformTiming={{
                     duration: 750,
@@ -198,7 +199,7 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
                   height={20}
                   className="w-[20px] h-auto object-contain"
                 />
-                <span>{userBalance.toFixed(4)} SOL</span>
+                <span>{formatNum(userBalance)} SOL</span>
               </div>
             </div>
 
@@ -215,7 +216,7 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
                       height={20}
                       className="w-[20px] h-auto object-contain"
                     />
-                    <span>{claimableRewards.toFixed(4)} SOL</span>
+                    <span>{formatNum(claimableRewards)} SOL</span>
                   </div>
                 </div>
                 <button

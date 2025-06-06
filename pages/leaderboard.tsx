@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/Themetoggle";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { API_URL } from "@/lib/config";
+import { formatNum } from "@/lib/utils";
 
 type Leader = {
   userWalletAddress: string;
@@ -87,7 +88,7 @@ export default function Leaderboard({ leaders }: Props) {
                   0,
                   6
                 )}…${L.userWalletAddress.slice(-4)}`;
-                const pct = `${L.winRate.toFixed(2)}%`;
+                const pct = `${formatNum(L.winRate)}%`;
                 return (
                   <tr
                     key={L.userWalletAddress}
@@ -117,7 +118,7 @@ export default function Leaderboard({ leaders }: Props) {
                           src={SolanaLogo}
                           alt="SOL"
                         />
-                        {L.netWinning.toFixed(3)} SOL
+                        {formatNum(L.netWinning)} SOL
                       </div>
                     </td>
                     <td className="py-3 pr-4">{pct}</td>

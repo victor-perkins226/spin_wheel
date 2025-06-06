@@ -6,6 +6,7 @@ import Success from "@/public/assets/success-bet.png";
 import BetFailed from "@/public/assets/BetFailure.png";
 import Cheers from "@/public/assets/cheers.png";
 import Withdraw from "@/public/assets/Withdrawal.png";
+import { formatNum } from "@/lib/utils";
 
 ////////////////////////////////////////////////////////////////////////////////
 // 1) ClaimNotConnectedToast
@@ -97,7 +98,7 @@ export function ClaimSuccessToast({
       </h3>
 
       <p className="max-w-sm mx-auto text-sm">
-        You have withdrawn {claimableAmount.toFixed(4)} SOL
+        You have withdrawn {formatNum(claimableAmount)} SOL
       </p>
     </div>
   );
@@ -127,7 +128,7 @@ export function ClaimSuccessToastMini({
         </h3>
   
         <p className="max-w-sm mx-auto text-xs">
-          You have withdrawn {claimableAmount.toFixed(4)} SOL
+          You have withdrawn {formatNum(claimableAmount)} SOL
         </p>
       </div>
     );

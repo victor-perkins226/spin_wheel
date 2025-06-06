@@ -11,9 +11,13 @@ import { ThemeToggle } from "./Themetoggle";
 import toast from "react-hot-toast";
 import BigBet from "@/public/assets/Big-Bet.png";
 import { API_URL } from "@/lib/config";
+import { formatNum } from "@/lib/utils";
+import { network } from "./wallet.provider.component";
+import { dir } from "console";
 
 // Define the Bet interface
 interface Bet {
+  direction: string;
   user: string;
   amount: number;
   signature: string;
@@ -49,6 +53,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
     new Set()
   );
 
+  console.log("LiveBets component mounted", liveBets);
   // Animation styles
   const animationStyles = `
     @keyframes slideDownFade {
@@ -88,15 +93,18 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
             if (!bet.data.round_number) {
               return null;
             }
+            const directionStr = bet.data.prediction ? "UP" : "DOWN";
+
             return {
               user: bet.data.user.slice(0, 8) + "...",
               amount: bet.data.amount / 1e9, // Convert lamports to SOL
               signature: bet.signature,
+              direction: directionStr,
               timestamp: new Date(bet.timestamp).getTime(),
               round_number: bet.data.round_number,
             };
           })
-          .filter((bet): bet is Bet => bet !== null)
+          .filter((bet: Bet): bet is Bet => bet !== null)
           .filter((bet: Bet) => bet.round_number === currentRound) // Filter by current round
           .sort((a: Bet, b: Bet) => b.amount - a.amount) // Sort by amount descending
           .slice(0, 10); // Limit to 10 bets
@@ -113,53 +121,59 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
     fetchBets();
   }, [currentRound]);
 
-useEffect(() => {
-  if (currentRound === null) return;
+  useEffect(() => {
+    if (currentRound === null) return;
 
-
-  const onConnect = () => {
-    console.log("Connected to WebSocket");
-  };
-
-  const onDisconnect = () => {
-    console.log("Disconnected from WebSocket");
-  };
-
-  const onError = (error: any) => {
-    console.error("WebSocket error:", error);
-  };
-
-  const onReconnectAttempt = (attempt: number) => {
-    console.log(`Reconnecting to WebSocket, attempt ${attempt}`);
-  };
-
-  const onNewBet = (newBet: any) => {
-    
-    // Format the bet
-    const formattedBet: Bet = {
-      user: newBet.data.user.slice(0, 8) + "...",
-      amount: newBet.data.amount / 1e9,
-      signature: newBet.signature,
-      timestamp: new Date(newBet.timestamp).getTime(),
-      round_number: newBet.data.round_number,
+    const onConnect = () => {
+      console.log("Connected to WebSocket");
     };
 
-    // Only process bets for the current round
-    if (formattedBet.round_number !== currentRound) {
-      return;
-    }
+    const onDisconnect = () => {
+      console.log("Disconnected from WebSocket");
+    };
 
-    // Show big bet toast ONLY ONCE
-    if (formattedBet.amount > BIG_BET_THRESHOLD) {
-      console.log("🎉 Big bet detected! Amount:", formattedBet.amount, "Threshold:", BIG_BET_THRESHOLD);
-      
-      // Add a unique ID to prevent duplicates
-      const toastId = `big-bet-${formattedBet.signature}`;
-      
-      toast.custom(
-        (t) => (
-          <div
-            className={`
+    const onError = (error: any) => {
+      console.error("WebSocket error:", error);
+    };
+
+    const onReconnectAttempt = (attempt: number) => {
+      console.log(`Reconnecting to WebSocket, attempt ${attempt}`);
+    };
+
+    const onNewBet = (newBet: any) => {
+      // Format the bet
+      const directionStr = newBet.data.prediction ? "UP" : "DOWN";
+
+      const formattedBet: Bet = {
+        user: newBet.data.user.slice(0, 8) + "...",
+        amount: newBet.data.amount / 1e9,
+        signature: newBet.signature,
+        timestamp: new Date(newBet.timestamp).getTime(),
+        round_number: newBet.data.round_number,
+        direction: directionStr,
+      };
+
+      // Only process bets for the current round
+      if (formattedBet.round_number !== currentRound) {
+        return;
+      }
+
+      // Show big bet toast ONLY ONCE
+      if (formattedBet.amount > BIG_BET_THRESHOLD) {
+        console.log(
+          "🎉 Big bet detected! Amount:",
+          formattedBet.amount,
+          "Threshold:",
+          BIG_BET_THRESHOLD
+        );
+
+        // Add a unique ID to prevent duplicates
+        const toastId = `big-bet-${formattedBet.signature}`;
+
+        toast.custom(
+          (t) => (
+            <div
+              className={`
               w-full glass text-center h-[400px] max-w-[600px] bg-white dark:bg-gray-800 rounded-2xl
               shadow-xl animate-toast-bounce ring-1 ring-black ring-opacity-5 overflow-hidden justify-space-between
               flex flex-col items-start p-4 pb-8 mt-16
@@ -169,84 +183,82 @@ useEffect(() => {
                   : "bg-white text-black"
               }
             `}
-            style={{
-              animation: t.visible
-                ? "fadeInDown 200ms ease-out forwards"
-                : "fadeOutUp 150ms ease-in forwards",
-            }}
-          >
-            <div className="w-full animate-vibrate h-[280px] relative mb-4">
-              <Image
-                src={BigBet}
-                alt="big bet"
-                fill
-                className="object-cover rounded-xl"
-              />
+              style={{
+                animation: t.visible
+                  ? "fadeInDown 200ms ease-out forwards"
+                  : "fadeOutUp 150ms ease-in forwards",
+              }}
+            >
+              <div className="w-full animate-vibrate h-[280px] relative mb-4">
+                <Image
+                  src={BigBet}
+                  alt="big bet"
+                  fill
+                  className="object-cover rounded-xl"
+                />
+              </div>
+
+              <h3 className="font-bold text-2xl animate-toast-pulse mb-2">
+                Big Bet Notification
+              </h3>
+
+              <p className="text-sm">
+                {formattedBet.user} made a {formatNum(formattedBet.amount)} SOL
+                bet
+              </p>
             </div>
-
-            <h3 className="font-bold text-2xl animate-toast-pulse mb-2">
-              Big Bet Notification
-            </h3>
-
-            <p className="text-sm">
-              {formattedBet.user} made a {formattedBet.amount.toFixed(2)} SOL bet
-            </p>
-          </div>
-        ),
-        {
-          position: "top-center",
-          duration: 4000,
-          id: toastId, // Prevent duplicates with same ID
-        }
-      );
-    }
-    // Update liveBets state
-    setLiveBets((prevBets) => {
-      // Prevent duplicates by signature
-      if (prevBets.some((bet) => bet.signature === formattedBet.signature)) {
-        return prevBets;
+          ),
+          {
+            position: "top-center",
+            duration: 4000,
+            id: toastId, // Prevent duplicates with same ID
+          }
+        );
       }
+      // Update liveBets state
+      setLiveBets((prevBets) => {
+        // Prevent duplicates by signature
+        if (prevBets.some((bet) => bet.signature === formattedBet.signature)) {
+          return prevBets;
+        }
 
+        // Mark this bet as new for animation
+        setNewBetSignatures(
+          (prev) => new Set(prev.add(formattedBet.signature))
+        );
 
-      // Mark this bet as new for animation
-      setNewBetSignatures(
-        (prev) => new Set(prev.add(formattedBet.signature))
-      );
+        const updatedBets = [formattedBet, ...prevBets]
+          .sort((a, b) => b.amount - a.amount)
+          .slice(0, 10);
 
-      const updatedBets = [formattedBet, ...prevBets]
-        .sort((a, b) => b.amount - a.amount)
-        .slice(0, 10);
-      
-      return updatedBets;
-    });
-  };
+        return updatedBets;
+      });
+    };
 
-  // Remove any existing listeners first (cleanup any previous listeners)
-  socket.off("connect");
-  socket.off("disconnect");
-  socket.off("error");
-  socket.off("reconnect_attempt");
-  socket.off("newBetPlaced");
+    // Remove any existing listeners first (cleanup any previous listeners)
+    socket.off("connect");
+    socket.off("disconnect");
+    socket.off("error");
+    socket.off("reconnect_attempt");
+    socket.off("newBetPlaced");
 
-  // Attach all event listeners
-  socket.on("connect", onConnect);
-  socket.on("disconnect", onDisconnect);
-  socket.on("error", onError);
-  socket.off("reconnect_attempt", onReconnectAttempt);
-  socket.on("newBetPlaced", onNewBet);
-
-  // Clean up all listeners on unmount/deps change
-  return () => {
-    console.log("🧹 Cleaning up WebSocket listeners");
-    socket.off("connect", onConnect);
-    socket.off("disconnect", onDisconnect);
-    socket.off("error", onError);
+    // Attach all event listeners
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+    socket.on("error", onError);
     socket.off("reconnect_attempt", onReconnectAttempt);
-    socket.off("newBetPlaced", onNewBet);
-  };
-}, [currentRound, theme]);
+    socket.on("newBetPlaced", onNewBet);
 
-  
+    // Clean up all listeners on unmount/deps change
+    return () => {
+      console.log("🧹 Cleaning up WebSocket listeners");
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+      socket.off("error", onError);
+      socket.off("reconnect_attempt", onReconnectAttempt);
+      socket.off("newBetPlaced", onNewBet);
+    };
+  }, [currentRound, theme]);
 
   // Remove animation class after animation completes
   useEffect(() => {
@@ -315,8 +327,6 @@ useEffect(() => {
         : "hover:bg-black/5 text-foreground shadow-sm"
     }`;
   };
-
-
 
   return (
     <>
@@ -431,9 +441,30 @@ useEffect(() => {
                           >
                             <SVG width={24} height={24} iconName="avatar" />
                           </div>
-                          <span className={getUserTextStyle()}>{bet.user}</span>
+                          <a
+                            href={`https://solscan.io/tx/${bet.signature}?cluster=${network}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={getUserTextStyle()}
+                          >
+                            <span>{bet.user}</span>
+                            <span
+                              className={`font-semibold text-xs flex ${
+                               bet.direction === "UP"
+                                  ? theme === "dark"
+                                    ? "text-green-400"
+                                    : "text-green-600"
+                                  : theme === "dark"
+                                  ? "text-red-400"
+                                  : "text-red-600"
+                              }`}
+                            >
+                              {bet.direction === "UP" ? "↑ UP" : "↓ DOWN"}
+                            </span>
+                          </a>
                         </div>
                       </td>
+                      <td className="py-3"></td>
                       <td className="py-3">
                         <div className="flex items-center gap-2">
                           <div
@@ -452,7 +483,7 @@ useEffect(() => {
                             />
                           </div>
                           <span className={getAmountTextStyle()}>
-                            {bet.amount.toFixed(3)} SOL
+                            {formatNum(bet.amount)} SOL
                           </span>
                         </div>
                       </td>
@@ -479,9 +510,9 @@ useEffect(() => {
                       Total Volume
                     </span>
                     <span className={`font-semibold ${getAmountTextStyle()}`}>
-                      {liveBets
-                        .reduce((sum, bet) => sum + bet.amount, 0)
-                        .toFixed(3)}{" "}
+                      {formatNum(
+                        liveBets.reduce((sum, bet) => sum + bet.amount, 0)
+                      )}{" "}
                       SOL
                     </span>
                   </div>
