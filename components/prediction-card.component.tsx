@@ -23,6 +23,7 @@ import {
   ConnectWalletBetToast,
   InvalidAmountToast,
 } from "./toasts";
+import { formatNum } from "@/lib/utils";
 
 interface IProps {
   variant?: "live" | "expired" | "next" | "later" | "locked";
@@ -123,6 +124,18 @@ export default function PredictionCard({
   const [prizePoolLocal, setPrizePoolLocal] = useState<number>(
     roundData?.prizePool ?? 0
   );
+    const [upBetsLocal, setUpBetsLocal] = useState<number>(
+    roundData?.upBets ?? 0
+  );
+  const [downBetsLocal, setDownBetsLocal] = useState<number>(
+    roundData?.downBets ?? 0
+  );
+
+  useEffect(() => {
+  if (!roundData) return;
+  setUpBetsLocal(roundData.upBets);
+  setDownBetsLocal(roundData.downBets);
+}, [roundData?.upBets, roundData?.downBets]);
 
   useEffect(() => {
     if (roundData) {
@@ -136,8 +149,9 @@ export default function PredictionCard({
         setLockedPriceLocal(liveRoundPrice);
       }
       setPrizePoolLocal(roundData.prizePool);
+      
     }
-  }, [roundId, roundData, liveRoundPrice, lockedPriceLocal]);
+  }, [roundId, roundData, liveRoundPrice]);
 
   const { theme } = useTheme();
 
@@ -147,12 +161,24 @@ export default function PredictionCard({
   const connectedRef = useRef(connected);
   const publicKeyRef = useRef(publicKey);
 
-  const calculateMultipliers = () => {
-    if (!roundData) return { bullMultiplier: "0.00", bearMultiplier: "0.00" };
+ useEffect(() => {
+   const onClaimFinished = () => {
+     setClaimLoading(false);
+   };
 
-    const totalAmount = roundData.prizePool;
-    const totalBullAmount = roundData.upBets;
-    const totalBearAmount = roundData.downBets;
+   window.addEventListener("claimFinished", onClaimFinished);
+   return () => {
+     window.removeEventListener("claimFinished", onClaimFinished);
+   };
+ }, []);  
+
+  const calculateMultipliers = () => {
+    if (!roundData) return { bullMultiplier: "1.00", bearMultiplier: "1.00" };
+
+ const totalAmount =
+    variant === "next" ? liveTotalForThisRound : prizePoolLocal;
+  const totalBullAmount = upBetsLocal;
+  const totalBearAmount = downBetsLocal;
 
     // If no bets, return 1x multiplier
     if (totalAmount === 0) {
@@ -160,6 +186,7 @@ export default function PredictionCard({
     }
 
     const treasuryFeePercent = roundData.treasuryFee / 10000; // Convert basis points to decimal
+    console.log("treasure", treasuryFeePercent);
     const rewardAmount = totalAmount * (1 - treasuryFeePercent);
 
     // Calculate multipliers: (total reward pool / amount bet in that direction)
@@ -169,8 +196,8 @@ export default function PredictionCard({
       totalBearAmount > 0 ? rewardAmount / totalBearAmount : 1;
 
     return {
-      bullMultiplier: Math.max(bullMultiplier, 0).toFixed(2),
-      bearMultiplier: Math.max(bearMultiplier, 0).toFixed(2),
+      bullMultiplier: formatNum(Math.max(bullMultiplier, 0)),
+      bearMultiplier: formatNum(Math.max(bearMultiplier, 0)),
     };
   };
 
@@ -459,6 +486,11 @@ export default function PredictionCard({
         if (betStatus === true) {
           setJustBet(true);
           setPrizePoolLocal((prev) => prev + amount);
+             if (mode === "up") {
+          setUpBetsLocal((prev) => prev + amount);
+        } else {
+          setDownBetsLocal((prev) => prev + amount);
+        }
           setBetValue(amount);
           if (typeof window !== "undefined") {
             // Emit custom event to trigger parent refresh
@@ -556,7 +588,7 @@ export default function PredictionCard({
           />
           <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
             <p>Prize Pool</p>
-            <p>{nextPrizePool.toFixed(4)} SOL</p>
+            <p>{formatNum(nextPrizePool)} SOL</p>
           </div>
           {/* <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
               <p>Time Left</p>
@@ -719,18 +751,18 @@ export default function PredictionCard({
                     ) : (
                       <ArrowDown size={12} />
                     )}
-                    <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
+                    <p className="text-[10px]">${formatNum(priceDifference)}</p>
                   </div>
                 </div>
                 <div
                   className={`flex justify-between items-center ${getLabelTextStyle()}`}
                 >
                   <p>Locked Price</p>
-                  <p>${formattedRoundData.lockPrice.toFixed(4)}</p>
+                  <p>${formatNum(formattedRoundData.lockPrice)}</p>
                 </div>
                 <div className="flex justify-between text-[16px]">
                   <p>Prize Pool</p>
-                  <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
+                  <p>{formatNum(formattedRoundData.prizePool)} SOL</p>
                 </div>
               </div>
             </div>
@@ -786,7 +818,7 @@ export default function PredictionCard({
           >
             <div className="flex justify-between">
               <p className={getPriceTextStyle()}>
-                ${formattedRoundData.closePrice.toFixed(4)}
+                ${formatNum(formattedRoundData.closePrice)}
               </p>
               <div
                 className={`${getPriceDirectionBg()} flex items-center gap-[4px] ${
@@ -798,18 +830,18 @@ export default function PredictionCard({
                 ) : (
                   <ArrowDown size={12} />
                 )}
-                <p className="text-[10px]">${priceDifference.toFixed(4)}</p>
+                <p className="text-[10px]">${formatNum(priceDifference)}</p>
               </div>
             </div>
             <div
               className={`flex justify-between items-center ${getLabelTextStyle()}`}
             >
               <p>Locked Price</p>
-              <p>${formattedRoundData.lockPrice.toFixed(4)}</p>
+              <p>${formatNum(formattedRoundData.lockPrice)}</p>
             </div>
             <div className="flex justify-between text-[16px]">
               <p>Prize Pool</p>
-              <p>{formattedRoundData.prizePool.toFixed(4)} SOL</p>
+              <p>{formatNum(formattedRoundData.prizePool)} SOL</p>
             </div>
           </div>
         </div>
@@ -927,9 +959,7 @@ export default function PredictionCard({
                 userBetStatus.direction === "down")) && (
               <div>
                 {claimLoading ? (
-                  <div
-                    className=" glass mt-1 px-2 py-1 mx-auto left-[30px] rounded-2xl z-10 w-[80%] h-[40px] flex items-center justify-center opacity-100  absolute top-[240px] text-xs font-semibold cursor-pointer"
-                  >
+                  <div className=" glass mt-1 px-2 py-1 mx-auto left-[30px] rounded-2xl z-10 w-[80%] h-[40px] flex items-center justify-center opacity-100  absolute top-[240px] text-xs font-semibold cursor-pointer">
                     <PuffLoader color="#06C729" size={24} />
                   </div>
                 ) : (
@@ -941,7 +971,7 @@ export default function PredictionCard({
                             : " text-green-800 "
                         }
                          glass
-                  mt-1 px-2 py-1 mx-auto left-[30px] rounded-2xl z-10 w-[80%] h-[40px] flex items-center justify-center opacity-100  absolute top-[240px] text-xs font-semibold cursor-pointer`}
+                  mt-1 px-2 py-1 mx-auto left-[30px] rounded-2xl z-10 w-[80%]  h-[60px] flex items-center justify-center opacity-100  absolute top-[220px] text-sm font-semibold cursor-pointer`}
                     onClick={() => {
                       setClaimLoading(true);
                       if (typeof window !== "undefined") {
@@ -951,7 +981,7 @@ export default function PredictionCard({
                       }
                     }}
                   >
-                    🎉 You Won! Claim
+                    <span className="animate-bounce uppercase">🎉 You Won! Claim Reward</span>
                   </div>
                 )}
               </div>
@@ -971,7 +1001,7 @@ export default function PredictionCard({
               userBetStatus?.direction === "up" &&
               betValue !== null ? (
                 <p className="text-[20px] font-[600] leading-0">
-                  UP&nbsp;&middot;&nbsp;{betValue.toFixed(4)}&nbsp;SOL
+                  UP&nbsp;&middot;&nbsp;{formatNum(betValue)}&nbsp;SOL
                 </p>
               ) : (
                 <p className="text-[20px] font-[600] leading-0">UP</p>
@@ -1004,7 +1034,7 @@ export default function PredictionCard({
               userBetStatus?.direction === "down" &&
               betValue !== null ? (
                 <p className="text-[20px] font-[600] leading-0">
-                  DOWN&nbsp;&middot;&nbsp;{betValue.toFixed(4)}&nbsp;SOL
+                  DOWN&nbsp;&middot;&nbsp;{formatNum(betValue)}&nbsp;SOL
                 </p>
               ) : (
                 <p className="text-[20px] font-[600] leading-0">DOWN</p>
