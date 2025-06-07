@@ -115,7 +115,7 @@ export default function PredictionCard({
   );
 
   const [claimLoading, setClaimLoading] = useState(false);
-
+  const [showClaimBanner, setShowClaimBanner] = useState(false);
   const [scriptBetPlaced, setScriptBetPlaced] = useState(false);
 
   const [lockedPriceLocal, setLockedPriceLocal] = useState<number>(
@@ -124,7 +124,7 @@ export default function PredictionCard({
   const [prizePoolLocal, setPrizePoolLocal] = useState<number>(
     roundData?.prizePool ?? 0
   );
-    const [upBetsLocal, setUpBetsLocal] = useState<number>(
+  const [upBetsLocal, setUpBetsLocal] = useState<number>(
     roundData?.upBets ?? 0
   );
   const [downBetsLocal, setDownBetsLocal] = useState<number>(
@@ -132,10 +132,10 @@ export default function PredictionCard({
   );
 
   useEffect(() => {
-  if (!roundData) return;
-  setUpBetsLocal(roundData.upBets);
-  setDownBetsLocal(roundData.downBets);
-}, [roundData?.upBets, roundData?.downBets]);
+    if (!roundData) return;
+    setUpBetsLocal(roundData.upBets);
+    setDownBetsLocal(roundData.downBets);
+  }, [roundData?.upBets, roundData?.downBets]);
 
   useEffect(() => {
     if (roundData) {
@@ -149,7 +149,6 @@ export default function PredictionCard({
         setLockedPriceLocal(liveRoundPrice);
       }
       setPrizePoolLocal(roundData.prizePool);
-      
     }
   }, [roundId, roundData, liveRoundPrice]);
 
@@ -161,24 +160,27 @@ export default function PredictionCard({
   const connectedRef = useRef(connected);
   const publicKeyRef = useRef(publicKey);
 
- useEffect(() => {
-   const onClaimFinished = () => {
-     setClaimLoading(false);
-   };
+  useEffect(() => {
+    const onClaimFinished = () => {
+      setClaimLoading(false);
+      setShowClaimBanner(false);
+    };
 
-   window.addEventListener("claimFinished", onClaimFinished);
-   return () => {
-     window.removeEventListener("claimFinished", onClaimFinished);
-   };
- }, []);  
+    window.addEventListener("claimFinished", onClaimFinished);
+    return () => {
+      window.removeEventListener("claimFinished", onClaimFinished);
+    };
+  }, []);
+
+  
 
   const calculateMultipliers = () => {
     if (!roundData) return { bullMultiplier: "1.00", bearMultiplier: "1.00" };
 
- const totalAmount =
-    variant === "next" ? liveTotalForThisRound : prizePoolLocal;
-  const totalBullAmount = upBetsLocal;
-  const totalBearAmount = downBetsLocal;
+    const totalAmount =
+      variant === "next" ? liveTotalForThisRound : prizePoolLocal;
+    const totalBullAmount = upBetsLocal;
+    const totalBearAmount = downBetsLocal;
 
     // If no bets, return 1x multiplier
     if (totalAmount === 0) {
@@ -186,7 +188,6 @@ export default function PredictionCard({
     }
 
     const treasuryFeePercent = roundData.treasuryFee / 10000; // Convert basis points to decimal
-    console.log("treasure", treasuryFeePercent);
     const rewardAmount = totalAmount * (1 - treasuryFeePercent);
 
     // Calculate multipliers: (total reward pool / amount bet in that direction)
@@ -308,6 +309,7 @@ export default function PredictionCard({
   useEffect(() => {
     if (userBetStatus?.status === "CLAIMED") {
       setClaimLoading(false);
+      setShowClaimBanner(false);
     }
   }, [userBetStatus]);
   const getPriceMovement = () => {
@@ -486,11 +488,11 @@ export default function PredictionCard({
         if (betStatus === true) {
           setJustBet(true);
           setPrizePoolLocal((prev) => prev + amount);
-             if (mode === "up") {
-          setUpBetsLocal((prev) => prev + amount);
-        } else {
-          setDownBetsLocal((prev) => prev + amount);
-        }
+          if (mode === "up") {
+            setUpBetsLocal((prev) => prev + amount);
+          } else {
+            setDownBetsLocal((prev) => prev + amount);
+          }
           setBetValue(amount);
           if (typeof window !== "undefined") {
             // Emit custom event to trigger parent refresh
@@ -510,6 +512,41 @@ export default function PredictionCard({
       }
     }
   };
+
+  useEffect(() => {
+    if (
+      variant === "expired" &&
+      isClaimable &&
+      userBetStatus &&
+      userBetStatus.status !== "CLAIMED" && 
+      roundData &&
+      ((roundData.closePrice > roundData.lockPrice &&
+        userBetStatus.direction === "up") ||
+        (roundData.closePrice < roundData.lockPrice &&
+          userBetStatus.direction === "down"))
+    ) {
+      setShowClaimBanner(true);
+    }
+  }, [variant, isClaimable, userBetStatus, roundData]);
+
+  const shownRef = useRef(false);
+
+useEffect(() => {
+  if (shownRef.current) return;
+  if (
+    variant === "expired" &&
+    isClaimable &&
+    userBetStatus?.status !== "CLAIMED" &&
+    roundData &&
+    (
+      (roundData.closePrice > roundData.lockPrice && userBetStatus?.direction === "up") ||
+      (roundData.closePrice < roundData.lockPrice && userBetStatus?.direction === "down")
+    )
+  ) {
+    shownRef.current = true;
+    setShowClaimBanner(true);
+  }
+}, [variant, isClaimable, userBetStatus, roundData]);
 
   const handleCustomAmount = useCallback(
     (percentage: number) => {
@@ -958,13 +995,15 @@ export default function PredictionCard({
               (roundData.closePrice < roundData.lockPrice &&
                 userBetStatus.direction === "down")) && (
               <div>
-                {claimLoading ? (
-                  <div className=" glass mt-1 px-2 py-1 mx-auto left-[30px] rounded-2xl z-10 w-[80%] h-[40px] flex items-center justify-center opacity-100  absolute top-[240px] text-xs font-semibold cursor-pointer">
-                    <PuffLoader color="#06C729" size={24} />
-                  </div>
-                ) : (
-                  <div
-                    className={`
+                {showClaimBanner && (
+                  <div>
+                    {claimLoading ? (
+                      <div className=" glass mt-1 px-2 py-1 mx-auto left-[30px] rounded-2xl z-10 w-[80%] h-[40px] flex items-center justify-center opacity-100  absolute top-[240px] text-xs font-semibold cursor-pointer">
+                        <PuffLoader color="#06C729" size={24} />
+                      </div>
+                    ) : (
+                      <div
+                        className={`
                         ${
                           theme === "dark"
                             ? " text-green-200"
@@ -972,16 +1011,22 @@ export default function PredictionCard({
                         }
                          glass
                   mt-1 px-2 py-1 mx-auto left-[30px] rounded-2xl z-10 w-[80%]  h-[60px] flex items-center justify-center opacity-100  absolute top-[220px] text-sm font-semibold cursor-pointer`}
-                    onClick={() => {
-                      setClaimLoading(true);
-                      if (typeof window !== "undefined") {
-                        window.dispatchEvent(
-                          new CustomEvent("claimRound", { detail: { roundId } })
-                        );
-                      }
-                    }}
-                  >
-                    <span className="animate-bounce uppercase">🎉 You Won! Claim Reward</span>
+                        onClick={() => {
+                          setClaimLoading(true);
+                          if (typeof window !== "undefined") {
+                            window.dispatchEvent(
+                              new CustomEvent("claimRound", {
+                                detail: { roundId },
+                              })
+                            );
+                          }
+                        }}
+                      >
+                        <span className="animate-bounce uppercase">
+                          🎉 You Won! Claim Reward
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

@@ -53,7 +53,6 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
     new Set()
   );
 
-  console.log("LiveBets component mounted", liveBets);
   // Animation styles
   const animationStyles = `
     @keyframes slideDownFade {
@@ -109,7 +108,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
           .sort((a: Bet, b: Bet) => b.amount - a.amount) // Sort by amount descending
           .slice(0, 10); // Limit to 10 bets
         setLiveBets(bets);
-        console.log(`Fetched bets for round ${currentRound}:`, bets);
+
       } catch (error) {
         console.error("Error fetching bets:", error);
         setError("Failed to load bets");
@@ -160,12 +159,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
 
       // Show big bet toast ONLY ONCE
       if (formattedBet.amount > BIG_BET_THRESHOLD) {
-        console.log(
-          "🎉 Big bet detected! Amount:",
-          formattedBet.amount,
-          "Threshold:",
-          BIG_BET_THRESHOLD
-        );
+        
 
         // Add a unique ID to prevent duplicates
         const toastId = `big-bet-${formattedBet.signature}`;
@@ -251,7 +245,6 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
 
     // Clean up all listeners on unmount/deps change
     return () => {
-      console.log("🧹 Cleaning up WebSocket listeners");
       socket.off("connect", onConnect);
       socket.off("disconnect", onDisconnect);
       socket.off("error", onError);
