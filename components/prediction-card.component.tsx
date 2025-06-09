@@ -222,27 +222,22 @@ export default function PredictionCard({
   //   };
   // };
 
-  function calculateMultipliers(
-  totalUp: number,
-  totalDown: number,
+function calculateMultipliers(
   totalPool: number,
-  feeBps: number
+  feeAmount: number,
+  totalBull: number,
+  totalBear: number
 ): { bullMultiplier: string; bearMultiplier: string } {
-  if (totalPool === 0) return { bullMultiplier: "1.00", bearMultiplier: "1.00" };
-
-  const fee = feeBps / 10000;
-  const bullRewardPool = totalUp + totalDown * (1 - fee);
-  const bearRewardPool = totalDown + totalUp * (1 - fee);
-
-  const bullMultiplier = totalUp > 0 ? bullRewardPool / totalUp : 1;
-  const bearMultiplier = totalDown > 0 ? bearRewardPool / totalDown : 1;
+  const bullMultiplier =
+    totalBull > 0 ? (totalPool - feeAmount) / totalBull : 1;
+  const bearMultiplier =
+    totalBear > 0 ? (totalPool - feeAmount) / totalBear : 1;
 
   return {
-    bullMultiplier: formatNum(bullMultiplier),
-    bearMultiplier: formatNum(bearMultiplier),
+    bullMultiplier: bullMultiplier.toFixed(2),
+    bearMultiplier: bearMultiplier.toFixed(2),
   };
 }
-
 
   const socket = useMemo(() => getSocket(), []);
 
@@ -254,26 +249,25 @@ export default function PredictionCard({
   });
 
 let poolUp: number, poolDown: number, poolTotal: number;
-
+let feeAmount: number;
 if (variant === "live" || variant === "next") {
-  // liveTotalForThisRound should already equal upBetsLocal + downBetsLocal
-  poolUp    = upBetsLocal;
-  poolDown  = downBetsLocal;
-  poolTotal = poolUp + poolDown;
+ poolUp    = upBetsLocal;
+ poolDown  = downBetsLocal;
+ poolTotal = poolUp + poolDown;
+ feeAmount = (poolTotal * roundData!.treasuryFee) / 10000;
 } else {
-  // expired / locked rounds
-  poolUp    = upBetsLocal;
-  poolDown  = downBetsLocal;
-  poolTotal = prizePoolLocal; 
+ poolUp    = upBetsLocal;
+ poolDown  = downBetsLocal;
+ poolTotal = prizePoolLocal;
+ feeAmount = (poolTotal * roundData!.treasuryFee) / 10000;
 }
 
 const { bullMultiplier, bearMultiplier } = calculateMultipliers(
-  poolUp,
-  poolDown,
-  poolTotal,
-  roundData!.treasuryFee
+  poolTotal,   // A: total prize pool
+  feeAmount,   // B: total fee amount
+  poolUp,      // C: total “up” bets
+  poolDown     // D: total “down” bets
 );
-
   useEffect(() => {
     if (!connected || !publicKey) {
       setMaxAmount(0);
