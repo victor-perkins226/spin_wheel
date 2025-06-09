@@ -45,6 +45,7 @@ import {
   NoClaimableBetsToast,
 } from "./toasts";
 import { API_URL, RPC_URL } from "@/lib/config";
+import { set } from "@project-serum/anchor/dist/cjs/utils/features";
 const BetsHistory = React.lazy(() => import("./BetsHistory"));
 
 const LineChart = React.lazy(() => import("./LineChart"));
@@ -55,11 +56,12 @@ export default function PredictionCards() {
   const { publicKey, connected, sendTransaction } = useWallet();
   const connectionRef = useRef<Connection | null>(null);
   const [userBalance, setUserBalance] = useState(0);
-  const [liveRoundPrice, setLiveRoundPrice] = useState(172.5);
+  const [liveRoundPrice, setLiveRoundPrice] = useState(152.5);
   const [previousPrice, setPreviousPrice] = useState(liveRoundPrice);
   const [priceColor, setPriceColor] = useState("text-gray-900");
   const [claimableRewards, setClaimableRewards] = useState(0);
   const [isClaiming, setIsClaiming] = useState(false);
+  const [claimingRoundId, setClaimingRoundId] = useState<number | null>(null);
   const [justClaimed, setJustClaimed] = useState(false);
   const {
     handlePlaceBet,
@@ -68,7 +70,6 @@ export default function PredictionCards() {
     userBets,
     fetchUserBets,
   } = useSolPredictor();
-  const claimableAmountRef = useRef<number>(0); // Store claimableAmount in useRef
   const { program } = useProgram();
   const initialSlideJumped = useRef(false);
   const lastLiveRoundRef = useRef<number | null>(null);
@@ -414,15 +415,15 @@ export default function PredictionCards() {
       setSwiperReady(false);
       setTimeout(() => setSwiperReady(true), 500);
 
+      setIsClaiming(false);
+      window.dispatchEvent(new CustomEvent("claimSuccess"));
+
       toast.custom(
         (t) => (
           <ClaimSuccessToast theme={theme} claimableAmount={claimedAmount} />
         ),
         { position: "top-center" }
       );
-
-      setIsClaiming(false);
-      window.dispatchEvent(new CustomEvent("claimFinished"));
     } catch (error: any) {
       console.error("Failed to claim rewards:", error);
 
@@ -445,12 +446,10 @@ export default function PredictionCards() {
         errorMessage = "Transaction was not signed.";
       }
       setIsClaiming(false);
-      window.dispatchEvent(new CustomEvent("claimFinished"));
+      window.dispatchEvent(new CustomEvent("claimFailure"));
       toast.custom((t) => <ClaimFailureToast theme={theme} />, {
         position: "top-right",
       });
-    } finally {
-      window.dispatchEvent(new CustomEvent("claimFinished"));
     }
   }, [
     connected,
@@ -476,6 +475,7 @@ export default function PredictionCards() {
       (async () => {
         try {
           setIsClaiming(true);
+          setClaimingRoundId(roundId);
           // build a transaction that claims only roundId
           const instruction = await handleClaimPayout(roundId);
           const tx = new Transaction().add(instruction);
@@ -495,25 +495,25 @@ export default function PredictionCards() {
           // 🔥 Replace the `0` below with the actual payout amount from claimableBets:
           const thisPayout =
             claimableBets.find((b) => b.roundNumber === roundId)?.payout ?? 0;
+
+          setIsClaiming(false);
+          window.dispatchEvent(new CustomEvent("claimSuccess"));
           toast.custom(
             (t) => (
               <ClaimSuccessToast theme={theme} claimableAmount={thisPayout} />
             ),
             { position: "top-center" }
           );
-          setIsClaiming(false);
-          window.dispatchEvent(new CustomEvent("claimFinished"));
         } catch (err) {
           console.error("Single‐round claim failed", err);
           setIsClaiming(false);
-          window.dispatchEvent(new CustomEvent("claimFinished"));
-
+          window.dispatchEvent(new CustomEvent("claimFailure"));
           toast.custom((t) => <ClaimFailureToast theme={theme} />, {
             position: "top-right",
-          });
-        } finally {
-          window.dispatchEvent(new CustomEvent("claimFinished"));
-        }
+          })
+        } finally{
+ setClaimingRoundId(null);
+          }
       })();
     };
 
@@ -1126,6 +1126,7 @@ export default function PredictionCards() {
                             timeLeft={timeLeft}
                             liveTotalForThisRound={liveTotal}
                             isClaimable={isClaimableForThisRound}
+                            isClaiming={claimingRoundId === roundNumber}
                           />
                         </SwiperSlide>
                       );
