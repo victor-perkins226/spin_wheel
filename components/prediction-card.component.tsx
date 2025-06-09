@@ -191,36 +191,58 @@ export default function PredictionCard({
   //   };
   // }, []);
 
-  const calculateMultipliers = () => {
-    if (!roundData) return { bullMultiplier: "1.00", bearMultiplier: "1.00" };
+  // const calculateMultipliers = () => {
+  //   if (!roundData) return { bullMultiplier: "1.00", bearMultiplier: "1.00" };
 
-    const totalAmount =
-      variant === "next" ? liveTotalForThisRound : prizePoolLocal;
-    const totalBullAmount = upBetsLocal;
-    const totalBearAmount = downBetsLocal;
+  //   const totalAmount =
+  //     variant === "next" ? liveTotalForThisRound : prizePoolLocal;
+  //   const totalBullAmount = upBetsLocal;
+  //   const totalBearAmount = downBetsLocal;
 
-    // If no bets, return 1x multiplier
-    if (totalAmount === 0) {
-      return { bullMultiplier: "1.00", bearMultiplier: "1.00" };
-    }
+  //   // If no bets, return 1x multiplier
+  //   if (totalAmount === 0) {
+  //     return { bullMultiplier: "1.00", bearMultiplier: "1.00" };
+  //   }
 
-    const treasuryFeePercent = roundData.treasuryFee / 10000; // Convert basis points to decimal
-    const fee = roundData.treasuryFee / 10000;
+  //   const treasuryFeePercent = roundData.treasuryFee / 10000; // Convert basis points to decimal
+  //   const fee = roundData.treasuryFee / 10000;
 
-    // only charge the losers
-    const bullRewardPool = totalBullAmount + totalBearAmount * (1 - fee);
-    const bearRewardPool = totalBearAmount + totalBullAmount * (1 - fee);
+  //   // only charge the losers
+  //   const bullRewardPool = totalBullAmount + totalBearAmount * (1 - fee);
+  //   const bearRewardPool = totalBearAmount + totalBullAmount * (1 - fee);
 
-    const bullMultiplier =
-      totalBullAmount > 0 ? bullRewardPool / totalBullAmount : 1;
-    const bearMultiplier =
-      totalBearAmount > 0 ? bearRewardPool / totalBearAmount : 1;
+  //   const bullMultiplier =
+  //     totalBullAmount > 0 ? bullRewardPool / totalBullAmount : 1;
+  //   const bearMultiplier =
+  //     totalBearAmount > 0 ? bearRewardPool / totalBearAmount : 1;
 
-    return {
-      bullMultiplier: formatNum(bullMultiplier),
-      bearMultiplier: formatNum(bearMultiplier),
-    };
+  //   return {
+  //     bullMultiplier: formatNum(bullMultiplier),
+  //     bearMultiplier: formatNum(bearMultiplier),
+  //   };
+  // };
+
+  function calculateMultipliers(
+  totalUp: number,
+  totalDown: number,
+  totalPool: number,
+  feeBps: number
+): { bullMultiplier: string; bearMultiplier: string } {
+  if (totalPool === 0) return { bullMultiplier: "1.00", bearMultiplier: "1.00" };
+
+  const fee = feeBps / 10000;
+  const bullRewardPool = totalUp + totalDown * (1 - fee);
+  const bearRewardPool = totalDown + totalUp * (1 - fee);
+
+  const bullMultiplier = totalUp > 0 ? bullRewardPool / totalUp : 1;
+  const bearMultiplier = totalDown > 0 ? bearRewardPool / totalDown : 1;
+
+  return {
+    bullMultiplier: formatNum(bullMultiplier),
+    bearMultiplier: formatNum(bearMultiplier),
   };
+}
+
 
   const socket = useMemo(() => getSocket(), []);
 
@@ -231,7 +253,26 @@ export default function PredictionCard({
     publicKeyRef.current = publicKey;
   });
 
-  const { bullMultiplier, bearMultiplier } = calculateMultipliers();
+let poolUp: number, poolDown: number, poolTotal: number;
+
+if (variant === "live" || variant === "next") {
+  // liveTotalForThisRound should already equal upBetsLocal + downBetsLocal
+  poolUp    = upBetsLocal;
+  poolDown  = downBetsLocal;
+  poolTotal = poolUp + poolDown;
+} else {
+  // expired / locked rounds
+  poolUp    = upBetsLocal;
+  poolDown  = downBetsLocal;
+  poolTotal = prizePoolLocal; 
+}
+
+const { bullMultiplier, bearMultiplier } = calculateMultipliers(
+  poolUp,
+  poolDown,
+  poolTotal,
+  roundData!.treasuryFee
+);
 
   useEffect(() => {
     if (!connected || !publicKey) {
@@ -424,12 +465,14 @@ export default function PredictionCard({
   const formattedRoundData = roundData
     ? {
         lockPrice:
-          lockedPriceLocal > 0 ? lockedPriceLocal : liveRoundPrice || 0,
-        closePrice:
-          roundData.closePrice > 0
-            ? roundData.closePrice
-            : liveRoundPrice || roundData.lockPrice,
-        currentPrice: liveRoundPrice || roundData.lockPrice,
+        lockedPriceLocal > 0
+          ? lockedPriceLocal
+          : roundData.currentPrice,
+      closePrice:
+        roundData.closePrice > 0
+          ? roundData.closePrice
+          : roundData.currentPrice,
+      currentPrice: roundData.currentPrice,
         prizePool: prizePoolLocal,
         upBets: roundData.upBets,
         downBets: roundData.downBets,
@@ -814,7 +857,7 @@ export default function PredictionCard({
               >
                 <div className="flex gap-4 justify-between">
                   <NumberFlow
-                    value={formattedRoundData.closePrice}
+                    value={formattedRoundData.currentPrice}
                     format={{
                       style: "currency",
                       currency: "USD",
@@ -1105,9 +1148,7 @@ export default function PredictionCard({
                   mt-1 px-2 py-1 mx-auto left-[30px] rounded-2xl z-10 w-[80%]  h-[50px] flex items-center justify-center opacity-100  absolute top-[220px] text-sm font-semibold cursor-pointer`}
               onClick={() => {
                 setClaimLoading(true);
-                window.dispatchEvent(
-                  new CustomEvent("claimRound", { detail: { roundId } })
-                );
+                window.dispatchEvent(new CustomEvent("claimAll"));
               }}
             >
               {claimLoading ? (
