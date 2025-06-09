@@ -149,18 +149,14 @@ export default function PredictionCard({
 
   useEffect(() => {
     if (roundData) {
-      if (roundData.lockPrice > 0) {
-        setLockedPriceLocal(roundData.lockPrice);
-      } else if (
-        lockedPriceLocal === 0 &&
-        liveRoundPrice &&
-        liveRoundPrice > 0
-      ) {
-        setLockedPriceLocal(liveRoundPrice);
-      }
+      if (roundData?.lockPrice && roundData.lockPrice > 0) {
+    setLockedPriceLocal(roundData.lockPrice);
+  }
       setPrizePoolLocal(roundData.prizePool);
     }
-  }, [roundId, roundData, liveRoundPrice]);
+  }, [roundId, roundData, roundData?.lockPrice]);
+
+
 
   const { theme } = useTheme();
 
@@ -408,33 +404,51 @@ const { bullMultiplier, bearMultiplier } = calculateMultipliers(
 
   //   }
   // }, [userBetStatus]);
-  const getPriceMovement = () => {
-    if (!roundData) return { difference: 0, direction: "up" as "up" | "down" };
+  // const getPriceMovement = () => {
+  //   if (!roundData) return { difference: 0, direction: "up" as "up" | "down" };
 
-    // Use the appropriate price based on round state
-    let currentPrice: number;
+  //   // Use the appropriate price based on round state
+  //   let currentPrice: number;
 
-    if (variant === "expired" || variant === "locked") {
-      // For ended rounds, use the close price if available
-      currentPrice =
-        roundData.closePrice > 0 ? roundData.closePrice : roundData.lockPrice;
-    } else {
-      // For live/active rounds, use live price
-      currentPrice = liveRoundPrice || roundData.lockPrice;
-    }
+  //   if (variant === "expired" || variant === "locked") {
+  //     // For ended rounds, use the close price if available
+  //     currentPrice =
+  //       roundData.closePrice > 0 ? roundData.closePrice : roundData.lockPrice;
+  //   } else {
+  //     // For live/active rounds, use live price
+  //     currentPrice = liveRoundPrice || roundData.lockPrice;
+  //   }
 
-    let lockPrice = lockedPriceLocal || roundData.lockPrice;
-    if (lockPrice <= 0 && liveRoundPrice && liveRoundPrice > 0) {
-      lockPrice = liveRoundPrice;
-      // Update local state for consistency
-      setLockedPriceLocal(liveRoundPrice);
-    }
+  //   let lockPrice = lockedPriceLocal || roundData.lockPrice;
+  //   if (lockPrice <= 0 && liveRoundPrice && liveRoundPrice > 0) {
+  //     lockPrice = liveRoundPrice;
+  //     // Update local state for consistency
+  //     setLockedPriceLocal(liveRoundPrice);
+  //   }
 
-    const difference = Math.abs(currentPrice - lockPrice);
-    const direction = currentPrice >= lockPrice ? "up" : "down";
+  //   const difference = Math.abs(currentPrice - lockPrice);
+  //   const direction = currentPrice >= lockPrice ? "up" : "down";
 
-    return { difference, direction };
+  //   return { difference, direction };
+  // };
+
+  function getPriceMovement() {
+  if (!roundData) return { difference: 0, direction: "up" as const };
+  
+  // for live rounds, use the live price; for expired/locked, use the real lockPrice
+  const lockPrice = roundData.lockPrice;
+  const currentPrice =
+    variant === "expired" || variant === "locked"
+      ? (roundData.closePrice > 0 ? roundData.closePrice : lockPrice)
+      : liveRoundPrice!;
+
+  const diff = Math.abs(currentPrice - lockPrice);
+  return {
+    difference: diff,
+    direction: currentPrice >= lockPrice ? "up" : "down" as const,
   };
+}
+
 
   const { difference: priceDifference, direction: priceDirection } =
     getPriceMovement();
