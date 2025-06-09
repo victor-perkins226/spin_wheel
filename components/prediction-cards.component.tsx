@@ -463,6 +463,16 @@ export default function PredictionCards() {
     theme,
   ]);
   useEffect(() => {
+  const onClaimAll = () => {
+    handleClaimRewards();
+  };
+  window.addEventListener("claimAll", onClaimAll as EventListener);
+  return () => {
+    window.removeEventListener("claimAll", onClaimAll as EventListener);
+  };
+}, [handleClaimRewards]);
+
+  useEffect(() => {
     const onClaimRound = (e: CustomEvent) => {
       const { roundId } = e.detail as { roundId: number };
 
