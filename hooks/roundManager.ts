@@ -20,10 +20,10 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
   const { data: previousRoundsData, isLoading: isPreviousRoundsLoading } = usePreviousRoundsByIds(
     currentRoundNumber,
     initialLimit,
-    offset
+    initialOffset
   );
 
-
+  
   const getRoundStatus = (roundData: any) => {
     if (!roundData) return "ENDED";
     

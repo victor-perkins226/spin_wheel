@@ -602,6 +602,7 @@ export default function PredictionCards() {
       .sort((a, b) => Number(a.number) - Number(b.number))
       .slice(-3);
 
+      console.log({newExpired})
     setExpiredRounds(newExpired);
   }, [previousRounds, currentRoundNumber]);
 
@@ -612,6 +613,8 @@ export default function PredictionCards() {
     let liveRound: Round | undefined = previousRounds.find(
       (r) => Number(r.number) === currentRoundNumber - 1
     );
+
+    console.log({liveRound})
     if (!liveRound && typeof currentRoundNumber === "number") {
       const dummyRoundNumber = currentRoundNumber - 1;
       liveRound = {
