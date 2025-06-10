@@ -32,20 +32,15 @@ import io from "socket.io-client";
 import { useProgram } from "@/hooks/useProgram";
 import toast from "react-hot-toast";
 import { useTheme } from "next-themes";
-import { DotLoader, PuffLoader } from "react-spinners";
+import { PuffLoader } from "react-spinners";
 import MarketHeader from "./MarketHeader";
 import {
-  BetFailedToast,
-  BetSuccessToast,
-  BetSuccessToastMini,
   ClaimFailureToast,
   ClaimSuccessToast,
-  ClaimSuccessToastMini,
   ConnectWalletBetToast,
   NoClaimableBetsToast,
 } from "./toasts";
 import { API_URL, RPC_URL } from "@/lib/config";
-import { set } from "@project-serum/anchor/dist/cjs/utils/features";
 const BetsHistory = React.lazy(() => import("./BetsHistory"));
 
 const LineChart = React.lazy(() => import("./LineChart"));

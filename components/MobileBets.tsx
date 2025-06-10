@@ -1,4 +1,3 @@
-// components/LiveBets.tsx
 "use client";
 
 import Image from "next/image";
@@ -7,13 +6,11 @@ import SVG from "./svg.component";
 import io from "socket.io-client";
 import axios from "axios";
 import { useTheme } from "next-themes";
-import { ThemeToggle } from "./Themetoggle";
 import toast from "react-hot-toast";
 import BigBet from "@/public/assets/Big-Bet.png";
 import { API_URL } from "@/lib/config";
 import { formatNum } from "@/lib/utils";
 import { network } from "./wallet.provider.component";
-import { dir } from "console";
 
 // Define the Bet interface
 interface Bet {

@@ -150,49 +150,6 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
                   <th className="pb-3 font-medium">Payout</th>
                 </tr>
               </thead>
-              {/* <tbody>
-                {currentBets.map((bet, index) => (
-                  <tr 
-                    key={`${bet.id}-${index}`} 
-                    className={`${getBorderColor()} ${
-                      index !== 0 ? 'border-t' : ''
-                    } hover:bg-muted/20 transition-colors`}
-                  >
-                    <td className="py-3 text-foreground font-mono text-sm">
-                      #{bet.roundId}
-                    </td>
-                    <td className={`py-3 font-semibold ${getDirectionColor(bet.direction)}`}>
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs">
-                          {bet.direction === 'up' ? '↗' : '↘'}
-                        </span>
-                        {bet.direction.toUpperCase()}
-                      </div>
-                    </td>
-                    <td className="py-3 text-foreground font-mono text-sm">
-                      {bet.amount.toFixed(2)} SOL
-                    </td>
-                    <td className="py-3">
-                      <span className={getStatusColor(bet.status)}>
-                        {bet.status}
-                      </span>
-                    </td>
-                    <td className="py-3 text-foreground font-mono text-sm">
-                      {bet.status === 'WON' || bet.status === 'CLAIMED' ? (
-                        <span className={theme === 'dark' ? 'text-green-400' : 'text-green-600'}>
-                          +{bet.payout.toFixed(2)} SOL
-                        </span>
-                      ) : bet.status === 'LOST' ? (
-                        <span className={theme === 'dark' ? 'text-red-400' : 'text-red-600'}>
-                          -{bet.amount.toFixed(2)} SOL
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody> */}
                 <tbody>
                 {currentBets.map((bet, index) => {
                   const statusToShow = displayStatus(bet);
@@ -280,7 +237,6 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
         </>
       )}
       
-      {/* Summary Stats */}
       {sortedBets.length > 0 && (
         <div className={`mt-6 pt-4 border-t ${getBorderColor()}`}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
