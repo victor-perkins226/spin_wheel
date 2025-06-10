@@ -13,7 +13,6 @@ import LanguageDropdown from "./LanguageDropdown";
 export default function Header() {
   const { theme } = useTheme();
 
-
   const [mounted, setMounted] = useState(false);
 
   // Prevent hydration mismatch by checking if component has mounted
@@ -23,7 +22,7 @@ export default function Header() {
 
   return (
     <div className="container">
-      <header className="hidden glass mt-[58px] rounded-[20px] md:flex justify-between items-center p-[20px] max-w-[1290] mx-auto">
+      <header className="hidden glass z-20 relative mt-[58px] rounded-[20px] md:flex justify-between items-center p-[20px] max-w-[1290] mx-auto">
         <Link href={routes.home()}>
           {mounted && (
             <Image
@@ -45,19 +44,20 @@ export default function Header() {
             </Link>
           ))}
         </nav> */}
-<div className="flex gap-6 items-center">
-  <LanguageDropdown/>
-  <ThemeToggle/>
-        {/* {renderWalletButton()} */}
+        <div className="flex gap-6 items-center">
+          <LanguageDropdown />
+          <ThemeToggle />
+          {/* {renderWalletButton()} */}
 
-        <WalletMultiButton />
-</div>
+          <WalletMultiButton />
+        </div>
         {/* <WalletDisconnectButton/> */}
       </header>
 
       <header className="flex md:hidden justify-between p-[20px] mt-[58px]">
         <SVG iconName="profile" width={52} height={52} />
-
+        {/* <LanguageDropdown /> */}
+        <WalletMultiButton />
         <div className="glass p-[15px] rounded-[20px]">
           <SVG iconName="live" width={21.5} height={18.49} />
         </div>

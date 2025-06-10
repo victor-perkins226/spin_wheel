@@ -3,24 +3,22 @@ import SVG, { IconType } from "./svg.component";
 import Link from "next/link";
 import routes from "@/helpers/routes";
 import { useRouter } from "next/router";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
 const MOBILE_NAV_LINKS: { icon: IconType; url: string }[] = [
   { icon: "home", url: routes.home() },
   { icon: "chart", url: "/" },
-  { icon: "medal", url: routes.leaderboard() },
+  { icon: "medal", url: "/leaderboard" }, // should be "/leaderboard"
   { icon: "bag", url: "/" },
 ];
 
 export default function MobileNav() {
   const { pathname, asPath } = useRouter();
 
-  const isNavActive = (url: string) => {
-    console.log(url, pathname, asPath);
-    return url === routes.home() ? url === pathname : asPath.startsWith(url);
-  };
+const isNavActive = (url: string) => pathname === url;
   return (
-    <nav className="glass w-full fixed bottom-0 pt-[9px] pb-[20px] px-[30px] rounded-[20px] flex md:hidden justify-around items-end">
-      {MOBILE_NAV_LINKS.map((el, key) => (
+    <nav className="glass w-full fixed bottom-0 pt-[9px] pb-[20px] px-[30px] rounded-[20px] z-[100] flex md:hidden justify-around items-end">
+    {MOBILE_NAV_LINKS.map((el, key) => (
         <Link
           href={el.url}
           key={key}

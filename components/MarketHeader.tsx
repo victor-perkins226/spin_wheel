@@ -72,10 +72,13 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
       if (isLocked) return "Closing";
       return formatTimeLeft(timeLeft);
     }, [isLocked, timeLeft, formatTimeLeft]);
-
-    const lockMinutes = useMemo(() => {
-      return Math.floor(lockDuration / 60);
-    }, [lockDuration]);
+const lockMinutes = useMemo(() => {
+  // if lockDuration is ever undefined/null/NaN, fall back to 0
+  const safeDuration = typeof lockDuration === "number" && !isNaN(lockDuration)
+    ? lockDuration
+    : 0;
+  return Math.floor(safeDuration / 60);
+}, [lockDuration]);
 
     return (
       <div className="flex flex-col gap-4 md:gap-4 lg:gap-[16px] col-span-12 xl:col-span-9">

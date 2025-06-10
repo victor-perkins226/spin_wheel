@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import Button from "./button.component";
 import SVG from "./svg.component";
-import BetFailed from "@/public/assets/BetFailure.png";
 import Image from "next/image";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import SolanaBg from "@/public/assets/solana_bg.png";
@@ -215,18 +214,17 @@ useEffect(() => {
   }, [socket, publicKey, variant]);
 
   function calculateMultipliers(
-    totalBull: number, // C: sum of all “up” bets
-    totalBear: number, // D: sum of all “down” bets
-    totalFeeBps: number // B: fee in basis-points, e.g. 100 for 1%
+    totalBull: number, 
+    totalBear: number, 
+    totalFeeBps: number 
   ) {
-    const totalPool = totalBull + totalBear; // A
+    const totalPool = totalBull + totalBear;
 
-    const feeAmount = (totalPool * totalFeeBps) / 10000; // B
-    const netPool = totalPool - feeAmount; // A – B
+    const feeAmount = (totalPool * totalFeeBps) / 10000; 
+    const netPool = totalPool - feeAmount; 
 
     const bullMultiplier = totalBull > 0 ? netPool / totalBull : 1;
     const bearMultiplier = totalBear > 0 ? netPool / totalBear : 1;
-    console.log({bullMultiplier, bearMultiplier, totalBull, totalBear});
     return {
       bullMultiplier: bullMultiplier.toFixed(2),
       bearMultiplier: bearMultiplier.toFixed(2),
@@ -366,41 +364,9 @@ useEffect(() => {
     };
   }, []);
 
-  // useEffect(() => {
-  //   if (userBetStatus?.status === "CLAIMED") {
-  //     // setShowClaimBanner(false);
-  //   }
-  // }, [userBetStatus]);
+
   const prevBetRef = useRef<UserBet["status"] | null>(null);
 
-  // useEffect(() => {
-  //   const prev = prevBetRef.current;
-  //   const curr = userBetStatus?.status ?? null;
-
-  //   // just-flipped-into "WON"?
-  //   if (
-  //     variant === "expired" &&
-  //     isClaimable &&
-  //     curr === "WON" &&
-  //     prev !== "WON"
-  //   ) {
-  //     setShowClaimBanner(true);
-  //   }
-
-  //   // as soon as it flips into "CLAIMED", hide it forever
-  //   if (curr === "CLAIMED") {
-  //     setShowClaimBanner(false);
-  //   }
-
-  //   prevBetRef.current = curr;
-  // }, [variant, isClaimable, userBetStatus?.status]);
-  // useEffect(() => {
-  //   if (userBetStatus?.status === "CLAIMED") {
-  //     setShowClaimBanner(false);
-  //     setClaimLoading(false);
-
-  //   }
-  // }, [userBetStatus]);
   useEffect(() => {
     const handler = (d: { roundId: number; lockPrice: number }) => {
       if (d.roundId === roundId) setLockedPriceLocal(d.lockPrice);
@@ -411,14 +377,12 @@ useEffect(() => {
     };
   }, [socket, roundId]);
 
-  // now *every* time you need the lock price, do:
   const lockPrice =
-    lockedPriceLocal ?? // if we’ve got it
-    roundData?.lockPrice ?? // else the server’s last known
-    roundData?.currentPrice ?? // else fall back to live price
+    lockedPriceLocal ?? 
+    roundData?.lockPrice ??
+    roundData?.currentPrice ??
     0;
 
-  // in getPriceMovement():
   function getPriceMovement() {
     if (!roundData) return { difference: 0, direction: "up" as const };
     const lp = lockPrice;
@@ -576,12 +540,6 @@ useEffect(() => {
 
         if (betStatus === true) {
           setJustBet(true);
-          // setPrizePoolLocal((prev) => prev + amount);
-          // if (mode === "up") {
-          //   setUpBetsLocal((prev) => prev + amount);
-          // } else {
-          //   setDownBetsLocal((prev) => prev + amount);
-          // }
           setBetValue(amount);
           if (typeof window !== "undefined") {
             // Emit custom event to trigger parent refresh
@@ -602,35 +560,6 @@ useEffect(() => {
     }
   };
 
-  // useEffect(() => {
-  //   if (
-  //     variant === "expired" &&
-  //     isClaimable &&
-  //     userBetStatus &&
-  //     userBetStatus.status !== "CLAIMED" &&
-  //     roundData &&
-  //     ((roundData.closePrice > roundData.lockPrice &&
-  //       userBetStatus.direction === "up") ||
-  //       (roundData.closePrice < roundData.lockPrice &&
-  //         userBetStatus.direction === "down"))
-  //   ) {
-  //     setShowClaimBanner(true);
-  //   }
-  // }, [variant, isClaimable, userBetStatus, roundData]);
-
-  // useEffect(() => {
-  //   if (
-  //     variant === "expired" &&
-  //     isClaimable &&
-  //     userBetStatus?.status === "WON" &&
-  //     ((roundData!.closePrice > roundData!.lockPrice &&
-  //       userBetStatus.direction === "up") ||
-  //       (roundData!.closePrice < roundData!.lockPrice &&
-  //         userBetStatus.direction === "down"))
-  //   ) {
-  //     setShowClaimBanner(true);
-  //   }
-  // }, [variant, isClaimable, userBetStatus, roundData]);
   const handleCustomAmount = useCallback(
     (percentage: number) => {
       const calculatedAmount = maxAmount * percentage;
@@ -710,10 +639,6 @@ useEffect(() => {
             <p>Prize Pool</p>
             <p>{formatNum(nextPrizePool)} SOL</p>
           </div>
-          {/* <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
-              <p>Time Left</p>
-              <p>{formatTimeLeft(timeLeft)}</p>
-            </div> */}
         </div>
 
         <>
@@ -1074,53 +999,6 @@ useEffect(() => {
               </div>
             )}
           </div>
-
-          {/* {variant === "expired" &&
-            isClaimable &&
-            userBetStatus?.status === "WON" &&
-            roundData &&
-            ((roundData.closePrice > roundData.lockPrice &&
-              userBetStatus.direction === "up") ||
-              (roundData.closePrice < roundData.lockPrice &&
-                userBetStatus.direction === "down")) && (
-              <div>
-                {didWin && (
-                  <div>
-                    {claimLoading ? (
-                      <div className=" glass mt-1 px-2 py-1 mx-auto left-[30px] rounded-2xl z-10 w-[80%] h-[40px] flex items-center justify-center opacity-100  absolute top-[240px] text-xs font-semibold cursor-pointer">
-                        <PuffLoader color="#06C729" size={24} />
-                      </div>
-                    ) : (
-                      <div
-                        className={`
-                        ${
-                          theme === "dark"
-                            ? " text-green-200"
-                            : " text-green-800 "
-                        }
-                         glass
-                  mt-1 px-2 py-1 mx-auto left-[30px] rounded-2xl z-10 w-[80%]  h-[60px] flex items-center justify-center opacity-100  absolute top-[220px] text-sm font-semibold cursor-pointer`}
-                        onClick={() => {
-                          setClaimLoading(true);
-                          if (typeof window !== "undefined") {
-                            window.dispatchEvent(
-                              new CustomEvent("claimRound", {
-                                detail: { roundId },
-                              })
-                            );
-                          }
-                        }}
-                      >
-                        <span className="animate-bounce uppercase">
-                          🎉 You Won! Claim Reward
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )} */}
-
           {didWin && (
             <div
               className={`
@@ -1249,10 +1127,8 @@ useEffect(() => {
               const parsed = parseFloat(inputValue);
               if (isNaN(parsed) || parsed <= 0) {
                 setAmount(0);
-                // leave inputValue blank so user can re‐enter as needed
                 setInputValue("");
               } else {
-                // clamp amount but do not alter inputValue’s decimal formatting
                 const clamped = Math.min(parsed, maxAmount);
                 setAmount(clamped);
               }

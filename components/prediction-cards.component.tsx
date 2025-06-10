@@ -18,7 +18,7 @@ import "swiper/css/effect-coverflow";
 import "swiper/css/pagination";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Connection, LAMPORTS_PER_SOL, Transaction } from "@solana/web3.js";
-import { MobileLiveBets } from "./MobileBets";
+import MobileLiveBets from "./MobileBets";
 import NumberFlow from "@number-flow/react";
 import LiveBets from "./LiveBets";
 import { useRoundManager } from "@/hooks/roundManager";
@@ -94,16 +94,11 @@ export default function PredictionCards() {
   const previousComputedRoundsRef = useRef<Round[]>([]); // Ref to store last valid computed rounds
   const [liveTotal, setLiveTotal] = useState<number>(0);
 
-  // Update claimableAmountRef when claimableBets changes
-
-  // Replace your existing claimableRewards effect with this simplified version:
-  // Replace your existing claimableRewards effect with this improved version:
   useEffect(() => {
     const sum = claimableBets.reduce((tot, b) => tot + (b.payout || 0), 0);
     setClaimableRewards(sum);
   }, [claimableBets]); // Remove isClaiming dependency
 
-  // Add this effect to handle periodic refresh of user bets
   useEffect(() => {
     if (!connected || !publicKey) return;
 
@@ -115,51 +110,6 @@ export default function PredictionCards() {
     return () => clearInterval(interval);
   }, [connected, publicKey, fetchUserBets]);
 
-  // useEffect(() => {
-  //   let timeoutId: NodeJS.Timeout;
-
-  //   const handleClaimComplete = () => {
-  //     // Clear timeout if it exists
-  //     if (timeoutId) clearTimeout(timeoutId);
-
-  //     // Set a timeout to refresh data after claim
-  //     timeoutId = setTimeout(async () => {
-  //       try {
-  //         await Promise.all([
-  //           fetchUserBets(),
-  //           fetchMoreRounds && fetchMoreRounds(),
-  //         ]);
-
-  //         // Update balance
-  //         if (connected && publicKey && connectionRef.current) {
-  //           const newLamports = await connectionRef.current.getBalance(
-  //             publicKey
-  //           );
-  //           setUserBalance(newLamports / LAMPORTS_PER_SOL);
-  //         }
-  //       } catch (error) {
-  //         console.error("Error refreshing after claim:", error);
-  //       }
-  //     }, 1000);
-  //   };
-
-  //   // Listen for claim completion
-  //   if (!isClaiming && claimableRewards === 0 && claimableBets.length === 0) {
-  //     handleClaimComplete();
-  //   }
-
-  //   return () => {
-  //     if (timeoutId) clearTimeout(timeoutId);
-  //   };
-  // }, [
-  //   isClaiming,
-  //   claimableRewards,
-  //   claimableBets.length,
-  //   connected,
-  //   publicKey,
-  //   fetchUserBets,
-  //   fetchMoreRounds,
-  // ]);
   useEffect(() => {
     if (connected && publicKey) {
       fetchUserBets();
@@ -171,19 +121,14 @@ export default function PredictionCards() {
     error: priceError,
   } = useLivePrice();
 
-  // Fetch live price periodically
   useEffect(() => {
     const updateLivePrice = async () => {
       if (livePrice !== undefined) {
-        // console.log("Live price fetched:", livePrice);
         setLiveRoundPrice(livePrice!);
       }
     };
 
-    updateLivePrice(); // Initial fetch
-    // const interval = setInterval(updateLivePrice, 10000); // Update every 10 seconds
-
-    // return () => clearInterval(interval); // Cleanup on unmount
+    updateLivePrice();
   }, [livePrice]);
   const safeFetchMoreRounds = useCallback(async () => {
     setIsFetchingRounds(true);
@@ -316,23 +261,6 @@ export default function PredictionCards() {
       window.removeEventListener("betPlaced", onBetPlaced);
     };
   }, [fetchUserBets, safeFetchMoreRounds]);
-  // useEffect(() => {
-  //   const handleBetPlaced = (event: CustomEvent) => {
-  //     console.log("Bet placed event received:", event.detail);
-
-  //     // Refresh data after bet placement
-  //     setTimeout(() => {
-  //       fetchUserBets();
-  //       fetchMoreRounds();
-  //     }, 1000); // Small delay to ensure backend is updated
-  //   };
-
-  //   window.addEventListener("betPlaced", handleBetPlaced as EventListener);
-
-  //   return () => {
-  //     window.removeEventListener("betPlaced", handleBetPlaced as EventListener);
-  //   };
-  // }, [fetchUserBets, fetchMoreRounds]);
   function SkeletonCard() {
     return (
       <div className="card_container glass rounded-[20px] p-[15px] sm:p-[25px] w-full animate-pulse">
@@ -463,14 +391,14 @@ export default function PredictionCards() {
     theme,
   ]);
   useEffect(() => {
-  const onClaimAll = () => {
-    handleClaimRewards();
-  };
-  window.addEventListener("claimAll", onClaimAll as EventListener);
-  return () => {
-    window.removeEventListener("claimAll", onClaimAll as EventListener);
-  };
-}, [handleClaimRewards]);
+    const onClaimAll = () => {
+      handleClaimRewards();
+    };
+    window.addEventListener("claimAll", onClaimAll as EventListener);
+    return () => {
+      window.removeEventListener("claimAll", onClaimAll as EventListener);
+    };
+  }, [handleClaimRewards]);
 
   useEffect(() => {
     const onClaimRound = (e: CustomEvent) => {
@@ -520,10 +448,10 @@ export default function PredictionCards() {
           window.dispatchEvent(new CustomEvent("claimFailure"));
           toast.custom((t) => <ClaimFailureToast theme={theme} />, {
             position: "top-right",
-          })
-        } finally{
- setClaimingRoundId(null);
-          }
+          });
+        } finally {
+          setClaimingRoundId(null);
+        }
       })();
     };
 
@@ -571,12 +499,12 @@ export default function PredictionCards() {
         status: "later",
       } as unknown as Round;
     },
-    [config?.lockDuration, config?.roundDuration] // only re‐create when lockDuration or roundDuration changes
+    [config?.lockDuration, config?.roundDuration]
   );
 
   const formatCardVariant = useCallback(
     (round: Round, current: number) => {
-      const status = getRoundStatus(round); // e.g. "LIVE" | "LOCKED" | "ENDED" | etc.
+      const status = getRoundStatus(round);
       const n = Number(round.number);
 
       if (n === current) return "next";
@@ -584,16 +512,13 @@ export default function PredictionCards() {
       if (n > current) return "later";
       return "expired";
     },
-    [getRoundStatus] // only re‐create if getRoundStatus reference changes (or if you want to inline getRoundStatus, wrap that in useCallback too)
+    [getRoundStatus]
   );
   const handleSlideChange = () => {
     if (!swiperRef.current) return;
     const swiper = swiperRef.current;
   };
 
-  // Add a more robust version of safeFetchMoreRounds that handles API errors
-
-  // 2) Handle updates coming from <LiveBets />
   const handleLiveTotalChange = (sum: number) => {
     setLiveTotal(sum);
   };
@@ -652,7 +577,7 @@ export default function PredictionCards() {
     if (!liveRound) return;
     const id = setInterval(() => {
       if (Date.now() / 1000 > liveRound.closeTime) safeFetchMoreRounds();
-    }, 5_000); // poll every 5 s
+    }, 5_000);
 
     return () => clearInterval(id);
   }, [liveRound, safeFetchMoreRounds]);
@@ -669,19 +594,16 @@ export default function PredictionCards() {
       .sort((a, b) => Number(a.number) - Number(b.number))
       .slice(-3);
 
-      console.log({newExpired})
     setExpiredRounds(newExpired);
   }, [previousRounds, currentRoundNumber]);
 
   const computedDisplayRounds = useMemo(() => {
     const now = Math.floor(Date.now() / 1000);
 
-    // 1. Find the live round (the one that just ended)
     let liveRound: Round | undefined = previousRounds.find(
       (r) => Number(r.number) === currentRoundNumber - 1
     );
 
-    console.log({liveRound})
     if (!liveRound && typeof currentRoundNumber === "number") {
       const dummyRoundNumber = currentRoundNumber - 1;
       liveRound = {
@@ -751,8 +673,6 @@ export default function PredictionCards() {
     createDummyLaterRound,
     formatCardVariant,
   ]);
-  // console.log(config)
-  // Update the ref with the latest non-empty computed rounds
   useEffect(() => {
     if (computedDisplayRounds.length > 0) {
       previousComputedRoundsRef.current = computedDisplayRounds.filter(
@@ -763,17 +683,14 @@ export default function PredictionCards() {
 
   // Determine the final set of rounds to display in the Swiper
   const finalDisplayRoundsForSwiper = useMemo(() => {
-    // Always show computed rounds if available, regardless of loading state
     if (computedDisplayRounds.length > 0) {
       return computedDisplayRounds;
     }
 
-    // If no computed rounds but we have previous rounds cached, use them
     if (previousComputedRoundsRef.current.length > 0) {
       return previousComputedRoundsRef.current;
     }
 
-    // Fallback: create minimal dummy rounds if no data is available
     if (typeof currentRoundNumber === "number") {
       const fallbackCurrentTime = Math.floor(Date.now() / 1000);
       const fallbackRounds: Round[] = [];
@@ -842,7 +759,6 @@ export default function PredictionCards() {
     }
   }, [liveIndex]);
 
-  // console.log("Final display rounds for Swiper:", finalDisplayRoundsForSwiper);
   useEffect(() => {
     const swiper = swiperRef.current;
     if (!swiper || swiperReady || liveIndex < 0) return;
@@ -862,10 +778,6 @@ export default function PredictionCards() {
 
     if (shouldJumpToLive && currentLiveRound) {
       try {
-        // console.log(
-        //   `Jumping to live slide at index ${liveIndex}, round ${currentLiveRoundNumber}`
-        // );
-        // Use immediate jump (0ms) for initial load, smooth for updates
         const duration = initialSlideJumped.current ? 300 : 0;
         swiper.slideTo(liveIndex, duration);
         initialSlideJumped.current = true;
@@ -920,7 +832,6 @@ export default function PredictionCards() {
   useEffect(() => {
     if (timeLeft === 0 && !didFetchAtZero.current) {
       didFetchAtZero.current = true;
-      // Refresh both user bets and rounds when round completes
       Promise.all([fetchUserBets(), safeFetchMoreRounds()]);
       initialSlideJumped.current = false;
     }
@@ -996,7 +907,7 @@ export default function PredictionCards() {
             </div>
           ) : (
             // Show cards only when wallet is connected
-            <div className="relative">
+            <div className="relative px-4 md:px-0">
               <Swiper
                 // key={liveIndex}
                 key={`swiper-${initial}`}
@@ -1020,6 +931,31 @@ export default function PredictionCards() {
                   depth: mounted && screenWidth < 640 ? 50 : 100,
                   modifier: 1,
                   slideShadows: false,
+                }}
+                breakpoints={{
+                  // when window width is >= 0px
+                  0: {
+                    slidesPerView: 1,
+                    spaceBetween: 10,
+                    coverflowEffect: {
+                      rotate: 20,
+                      depth: 50,
+                      modifier: 1,
+                      slideShadows: false,
+                    },
+                  },
+                
+                  // when window width is >= 1024px
+                  1024: {
+                    slidesPerView: 3,
+                    spaceBetween: 30,
+                    coverflowEffect: {
+                      rotate: 50,
+                      depth: 100,
+                      modifier: 1,
+                      slideShadows: false,
+                    },
+                  },
                 }}
                 modules={[Pagination, EffectCoverflow]}
                 className="w-full px-4 sm:px-0"
@@ -1073,15 +1009,6 @@ export default function PredictionCards() {
                         round,
                         currentRoundNumber
                       );
-
-                      // if (cardVariant === 'expired') {
-                      //   console.log(`Expired Round ${round.number}:`, {
-                      //     lockPrice: round.lockPrice,
-                      //     endPrice: round.endPrice,
-                      //     formattedLockPrice: formatPrice(round.lockPrice),
-                      //     formattedClosePrice: formatPrice(round.endPrice)
-                      //   });
-                      // }
 
                       return (
                         <SwiperSlide
@@ -1150,7 +1077,10 @@ export default function PredictionCards() {
           )}
 
           <div className="xl:hidden">
-            <MobileLiveBets liveBets={[]} />
+            <MobileLiveBets
+              onLiveTotalChange={handleLiveTotalChange}
+              currentRound={Number(currentRound?.number) ?? null}
+            />
           </div>
 
           <div className="mt-10">

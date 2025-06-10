@@ -91,7 +91,6 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
   
     const calculateTimeLeft = () => {
       const now = Date.now() / 1000;
-      // console.log({currentRoundNumber})
       
       let startTimeMs: number;
       const startTimeValue = currentRound.startTime as any;
@@ -182,54 +181,6 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
     }
   }, [previousRounds]);
 
-  // const stableFetchUserBets = useCallback(() => {
-  //   if (typeof fetchUserBets === 'function') {
-  //     return fetchUserBets();
-  //   }
-  //   return Promise.resolve([]);
-  // }, [fetchUserBets]);
-
-  // // Memoize the check function to prevent recreating it on every render
-  // const checkNewRound = useCallback(async () => {
-  //   if (!currentRoundNumber || !config || !program) return;
-    
-  //   try {
-  //     const newConfig = await queryClient.fetchQuery({
-  //       queryKey: ["config"],
-  //       queryFn: () => fetchConfig(program),
-  //       staleTime: 1 * 1000, // Cache config for 1 seconds
-  //     });
-      
-  //     const nextRoundNumber = currentRoundNumber + 1;
-  //     if (newConfig.currentRound > currentRoundNumber) {
-  //       // console.log("New round detected:", newConfig.currentRound);
-        
-  //       // Only invalidate what's necessary
-  //       await queryClient.invalidateQueries({ 
-  //         queryKey: ["config"], 
-  //         refetchType: "all" 
-  //       });
-  //       await queryClient.invalidateQueries({ 
-  //         queryKey: ["round", newConfig.currentRound], 
-  //         refetchType: "all" 
-  //       });
-        
-  //       // Don't invalidate historical rounds - they don't change
-  //       setIsLocked(false);
-  //       setOffset(initialOffset); 
-  //       await stableFetchUserBets();
-  //     }
-  //   } catch (error) {
-  //     console.error("Failed to fetch config:", error);
-  //   }
-  // }, [currentRoundNumber, config, program, queryClient, initialOffset, stableFetchUserBets]);
-
-  // // New round detection effect - fixed dependency array
-  // useEffect(() => {
-  //   // Reduce check frequency
-  //   const interval = setInterval(checkNewRound, 10000); // Check every 10 seconds instead of 5
-  //   return () => clearInterval(interval);
-  // }, [checkNewRound]);
   const stableFetchUserBets = useCallback(() => {
     if (typeof fetchUserBets === "function") {
       return fetchUserBets();
@@ -268,7 +219,6 @@ export const useRoundManager = (initialLimit: number = 5, initialOffset: number 
     if (!currentRoundNumber) return;
     const newOffset = offset + initialLimit;
     setOffset(newOffset);
-    // console.log(`Workspaceing more rounds with offset ${newOffset}`);
   };
 
   return {

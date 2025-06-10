@@ -114,6 +114,14 @@ body {
   right: 110% !important;
 }
 
+@media (max-width: 768px) {
+  .wallet-adapter-dropdown-list {
+    right: 0 !important;
+    top: 100% !important;
+    left: auto !important;
+  }
+} 
+
 /* Wallet button styling for both themes */
 .wallet-adapter-button {
   background: var(--glass-bg) !important;

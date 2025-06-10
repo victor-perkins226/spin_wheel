@@ -23,7 +23,6 @@ export const useLivePrice = (): LivePriceData => {
     socketRef.current = io(BACKEND_WS_URL);
 
     socketRef.current.on('connect', () => {
-      console.log('Connected to WebSocket backend.');
       setError(null); // Clear any previous errors on reconnect
     });
 
@@ -34,7 +33,6 @@ export const useLivePrice = (): LivePriceData => {
     });
 
     socketRef.current.on('disconnect', (reason) => {
-      console.log('Disconnected from WebSocket backend:', reason);
       setError('Disconnected from price service.');
       setIsLoading(false); // No longer loading if disconnected
     });
@@ -45,7 +43,6 @@ export const useLivePrice = (): LivePriceData => {
         setPrice(data.price);
         setIsLoading(false); // Set to false once the first price is received
         setError(null);
-        // console.log('Received live price update:', data.price);
       } else {
         setError('Received invalid price data.');
       }
@@ -54,7 +51,6 @@ export const useLivePrice = (): LivePriceData => {
     // 3. Clean up on component unmount
     return () => {
       if (socketRef.current) {
-        console.log('Disconnecting from WebSocket...');
         socketRef.current.disconnect();
         socketRef.current = null;
       }

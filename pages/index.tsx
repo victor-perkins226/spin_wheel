@@ -11,13 +11,8 @@ import Lock from "@/public/assets/lock.png";
 import Image from "next/image";
 
 export const getServerSideProps: GetServerSideProps = async ({ req }) => {
-  // 1. Read Vercel's country header (ISO-3166-1 alpha-2)
   const rawCountry = req.headers["x-vercel-ip-country"] as string | undefined;
   const country = rawCountry ? rawCountry.toUpperCase() : "";
-
-  console.log("Vercel geo header:", country);
-
-  // 2. If it matches a banned code, mark isBanned = true
   const isBanned = BANNED_COUNTRY_CODES.includes(country);
 
   return {
