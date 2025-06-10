@@ -180,6 +180,12 @@ useEffect(() => {
     roundIdRef.current = roundId;
   }, [roundId]);
 
+    useEffect(() => {
+    if (!isFlipped) return;
+    if (isLocked || (timeLeft !== null && timeLeft <= bufferTimeInSeconds)) {
+      setIsFlipped(false);
+    }
+  }, [isFlipped, isLocked, timeLeft, bufferTimeInSeconds]);
   useEffect(() => {
     // keep the latest roundId in a ref
     roundIdRef.current = roundId;
@@ -201,14 +207,20 @@ useEffect(() => {
       if (prediction) setUpBetsLocal((prev) => prev + solAmt);
       else setDownBetsLocal((prev) => prev + solAmt);
       setPrizePoolLocal((prev) => prev + solAmt);
-      if (user === publicKey?.toString()) setScriptBetPlaced(true);
+       if (user === publicKey?.toString()) {
+      setScriptBetPlaced(true);
+
+      window.dispatchEvent(
+        new CustomEvent("betPlaced", {
+          detail: { roundId: round_number, direction: prediction, amount }
+        })
+      );
+    }
     };
 
-    // socket.on("prizePoolUpdate", handlePrizePool);
     socket.on("newBetPlaced", handleNewBet);
 
     return () => {
-      // socket.off("prizePoolUpdate", handlePrizePool);
       socket.off("newBetPlaced", handleNewBet);
     };
   }, [socket, publicKey, variant]);
@@ -283,12 +295,10 @@ useEffect(() => {
     if (!connected || !publicKey) return;
 
     const handleNewBet = (newBet: any) => {
-      // if this bet is from our currently connected wallet …
       if (
         newBet.data.user === publicKey.toString() &&
         newBet.data.round_number === roundId
       ) {
-        // mark that they have already bet by any means
         setScriptBetPlaced(true);
       }
     };
@@ -586,12 +596,10 @@ useEffect(() => {
     }
     if (variant === "next" && hasUserBet && userBetStatus) {
       if (userBetStatus.direction === direction) {
-        // If they bet “up”, paint UP green; if “down”, paint DOWN red.
         return direction === "up"
           ? "linear-gradient(90deg, #06C729 0%, #04801B 100%)"
           : "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)";
       } else {
-        // The opposite side is greyed out:
         return "#9CA3AF";
       }
     }
@@ -1144,7 +1152,7 @@ useEffect(() => {
             min="0.01"
             max={maxAmount}
             step="0.000000001"
-            value={Math.min(amount, maxAmount)} // Ensure value doesn't exceed max
+            value={Math.min(amount, maxAmount)}
             onChange={(e) => {
               const value = parseFloat(e.target.value);
               const clampedValue = Math.max(0.01, Math.min(value, maxAmount));
