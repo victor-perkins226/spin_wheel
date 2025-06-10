@@ -229,7 +229,6 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
       });
     };
 
-    // Remove any existing listeners first (cleanup any previous listeners)
     socket.off("connect");
     socket.off("disconnect");
     socket.off("error");

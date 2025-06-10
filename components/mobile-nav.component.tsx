@@ -3,7 +3,6 @@ import SVG, { IconType } from "./svg.component";
 import Link from "next/link";
 import routes from "@/helpers/routes";
 import { useRouter } from "next/router";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
 const MOBILE_NAV_LINKS: { icon: IconType; url: string }[] = [
   { icon: "home", url: routes.home() },

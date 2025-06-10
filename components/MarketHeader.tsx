@@ -65,15 +65,12 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
     onClaim,
     formatTimeLeft,
   }) => {
-    //
-    // Precompute some derived values so we don’t do it inside JSX repeatedly:
-    //
+
     const displayTime = useMemo(() => {
       if (isLocked) return "Closing";
       return formatTimeLeft(timeLeft);
     }, [isLocked, timeLeft, formatTimeLeft]);
 const lockMinutes = useMemo(() => {
-  // if lockDuration is ever undefined/null/NaN, fall back to 0
   const safeDuration = typeof lockDuration === "number" && !isNaN(lockDuration)
     ? lockDuration
     : 0;
@@ -228,7 +225,7 @@ const lockMinutes = useMemo(() => {
                   disabled={claimableRewards === 0 || isClaiming}
                 >
                   {isClaiming ? (
-                    <PuffLoader size={20} color="#fff" />
+                    <PuffLoader size={20} color={theme==="dark"? "#fff": "#000"} />
                   ) : (
                     "Claim"
                   )}

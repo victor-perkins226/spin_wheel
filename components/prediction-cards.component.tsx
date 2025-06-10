@@ -24,28 +24,21 @@ import LiveBets from "./LiveBets";
 import { useRoundManager } from "@/hooks/roundManager";
 import { Round } from "@/types/round";
 import { useSolPredictor } from "@/hooks/useBuyClaim";
-// import { BetsHistory } from "./BetsHistory";
-// import LineChart from "./LineChart";
 import { useLivePrice } from "@/lib/price-utils";
 
 import io from "socket.io-client";
 import { useProgram } from "@/hooks/useProgram";
 import toast from "react-hot-toast";
 import { useTheme } from "next-themes";
-import { DotLoader, PuffLoader } from "react-spinners";
+import { PuffLoader } from "react-spinners";
 import MarketHeader from "./MarketHeader";
 import {
-  BetFailedToast,
-  BetSuccessToast,
-  BetSuccessToastMini,
   ClaimFailureToast,
   ClaimSuccessToast,
-  ClaimSuccessToastMini,
   ConnectWalletBetToast,
   NoClaimableBetsToast,
 } from "./toasts";
 import { API_URL, RPC_URL } from "@/lib/config";
-import { set } from "@project-serum/anchor/dist/cjs/utils/features";
 const BetsHistory = React.lazy(() => import("./BetsHistory"));
 
 const LineChart = React.lazy(() => import("./LineChart"));
@@ -80,16 +73,11 @@ export default function PredictionCards() {
     currentRound,
     treasuryFee,
     previousRounds,
-    totalPreviousRounds,
-    isLoading,
-    isPaused,
-    getRoundOutcome,
     fetchMoreRounds,
     timeLeft,
     isLocked,
     getRoundStatus,
   } = useRoundManager(5, 0);
-  const [isRefreshingAfterClaim, setIsRefreshingAfterClaim] = useState(false);
   const [isFetchingRounds, setIsFetchingRounds] = useState(false);
   const previousComputedRoundsRef = useRef<Round[]>([]); // Ref to store last valid computed rounds
   const [liveTotal, setLiveTotal] = useState<number>(0);
@@ -248,7 +236,6 @@ export default function PredictionCards() {
   }, [safeFetchMoreRounds]);
   useEffect(() => {
     const onBetPlaced = (event: Event) => {
-      // If the *current user* just placed a bet, wait 1s then refresh
       const timer = setTimeout(() => {
         fetchUserBets();
         safeFetchMoreRounds();
@@ -263,19 +250,29 @@ export default function PredictionCards() {
   }, [fetchUserBets, safeFetchMoreRounds]);
   function SkeletonCard() {
     return (
-      <div className="card_container glass rounded-[20px] p-[15px] sm:p-[25px] w-full animate-pulse">
+      <div className="card_container glass  min-w-[240px]  rounded-[20px] p-[15px] sm:p-[25px] w-full animate-pulse">
         <div className="flex justify-between items-center">
-          <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
-          <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
+          <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded w-1/3 "></div>
+          <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded w-1/3 "></div>
         </div>
-        <div className="h-40 bg-gray-300 dark:bg-gray-700 rounded mb-4"></div>
-        <div className="space-y-2">
-          <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-full"></div>
-          <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-full"></div>
+        <div className="h-10 my-4 bg-gray-300 dark:bg-gray-700 w-full rounded-2xl"></div>
+        <div className="h-[150px] bg-gray-300 dark:bg-gray-700 rounded-2xl mb-8"></div>
+        <div className="">
+          <div className="flex justify-between items-center">
+            <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/3"></div>
+            <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/3"></div>
+          </div>
+          <div className="flex my-4 justify-between items-center">
+            <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/3"></div>
+            <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/3"></div>
+          </div>
+           <div className="flex my-4 justify-between items-center">
+            <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/3"></div>
+            <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/3"></div>
+          </div>
         </div>
         <div className="mt-6 flex justify-between">
-          <div className="h-10 bg-gray-300 dark:bg-gray-700 rounded w-1/2"></div>
-          <div className="h-10 bg-gray-300 dark:bg-gray-700 rounded w-1/2"></div>
+          <div className="h-10 bg-gray-300 dark:bg-gray-700 w-full rounded-2xl"></div>
         </div>
       </div>
     );
@@ -650,13 +647,11 @@ export default function PredictionCards() {
       })
       .slice(0, 1);
 
-    // 4. Dummy "later" if none real
     const dummyLaterRounds: Round[] = [];
     if (nextRound && laterRounds.length === 0) {
       dummyLaterRounds.push(createDummyLaterRound(nextRound, 1));
     }
 
-    // 5. Compose final array: static expired + dynamic live/next/later
     return [
       ...expiredRounds, // Only updated on explicit history fetches
       liveRound!,
@@ -807,7 +802,6 @@ export default function PredictionCards() {
   const prevTimeLeft = useRef<number | null>(null);
 
   useEffect(() => {
-    // If on mount, timeLeft is already 0, treat it as a “round ended” event.
     if (prevTimeLeft.current == null && timeLeft === 0) {
       // immediate sync (or you can delay a bit if you want):
       fetchUserBets();
@@ -816,7 +810,6 @@ export default function PredictionCards() {
       return;
     }
 
-    // Otherwise, detect a transition from >0 → 0:
     if (prevTimeLeft.current! > 0 && timeLeft === 0) {
       const timer = setTimeout(() => {
         fetchUserBets();
@@ -944,7 +937,7 @@ export default function PredictionCards() {
                       slideShadows: false,
                     },
                   },
-                
+
                   // when window width is >= 1024px
                   1024: {
                     slidesPerView: 3,
@@ -1090,12 +1083,10 @@ export default function PredictionCards() {
           </div>
 
           {connected && userBets.length > 0 && (
-            // <Suspense fallback={<PuffLoader color="#06C729" size={30} />}>
             <BetsHistory
               currentRound={currentRoundNumber!}
               userBets={userBets}
             />
-            // </Suspense>
           )}
         </div>
         <LiveBets

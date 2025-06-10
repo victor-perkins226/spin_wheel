@@ -1,4 +1,3 @@
-// components/LiveBets.tsx
 "use client";
 
 import Image from "next/image";
@@ -7,15 +6,11 @@ import SVG from "./svg.component";
 import io from "socket.io-client";
 import axios from "axios";
 import { useTheme } from "next-themes";
-import { ThemeToggle } from "./Themetoggle";
 import toast from "react-hot-toast";
 import BigBet from "@/public/assets/Big-Bet.png";
 import { API_URL } from "@/lib/config";
 import { formatNum } from "@/lib/utils";
 import { network } from "./wallet.provider.component";
-import { dir } from "console";
-
-// Define the Bet interface
 interface Bet {
   direction: string;
   user: string;
@@ -104,9 +99,9 @@ function MobileLiveBets({ currentRound, onLiveTotalChange }: MobileLiveBetsProps
             };
           })
           .filter((bet: Bet): bet is Bet => bet !== null)
-          .filter((bet: Bet) => bet.round_number === currentRound) // Filter by current round
-          .sort((a: Bet, b: Bet) => b.amount - a.amount) // Sort by amount descending
-          .slice(0, 10); // Limit to 10 bets
+          .filter((bet: Bet) => bet.round_number === currentRound)
+          .sort((a: Bet, b: Bet) => b.amount - a.amount)
+          .slice(0, 10);
         setLiveBets(bets);
 
       } catch (error) {
@@ -253,7 +248,6 @@ function MobileLiveBets({ currentRound, onLiveTotalChange }: MobileLiveBetsProps
     };
   }, [currentRound, theme]);
 
-  // Remove animation class after animation completes
   useEffect(() => {
     if (newBetSignatures.size > 0) {
       const timer = setTimeout(() => {
