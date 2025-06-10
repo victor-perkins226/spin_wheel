@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Globe, ChevronDown } from "lucide-react";
 import ReactCountryFlag from "react-country-flag";
+import { useTheme } from "next-themes";
 
 const LANGUAGES = [
   { code: "ar", label: "Arabic",    countryCode: "SA" }, // Saudi Arabia
@@ -32,6 +33,7 @@ export default function LanguageDropdown() {
   const [current, setCurrent] = useState(LANGUAGES[0]);
   const ref = useRef<HTMLDivElement>(null);
 
+  const {theme} = useTheme()
   // close on outside click
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -45,6 +47,7 @@ export default function LanguageDropdown() {
 
   return (
     <div ref={ref} className="relative inline-block text-left">
+      
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex items-center space-x-2 px-4 py-2 cursor-pointer glass border border-gray-200 dark:border-gray-700 rounded-full shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition"
@@ -66,7 +69,7 @@ export default function LanguageDropdown() {
       </button>
 
       {open && (
-        <ul className="absolute right-0 mt-2 w-40 glass border rounded-xl border-gray-200 backdrop-blur-[40px] drop-shadow-[#0000001A] shadow-lg overflow-hidden z-[100]">
+        <ul className={`${theme === "dark" ? "!bg-gradient-to-r from-[#2a2a4c] to-[#2a2a4c]" : "!bg-white shadow-lg"} absolute glass  right-0 mt-2 w-40 border rounded-xl border-gray-200 shadow-lg overflow-hidden z-[100]`}>
           {LANGUAGES.map((lang) => (
             <li key={lang.code}>
               <button
@@ -75,7 +78,7 @@ export default function LanguageDropdown() {
                   setOpen(false);
                   // i18n.changeLanguage(lang.code);
                 }}
-                className="w-full flex items-center px-4 py-2  backdrop-blur-[40px] glass hover:backdrop-blur-3xl hover:shadow-sm cursor-pointer  transition"
+                className="w-full flex items-center px-4 py-2 cursor-pointer text-xs hover:glass  transition"
               >
                 <ReactCountryFlag
                   countryCode={lang.countryCode}

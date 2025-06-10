@@ -323,7 +323,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
   return (
     <>
       <style jsx>{animationStyles}</style>
-      <div className="hidden mt-[3rem] xl:flex col-span-3 flex-col gap-[43px] items-end">
+      <div className="hidden mt-[.5rem] xl:flex col-span-3 flex-col gap-[43px] items-end">
         {/* Theme Toggle Button */}
         {/* <ThemeToggle /> */}
 
