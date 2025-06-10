@@ -241,7 +241,6 @@ export const usePreviousRoundsByIds = (currentRound?: number, count: number = 5,
                     }
                 })
             );
-            console.log(`Fetching rounds: ${roundNumbers.join(", ")}`, rounds);
             const validRounds = rounds.filter((round): round is Round => round !== null);
 
             return {

@@ -36,7 +36,6 @@ export const syncWithServerTime = async (): Promise<void> => {
 
     // Store the offset
     localStorage.setItem(SERVER_TIME_OFFSET_KEY, offset.toString());
-    console.log(`Time synchronized with server. Offset: ${offset}ms`);
   } catch (error) {
     console.error("Failed to sync with server time:", error);
   }

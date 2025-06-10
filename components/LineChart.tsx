@@ -113,7 +113,6 @@ export const getPythHistoricalPrice = async (
         to: endTime,
       };
 
-      console.log(`Fetching Pyth data for ${btn.id} with params:`, params);
 
       const axiosConfig = {
         params,
@@ -139,7 +138,6 @@ export const getPythHistoricalPrice = async (
         publish_time: timestamp,
       }));
 
-      console.log(`Pyth returned ${formattedData.length} data points for ${btn.id}`);
       return formattedData;
     }
   } catch (error) {
@@ -233,9 +231,7 @@ const TradingChart = () => {
 
     if (now - lastFetchTime < minTimeBetweenFetches) {
       const waitTime = minTimeBetweenFetches - (now - lastFetchTime);
-      console.log(
-        `Rate limiting: Waiting ${waitTime}ms before fetching ${TIME_BUTTONS[activeIndex].id} data`
-      );
+    
       await new Promise((resolve) => setTimeout(resolve, waitTime));
     }
 
@@ -391,7 +387,6 @@ const TradingChart = () => {
 
       // Generate simulated data if no API data available
       if (formattedData.length === 0) {
-        console.log("No API data available, generating simulated data");
         const days = getDaysFromIndex(activeIndex);
         const interval = activeIndex === 1 ? 30000 : 60000;
         const simulatedPyth = simulateHistoricalData(days, interval, false, activeIndex);
@@ -852,7 +847,6 @@ async function getCoinGeckoHistoricalPrice(buttonIndex: number): Promise<any[] |
         x_cg_demo_api_key: "CG-EnQ2L2wvdfeMreh3qmY9eCqd"
       };
       
-      console.log(`Fetching CoinGecko data for ${btn.id} with params:`, params);
       
       const axiosConfig = {
         params,
@@ -870,7 +864,6 @@ async function getCoinGeckoHistoricalPrice(buttonIndex: number): Promise<any[] |
         return null;
       }
       
-      console.log(`CoinGecko returned ${data.prices.length} data points for ${btn.id}`);
       return data.prices;
     }
   } catch (error) {

@@ -22,14 +22,7 @@ export async function placeBet(
   amount: number
 ): Promise<string | null> {
   try {
-    console.log("🔁 placeBet called with:", {
-      programId: programId.toBase58(),
-      contractAddress: contractAddress.toBase58(),
-      userPubkey: userPubkey.toBase58(),
-      roundId,
-      direction,
-      amount,
-    });
+
 
     // Derive PDAs
     const [configPda] = PublicKey.findProgramAddressSync(
@@ -73,14 +66,10 @@ export async function placeBet(
     const program = new anchor.Program(idl as any, programId, provider);
 
     const betAmount = new anchor.BN(amount * LAMPORTS_PER_SOL);
-    console.log("💰 Lamports to transfer:", betAmount.toString());
-
+    
     const roundPda = getRoundPda(roundId);
     const escrowPda = getEscrowPda(roundId);
     const userBetPda = getUserBetPda(userPubkey, roundId);
-
-    console.log(configPda, "config pda");
-    console.log(roundPda, "roundPda");
 
     let isBull = false;
 
