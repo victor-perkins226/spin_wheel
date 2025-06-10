@@ -1,7 +1,7 @@
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
-export  function ThemeToggle() {
+export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -19,16 +19,19 @@ export  function ThemeToggle() {
       onClick={() => setTheme(isDark ? "light" : "dark")}
       style={{
         backgroundImage: `url(${
-          isDark ? "/assets/lightToggle.png" : "/assets/darkToggle.png"
+          isDark ? "/assets/switch-elements.png" : "/assets/darkToggle.png"
         })`,
         backgroundSize: "cover",
       }}
     >
       <div
-        className={`absolute top-1/2 transform -translate-y-1/2 w-[40px] h-[40px] bg-white rounded-full shadow-md transition-all duration-100 ${
-          isDark ? "right-[59px]" : "left-[59px]"
+        className={`absolute top-1/2 transform -translate-y-1/2  rounded-full transition-all duration-100 ${
+          !isDark ? " shadow-md right-[59px] bg-white w-[40px] h-[40px]" : "w-[60px] h-[60px] left-[39px]"
         }`}
-      ></div>
+      >
+        {" "}
+        <img src={isDark ? "/assets/round-button.png" : ""} alt="" />
+      </div>
     </div>
   );
 }

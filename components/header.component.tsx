@@ -7,6 +7,8 @@ import routes from "@/helpers/routes";
 import SVG from "./svg.component";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useTheme } from "next-themes";
+import { ThemeToggle } from "./Themetoggle";
+import LanguageDropdown from "./LanguageDropdown";
 
 export default function Header() {
   const { theme } = useTheme();
@@ -43,10 +45,13 @@ export default function Header() {
             </Link>
           ))}
         </nav> */}
-
+<div className="flex gap-6 items-center">
+  <LanguageDropdown/>
+  <ThemeToggle/>
         {/* {renderWalletButton()} */}
 
         <WalletMultiButton />
+</div>
         {/* <WalletDisconnectButton/> */}
       </header>
 
