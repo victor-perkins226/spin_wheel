@@ -206,6 +206,10 @@ export const usePreviousRoundsByIds = (currentRound?: number, count: number = 5,
     const { program } = useProgram();
     const queryClient = useQueryClient();
 
+    // queryClient.invalidateQueries({
+    //     queryKey: ["previousRounds"],
+    //     exact: false, // Invalidate all queries that start with this key
+    // });
     return useQuery({
         queryKey: ["previousRounds", currentRound, count, offset],
         queryFn: async (): Promise<PreviousRoundsResponse> => {
@@ -218,12 +222,14 @@ export const usePreviousRoundsByIds = (currentRound?: number, count: number = 5,
                 (_, i) => currentRound - 1 - offset - i
             ).filter((num) => num > 0);
 
-            console.log(`Fetching rounds: ${roundNumbers.join(", ")}`);
-
             // Use queryClient.fetchQuery to leverage the caching from useRound
             const rounds = await Promise.all(
                 roundNumbers.map(async (roundNumber) => {
                     try {
+                        queryClient.invalidateQueries({
+                            queryKey: ["round", roundNumber],
+                            exact: false,
+                        });
                         return await queryClient.fetchQuery({
                             queryKey: ["round", roundNumber],
                             queryFn: () => fetchRound(program, roundNumber),
@@ -235,7 +241,7 @@ export const usePreviousRoundsByIds = (currentRound?: number, count: number = 5,
                     }
                 })
             );
-
+            console.log(`Fetching rounds: ${roundNumbers.join(", ")}`, rounds);
             const validRounds = rounds.filter((round): round is Round => round !== null);
 
             return {
@@ -245,7 +251,12 @@ export const usePreviousRoundsByIds = (currentRound?: number, count: number = 5,
         },
         enabled: !!program && !!currentRound && currentRound > 1 && !isNaN(currentRound),
         staleTime: 2 * 60 * 1000, // Cache for 2 minutes
-        refetchInterval: false, // Don't auto-refetch historical data
+        refetchInterval: (query) => {
+            const roundsData = query?.state?.data?.rounds;
+            const isEndPriceSatisfied = roundsData?.[1]?.endPrice && Number(roundsData[1].endPrice) > 0;
+
+            return isEndPriceSatisfied ? false : 1000; // Retry every 5 seconds until endPrice is valid
+        },
         retry: (failureCount, error: any) => {
             if (error?.message?.includes("Account does not exist")) return false;
             return failureCount < 2; // Reduced retries
