@@ -3,6 +3,7 @@ import SVG, { IconType } from "./svg.component";
 import Link from "next/link";
 import routes from "@/helpers/routes";
 import { useRouter } from "next/router";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
 const MOBILE_NAV_LINKS: { icon: IconType; url: string }[] = [
   { icon: "home", url: routes.home() },
@@ -20,6 +21,8 @@ export default function MobileNav() {
   };
   return (
     <nav className="glass w-full fixed bottom-0 pt-[9px] pb-[20px] px-[30px] rounded-[20px] flex md:hidden justify-around items-end">
+      <WalletMultiButton className="!bg-transparent !border-none !text-white !font-semibold !text-[16px] !leading-[24px] !p-0" />
+      hh
       {MOBILE_NAV_LINKS.map((el, key) => (
         <Link
           href={el.url}

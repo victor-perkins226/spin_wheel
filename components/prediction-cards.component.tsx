@@ -94,16 +94,11 @@ export default function PredictionCards() {
   const previousComputedRoundsRef = useRef<Round[]>([]); // Ref to store last valid computed rounds
   const [liveTotal, setLiveTotal] = useState<number>(0);
 
-  // Update claimableAmountRef when claimableBets changes
-
-  // Replace your existing claimableRewards effect with this simplified version:
-  // Replace your existing claimableRewards effect with this improved version:
   useEffect(() => {
     const sum = claimableBets.reduce((tot, b) => tot + (b.payout || 0), 0);
     setClaimableRewards(sum);
   }, [claimableBets]); // Remove isClaiming dependency
 
-  // Add this effect to handle periodic refresh of user bets
   useEffect(() => {
     if (!connected || !publicKey) return;
 
@@ -115,51 +110,6 @@ export default function PredictionCards() {
     return () => clearInterval(interval);
   }, [connected, publicKey, fetchUserBets]);
 
-  // useEffect(() => {
-  //   let timeoutId: NodeJS.Timeout;
-
-  //   const handleClaimComplete = () => {
-  //     // Clear timeout if it exists
-  //     if (timeoutId) clearTimeout(timeoutId);
-
-  //     // Set a timeout to refresh data after claim
-  //     timeoutId = setTimeout(async () => {
-  //       try {
-  //         await Promise.all([
-  //           fetchUserBets(),
-  //           fetchMoreRounds && fetchMoreRounds(),
-  //         ]);
-
-  //         // Update balance
-  //         if (connected && publicKey && connectionRef.current) {
-  //           const newLamports = await connectionRef.current.getBalance(
-  //             publicKey
-  //           );
-  //           setUserBalance(newLamports / LAMPORTS_PER_SOL);
-  //         }
-  //       } catch (error) {
-  //         console.error("Error refreshing after claim:", error);
-  //       }
-  //     }, 1000);
-  //   };
-
-  //   // Listen for claim completion
-  //   if (!isClaiming && claimableRewards === 0 && claimableBets.length === 0) {
-  //     handleClaimComplete();
-  //   }
-
-  //   return () => {
-  //     if (timeoutId) clearTimeout(timeoutId);
-  //   };
-  // }, [
-  //   isClaiming,
-  //   claimableRewards,
-  //   claimableBets.length,
-  //   connected,
-  //   publicKey,
-  //   fetchUserBets,
-  //   fetchMoreRounds,
-  // ]);
   useEffect(() => {
     if (connected && publicKey) {
       fetchUserBets();
@@ -316,23 +266,6 @@ export default function PredictionCards() {
       window.removeEventListener("betPlaced", onBetPlaced);
     };
   }, [fetchUserBets, safeFetchMoreRounds]);
-  // useEffect(() => {
-  //   const handleBetPlaced = (event: CustomEvent) => {
-  //     console.log("Bet placed event received:", event.detail);
-
-  //     // Refresh data after bet placement
-  //     setTimeout(() => {
-  //       fetchUserBets();
-  //       fetchMoreRounds();
-  //     }, 1000); // Small delay to ensure backend is updated
-  //   };
-
-  //   window.addEventListener("betPlaced", handleBetPlaced as EventListener);
-
-  //   return () => {
-  //     window.removeEventListener("betPlaced", handleBetPlaced as EventListener);
-  //   };
-  // }, [fetchUserBets, fetchMoreRounds]);
   function SkeletonCard() {
     return (
       <div className="card_container glass rounded-[20px] p-[15px] sm:p-[25px] w-full animate-pulse">

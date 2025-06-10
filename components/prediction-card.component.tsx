@@ -172,89 +172,8 @@ useEffect(() => {
   const connectedRef = useRef(connected);
   const publicKeyRef = useRef(publicKey);
 
-  // useEffect(() => {
-  //   const onClaimSuccess = () => {
-  //     setShowClaimBanner(false);
-  //     // setClaimLoading(false);
-  //       // hide the whole banner
-  //   };
-  //   const onClaimFailure = () => {
-  //     setClaimLoading(false);
-
-  //     // setShowClaimBanner(false);
-  //     // leave showClaimBanner === true so they can try again
-  //   };
-
-  //   window.addEventListener("claimSuccess", onClaimSuccess);
-  //   window.addEventListener("claimFailure", onClaimFailure);
-  //   return () => {
-  //     window.removeEventListener("claimSuccess", onClaimSuccess);
-  //     window.removeEventListener("claimFailure", onClaimFailure);
-  //   };
-  // }, []);
-
-  // const calculateMultipliers = () => {
-  //   if (!roundData) return { bullMultiplier: "1.00", bearMultiplier: "1.00" };
-
-  //   const totalAmount =
-  //     variant === "next" ? liveTotalForThisRound : prizePoolLocal;
-  //   const totalBullAmount = upBetsLocal;
-  //   const totalBearAmount = downBetsLocal;
-
-  //   // If no bets, return 1x multiplier
-  //   if (totalAmount === 0) {
-  //     return { bullMultiplier: "1.00", bearMultiplier: "1.00" };
-  //   }
-
-  //   const treasuryFeePercent = roundData.treasuryFee / 10000; // Convert basis points to decimal
-  //   const fee = roundData.treasuryFee / 10000;
-
-  //   // only charge the losers
-  //   const bullRewardPool = totalBullAmount + totalBearAmount * (1 - fee);
-  //   const bearRewardPool = totalBearAmount + totalBullAmount * (1 - fee);
-
-  //   const bullMultiplier =
-  //     totalBullAmount > 0 ? bullRewardPool / totalBullAmount : 1;
-  //   const bearMultiplier =
-  //     totalBearAmount > 0 ? bearRewardPool / totalBearAmount : 1;
-
-  //   return {
-  //     bullMultiplier: formatNum(bullMultiplier),
-  //     bearMultiplier: formatNum(bearMultiplier),
-  //   };
-  // };
-
-  // function calculateMultipliers(
-  //   totalPool: number,
-  //   feeAmount: number,
-  //   totalBull: number,
-  //   totalBear: number
-  // ): { bullMultiplier: string; bearMultiplier: string } {
-  //   const bullMultiplier =
-  //     totalBull > 0 ? (totalPool - feeAmount) / totalBull : 1;
-  //   const bearMultiplier =
-  //     totalBear > 0 ? (totalPool - feeAmount) / totalBear : 1;
-
-  //   return {
-  //     bullMultiplier: formatNum(bullMultiplier),
-  //     bearMultiplier: formatNum(bearMultiplier),
-  //   };
-  // }
-  // const [upBetsLocal,   setUpBetsLocal]   = useState<number>(roundData?.upBets   || 0);
-  // const [downBetsLocal, setDownBetsLocal] = useState<number>(roundData?.downBets || 0);
   const feeBps = roundData?.treasuryFee || 0;
   const socket = useMemo(() => getSocket(), []);
-
-  //   useEffect(() => {
-  //   const onUpdate = (data: any) => {
-  //     if (data.roundId !== roundId) return;
-  //     setUpBetsLocal(data.newBullAmount);
-  //     setDownBetsLocal(data.newBearAmount);
-  //   };
-  //   socket.on("prizePoolUpdate", onUpdate);
-  //   return () => { socket.off("prizePoolUpdate", onUpdate); socket.disconnect(); };
-  // }, [roundId]);
-
   useEffect(() => {
     roundIdRef.current = roundId;
   }, [roundId]);
@@ -293,14 +212,14 @@ useEffect(() => {
   }, [socket, publicKey, variant]);
 
   function calculateMultipliers(
-    totalBull: number, // C: sum of all “up” bets
-    totalBear: number, // D: sum of all “down” bets
-    totalFeeBps: number // B: fee in basis-points, e.g. 100 for 1%
+    totalBull: number, 
+    totalBear: number, 
+    totalFeeBps: number 
   ) {
-    const totalPool = totalBull + totalBear; // A
+    const totalPool = totalBull + totalBear;
 
-    const feeAmount = (totalPool * totalFeeBps) / 10000; // B
-    const netPool = totalPool - feeAmount; // A – B
+    const feeAmount = (totalPool * totalFeeBps) / 10000; 
+    const netPool = totalPool - feeAmount; 
 
     const bullMultiplier = totalBull > 0 ? netPool / totalBull : 1;
     const bearMultiplier = totalBear > 0 ? netPool / totalBear : 1;
@@ -310,27 +229,7 @@ useEffect(() => {
       bearMultiplier: bearMultiplier.toFixed(2),
     };
   }
-  // Wire socket to bump up/down bets
-  //   useEffect(() => {
-  //     const onPrizePoolUpdate = (data: any) => {
-  //       if (data.roundId !== roundId) return;
-  //       setUpBetsLocal(data.newBullAmount / LAMPORTS_PER_SOL);
-  //       setDownBetsLocal(data.newBearAmount / LAMPORTS_PER_SOL);
-  //     };
-  //     socket.on("prizePoolUpdate", onPrizePoolUpdate);
-  //     return () => {
-  //       socket.off("prizePoolUpdate", onPrizePoolUpdate);
-  //       socket.disconnect();
-  //     };
-  //   }, [roundId]);
 
-  //   // Now memoize the multipliers so they update instantly:
-  // const { bullMultiplier, bearMultiplier } = useMemo(
-  //   () => calculateMultipliers(upBetsLocal, downBetsLocal, feeBps),
-  //   [upBetsLocal, downBetsLocal, feeBps]
-  // );
-
-  // FIX 2: Single socket listener for prize pool updates (works for all variants)
   useEffect(() => {
     const onPrizePoolUpdate = (data: any) => {
       if (data.roundId !== roundId) return;
@@ -414,12 +313,6 @@ useEffect(() => {
     feeAmount = (poolTotal * roundData!.treasuryFee) / 10000;
   }
 
-  // const { bullMultiplier, bearMultiplier } = calculateMultipliers(
-  //   poolTotal,   // A: total prize pool
-  //   feeAmount,   // B: total fee amount
-  //   poolUp,      // C: total “up” bets
-  //   poolDown     // D: total “down” bets
-  // );
   useEffect(() => {
     if (!connected || !publicKey) {
       setMaxAmount(0);
@@ -561,41 +454,9 @@ useEffect(() => {
     };
   }, []);
 
-  // useEffect(() => {
-  //   if (userBetStatus?.status === "CLAIMED") {
-  //     // setShowClaimBanner(false);
-  //   }
-  // }, [userBetStatus]);
+
   const prevBetRef = useRef<UserBet["status"] | null>(null);
 
-  // useEffect(() => {
-  //   const prev = prevBetRef.current;
-  //   const curr = userBetStatus?.status ?? null;
-
-  //   // just-flipped-into "WON"?
-  //   if (
-  //     variant === "expired" &&
-  //     isClaimable &&
-  //     curr === "WON" &&
-  //     prev !== "WON"
-  //   ) {
-  //     setShowClaimBanner(true);
-  //   }
-
-  //   // as soon as it flips into "CLAIMED", hide it forever
-  //   if (curr === "CLAIMED") {
-  //     setShowClaimBanner(false);
-  //   }
-
-  //   prevBetRef.current = curr;
-  // }, [variant, isClaimable, userBetStatus?.status]);
-  // useEffect(() => {
-  //   if (userBetStatus?.status === "CLAIMED") {
-  //     setShowClaimBanner(false);
-  //     setClaimLoading(false);
-
-  //   }
-  // }, [userBetStatus]);
   useEffect(() => {
     const handler = (d: { roundId: number; lockPrice: number }) => {
       if (d.roundId === roundId) setLockedPriceLocal(d.lockPrice);
@@ -606,14 +467,12 @@ useEffect(() => {
     };
   }, [socket, roundId]);
 
-  // now *every* time you need the lock price, do:
   const lockPrice =
-    lockedPriceLocal ?? // if we’ve got it
-    roundData?.lockPrice ?? // else the server’s last known
-    roundData?.currentPrice ?? // else fall back to live price
+    lockedPriceLocal ?? 
+    roundData?.lockPrice ??
+    roundData?.currentPrice ??
     0;
 
-  // in getPriceMovement():
   function getPriceMovement() {
     if (!roundData) return { difference: 0, direction: "up" as const };
     const lp = lockPrice;
@@ -797,35 +656,6 @@ useEffect(() => {
     }
   };
 
-  // useEffect(() => {
-  //   if (
-  //     variant === "expired" &&
-  //     isClaimable &&
-  //     userBetStatus &&
-  //     userBetStatus.status !== "CLAIMED" &&
-  //     roundData &&
-  //     ((roundData.closePrice > roundData.lockPrice &&
-  //       userBetStatus.direction === "up") ||
-  //       (roundData.closePrice < roundData.lockPrice &&
-  //         userBetStatus.direction === "down"))
-  //   ) {
-  //     setShowClaimBanner(true);
-  //   }
-  // }, [variant, isClaimable, userBetStatus, roundData]);
-
-  // useEffect(() => {
-  //   if (
-  //     variant === "expired" &&
-  //     isClaimable &&
-  //     userBetStatus?.status === "WON" &&
-  //     ((roundData!.closePrice > roundData!.lockPrice &&
-  //       userBetStatus.direction === "up") ||
-  //       (roundData!.closePrice < roundData!.lockPrice &&
-  //         userBetStatus.direction === "down"))
-  //   ) {
-  //     setShowClaimBanner(true);
-  //   }
-  // }, [variant, isClaimable, userBetStatus, roundData]);
   const handleCustomAmount = useCallback(
     (percentage: number) => {
       const calculatedAmount = maxAmount * percentage;
