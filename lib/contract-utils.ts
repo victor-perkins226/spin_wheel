@@ -89,10 +89,6 @@ export async function placeBet(
       })
       .transaction();
 
-    console.log("====================================");
-    console.log(tx, "tx");
-    console.log("====================================");
-
     // Get fresh blockhash with lastValidBlockHeight for better confirmation
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized');
     tx.recentBlockhash = blockhash;
@@ -116,13 +112,10 @@ export async function placeBet(
         lastValidBlockHeight
       }, "confirmed");
 
-      console.log("✅ Bet placed successfully. Tx Signature:", signature);
       return signature;
     } catch (sendError: any) {
       // Handle specific duplicate transaction error
       if (sendError.message?.includes("This transaction has already been processed")) {
-        console.log("Transaction already processed, checking if it was successful");
-        // toast("Transaction already processed. Please check your bets.");
         return null;
       }
       throw sendError;
@@ -133,7 +126,6 @@ export async function placeBet(
     
     // Handle duplicate transaction specifically
     if (error.message?.includes("This transaction has already been processed")) {
-      console.log("Transaction already processed, treating as potential success");
       return null;
     }
     
@@ -153,12 +145,7 @@ export async function claimPayout(
   roundId: number
 ): Promise<void> {
   try {
-    console.log("🔁 claimRewards called with:", {
-      programId: programId.toBase58(),
-      contractAddress: contractAddress.toBase58(),
-      userPubkey: userPubkey.toBase58(),
-      roundId: roundId,
-    });
+
 
     // Derive PDAs
     const [configPda] = PublicKey.findProgramAddressSync(
@@ -166,7 +153,6 @@ export async function claimPayout(
       programId
     );
 
-    console.log(configPda, "config pda");
 
     const getRoundPda = (roundNumber: number) =>
       PublicKey.findProgramAddressSync(
@@ -219,9 +205,6 @@ export async function claimPayout(
       })
       .transaction();
 
-    console.log("====================================");
-    console.log(tx, "tx claim payout");
-    console.log("====================================");
 
     const { blockhash } = await connection.getLatestBlockhash();
     tx.recentBlockhash = blockhash;
@@ -237,7 +220,6 @@ export async function claimPayout(
 
     await connection.confirmTransaction(signature, "confirmed");
 
-    console.log("✅ Claim payout successful. Tx Signature:", signature);
   } catch (error: any) {
     console.error("❌ Error in claimRewards:", error);
     if (error.logs) console.error("🔍 Anchor logs:\n", error.logs.join("\n"));

@@ -66,8 +66,6 @@ const PredictionContainer: React.FC = () => {
 
   // Handle round ending safely
   const handleRoundEnd = useCallback((roundId: number) => {
-    console.log(`Round ${roundId} has ended`);
-    
     // Move to the next round
     setRounds(prevRounds => {
       const index = prevRounds.findIndex(r => r.id === roundId);

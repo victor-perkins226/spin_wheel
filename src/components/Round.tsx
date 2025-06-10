@@ -20,7 +20,6 @@ const Round = memo(({ roundData, isLive, onRoundEnd }: RoundProps) => {
   
   // Handle round ending safely
   const handleRoundEnd = useCallback(() => {
-    console.log('Round ended:', roundData.id);
     if (onRoundEnd) {
       try {
         onRoundEnd(roundData.id);
