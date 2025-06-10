@@ -75,7 +75,7 @@ export default function LanguageDropdown() {
                   setOpen(false);
                   // i18n.changeLanguage(lang.code);
                 }}
-                className="w-full flex items-center px-4 py-2  backdrop-blur-[40px] glass hover:!bg-gray-600 cursor-pointer  transition"
+                className="w-full flex items-center px-4 py-2  backdrop-blur-[40px] glass hover:backdrop-blur-3xl hover:shadow-sm cursor-pointer  transition"
               >
                 <ReactCountryFlag
                   countryCode={lang.countryCode}
