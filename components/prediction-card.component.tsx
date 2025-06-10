@@ -172,88 +172,10 @@ useEffect(() => {
   const connectedRef = useRef(connected);
   const publicKeyRef = useRef(publicKey);
 
-  // useEffect(() => {
-  //   const onClaimSuccess = () => {
-  //     setShowClaimBanner(false);
-  //     // setClaimLoading(false);
-  //       // hide the whole banner
-  //   };
-  //   const onClaimFailure = () => {
-  //     setClaimLoading(false);
-
-  //     // setShowClaimBanner(false);
-  //     // leave showClaimBanner === true so they can try again
-  //   };
-
-  //   window.addEventListener("claimSuccess", onClaimSuccess);
-  //   window.addEventListener("claimFailure", onClaimFailure);
-  //   return () => {
-  //     window.removeEventListener("claimSuccess", onClaimSuccess);
-  //     window.removeEventListener("claimFailure", onClaimFailure);
-  //   };
-  // }, []);
-
-  // const calculateMultipliers = () => {
-  //   if (!roundData) return { bullMultiplier: "1.00", bearMultiplier: "1.00" };
-
-  //   const totalAmount =
-  //     variant === "next" ? liveTotalForThisRound : prizePoolLocal;
-  //   const totalBullAmount = upBetsLocal;
-  //   const totalBearAmount = downBetsLocal;
-
-  //   // If no bets, return 1x multiplier
-  //   if (totalAmount === 0) {
-  //     return { bullMultiplier: "1.00", bearMultiplier: "1.00" };
-  //   }
-
-  //   const treasuryFeePercent = roundData.treasuryFee / 10000; // Convert basis points to decimal
-  //   const fee = roundData.treasuryFee / 10000;
-
-  //   // only charge the losers
-  //   const bullRewardPool = totalBullAmount + totalBearAmount * (1 - fee);
-  //   const bearRewardPool = totalBearAmount + totalBullAmount * (1 - fee);
-
-  //   const bullMultiplier =
-  //     totalBullAmount > 0 ? bullRewardPool / totalBullAmount : 1;
-  //   const bearMultiplier =
-  //     totalBearAmount > 0 ? bearRewardPool / totalBearAmount : 1;
-
-  //   return {
-  //     bullMultiplier: formatNum(bullMultiplier),
-  //     bearMultiplier: formatNum(bearMultiplier),
-  //   };
-  // };
-
-  // function calculateMultipliers(
-  //   totalPool: number,
-  //   feeAmount: number,
-  //   totalBull: number,
-  //   totalBear: number
-  // ): { bullMultiplier: string; bearMultiplier: string } {
-  //   const bullMultiplier =
-  //     totalBull > 0 ? (totalPool - feeAmount) / totalBull : 1;
-  //   const bearMultiplier =
-  //     totalBear > 0 ? (totalPool - feeAmount) / totalBear : 1;
-
-  //   return {
-  //     bullMultiplier: formatNum(bullMultiplier),
-  //     bearMultiplier: formatNum(bearMultiplier),
-  //   };
-  // }
-  // const [upBetsLocal,   setUpBetsLocal]   = useState<number>(roundData?.upBets   || 0);
-  // const [downBetsLocal, setDownBetsLocal] = useState<number>(roundData?.downBets || 0);
   const feeBps = roundData?.treasuryFee || 0;
   const socket = useMemo(() => getSocket(), []);
 
-  //   useEffect(() => {
-  //   const onUpdate = (data: any) => {
-  //     if (data.roundId !== roundId) return;
-  //     setUpBetsLocal(data.newBullAmount);
-  //     setDownBetsLocal(data.newBearAmount);
-  //   };
-  //   socket.on("prizePoolUpdate", onUpdate);
-  //   return () => { socket.off("prizePoolUpdate", onUpdate); socket.disconnect(); };
-  // }, [roundId]);
+
 
   useEffect(() => {
     roundIdRef.current = roundId;
@@ -274,20 +196,20 @@ useEffect(() => {
     };
 
     const handleNewBet = (evt: any) => {
-      const { round_number, amount, direction, user } = evt.data;
+      const { round_number, amount, prediction, user } = evt.data;
       if (round_number !== roundIdRef.current) return;
       const solAmt = amount / LAMPORTS_PER_SOL;
-      if (direction === "up") setUpBetsLocal((prev) => prev + solAmt);
+      if (prediction) setUpBetsLocal((prev) => prev + solAmt);
       else setDownBetsLocal((prev) => prev + solAmt);
       setPrizePoolLocal((prev) => prev + solAmt);
       if (user === publicKey?.toString()) setScriptBetPlaced(true);
     };
 
-    socket.on("prizePoolUpdate", handlePrizePool);
+    // socket.on("prizePoolUpdate", handlePrizePool);
     socket.on("newBetPlaced", handleNewBet);
 
     return () => {
-      socket.off("prizePoolUpdate", handlePrizePool);
+      // socket.off("prizePoolUpdate", handlePrizePool);
       socket.off("newBetPlaced", handleNewBet);
     };
   }, [socket, publicKey, variant]);
@@ -304,82 +226,12 @@ useEffect(() => {
 
     const bullMultiplier = totalBull > 0 ? netPool / totalBull : 1;
     const bearMultiplier = totalBear > 0 ? netPool / totalBear : 1;
-    console.log(totalPool, totalBull, totalBear, totalFeeBps);
+    console.log({bullMultiplier, bearMultiplier, totalBull, totalBear});
     return {
       bullMultiplier: bullMultiplier.toFixed(2),
       bearMultiplier: bearMultiplier.toFixed(2),
     };
   }
-  // Wire socket to bump up/down bets
-  //   useEffect(() => {
-  //     const onPrizePoolUpdate = (data: any) => {
-  //       if (data.roundId !== roundId) return;
-  //       setUpBetsLocal(data.newBullAmount / LAMPORTS_PER_SOL);
-  //       setDownBetsLocal(data.newBearAmount / LAMPORTS_PER_SOL);
-  //     };
-  //     socket.on("prizePoolUpdate", onPrizePoolUpdate);
-  //     return () => {
-  //       socket.off("prizePoolUpdate", onPrizePoolUpdate);
-  //       socket.disconnect();
-  //     };
-  //   }, [roundId]);
-
-  //   // Now memoize the multipliers so they update instantly:
-  // const { bullMultiplier, bearMultiplier } = useMemo(
-  //   () => calculateMultipliers(upBetsLocal, downBetsLocal, feeBps),
-  //   [upBetsLocal, downBetsLocal, feeBps]
-  // );
-
-  // FIX 2: Single socket listener for prize pool updates (works for all variants)
-  useEffect(() => {
-    const onPrizePoolUpdate = (data: any) => {
-      if (data.roundId !== roundId) return;
-
-      // Convert from lamports to SOL if needed
-      const newUpBets =
-        data.newBullAmount /
-        (data.newBullAmount > 1000000 ? LAMPORTS_PER_SOL : 1);
-      const newDownBets =
-        data.newBearAmount /
-        (data.newBearAmount > 1000000 ? LAMPORTS_PER_SOL : 1);
-
-      setUpBetsLocal(newUpBets);
-      setDownBetsLocal(newDownBets);
-
-      // Update prize pool for non-next variants
-      if (variant !== "next") {
-        setPrizePoolLocal(newUpBets + newDownBets);
-      }
-    };
-
-    const onNewBetPlaced = (evt: any) => {
-      const { round_number, amount, direction, user } = evt.data;
-      if (round_number !== roundId) return;
-
-      // Convert amount to SOL if it's in lamports
-      const betAmount = amount > 1000000 ? amount / LAMPORTS_PER_SOL : amount;
-
-      // Update local bet amounts
-      if (direction === "up") {
-        setUpBetsLocal((prev) => prev + betAmount);
-      } else {
-        setDownBetsLocal((prev) => prev + betAmount);
-      }
-
-      // Check if this bet is from current user
-      if (user === publicKey?.toString()) {
-        setScriptBetPlaced(true);
-      }
-    };
-
-    socket.on("prizePoolUpdate", onPrizePoolUpdate);
-    socket.on("newBetPlaced", onNewBetPlaced);
-
-    return () => {
-      socket.off("prizePoolUpdate", onPrizePoolUpdate);
-      socket.off("newBetPlaced", onNewBetPlaced);
-    };
-  }, [roundId, socket, publicKey, variant]);
 
   const { bullMultiplier, bearMultiplier } = useMemo(
     () => calculateMultipliers(upBetsLocal, downBetsLocal, feeBps),
@@ -414,12 +266,6 @@ useEffect(() => {
     feeAmount = (poolTotal * roundData!.treasuryFee) / 10000;
   }
 
-  // const { bullMultiplier, bearMultiplier } = calculateMultipliers(
-  //   poolTotal,   // A: total prize pool
-  //   feeAmount,   // B: total fee amount
-  //   poolUp,      // C: total “up” bets
-  //   poolDown     // D: total “down” bets
-  // );
   useEffect(() => {
     if (!connected || !publicKey) {
       setMaxAmount(0);
@@ -454,14 +300,6 @@ useEffect(() => {
       socket.off("newBetPlaced", handleNewBet);
     };
   }, [connected, publicKey, roundId, socket]);
-  const handleNewBet = useCallback((newBet: any) => {
-    if (
-      newBet.data.user === publicKeyRef.current?.toString() &&
-      newBet.data.round_number === roundIdRef.current
-    ) {
-      setScriptBetPlaced(true);
-    }
-  }, []);
 
   const handlePrizePoolUpdate = useCallback((data: any) => {
     if (data.roundId === roundIdRef.current) {
@@ -475,39 +313,6 @@ useEffect(() => {
     }
   }, []);
 
-  // Optimize socket event registration
-  useEffect(() => {
-    if (!connected || !publicKey) return;
-
-    socket.on("newBetPlaced", handleNewBet);
-    return () => {
-      socket.off("newBetPlaced", handleNewBet);
-    };
-  }, [connected, publicKey, socket, handleNewBet]);
-  useEffect(() => {
-    const handlePrizePool = (data: any) => {
-      if (data.roundId !== roundId) return;
-      // assuming newBullAmount/newBearAmount are already in SOL:
-      setUpBetsLocal(data.newBullAmount);
-      setDownBetsLocal(data.newBearAmount);
-    };
-
-    const handleNewBet = (evt: any) => {
-      const { round_number, amount, direction } = evt.data;
-      if (round_number !== roundId) return;
-      // convert to SOL if needed, e.g. amount / LAMPORTS_PER_SOL
-      setUpBetsLocal((prev) => prev + (direction === "up" ? amount : 0));
-      setDownBetsLocal((prev) => prev + (direction === "down" ? amount : 0));
-    };
-
-    socket.on("prizePoolUpdate", handlePrizePool);
-    socket.on("newBetPlaced", handleNewBet);
-
-    return () => {
-      socket.off("prizePoolUpdate", handlePrizePool);
-      socket.off("newBetPlaced", handleNewBet);
-    };
-  }, [socket, roundId]);
 
   useEffect(() => {
     const onRoundLocked = (data: { roundId: number; lockPrice: number }) => {
@@ -771,12 +576,12 @@ useEffect(() => {
 
         if (betStatus === true) {
           setJustBet(true);
-          setPrizePoolLocal((prev) => prev + amount);
-          if (mode === "up") {
-            setUpBetsLocal((prev) => prev + amount);
-          } else {
-            setDownBetsLocal((prev) => prev + amount);
-          }
+          // setPrizePoolLocal((prev) => prev + amount);
+          // if (mode === "up") {
+          //   setUpBetsLocal((prev) => prev + amount);
+          // } else {
+          //   setDownBetsLocal((prev) => prev + amount);
+          // }
           setBetValue(amount);
           if (typeof window !== "undefined") {
             // Emit custom event to trigger parent refresh
