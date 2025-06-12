@@ -33,7 +33,7 @@
     "**/*.tsx",
     "next-env.d.ts",
     ".next/types/**/*.ts"
-  ],
+, "next-i18next.config.js"  ],
   "exclude": [
     "node_modules"
   ]

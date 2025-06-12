@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useTransition } from 'react';
 import { UserBet } from '@/types/round';
 import { useTheme } from 'next-themes';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatNum } from '@/lib/utils';
+import { useTranslation } from 'next-i18next';
 
 interface BetsHistoryProps {
   userBets: UserBet[];
@@ -15,6 +16,8 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
   const [mounted, setMounted] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const betsPerPage = 10;
+
+  const {t} = useTranslation('common');
 
   // Calculate pagination values
   const indexOfLastBet = currentPage * betsPerPage;
@@ -129,12 +132,12 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
 
   return (
     <div className={`${getBackgroundColor()} backdrop-blur-sm rounded-xl p-6 shadow-sm`}>
-      <h2 className="text-lg font-semibold mb-4 text-foreground">Your Predictions</h2>
+      <h2 className="text-lg font-semibold mb-4 text-foreground">{t('betsHistory.title')}</h2>
       
       {sortedBets.length === 0 ? (
         <div className="text-center py-8">
           <div className="text-muted-foreground text-sm">
-            No predictions yet. Place your first bet to see your history here.
+            {t('betsHistory.none')}
           </div>
         </div>
       ) : (
@@ -143,11 +146,11 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
             <table className="w-full">
               <thead>
                 <tr className={`text-left text-sm ${getTextColor()}`}>
-                  <th className="pb-3 font-medium">Round</th>
-                  <th className="pb-3 font-medium">Prediction</th>
-                  <th className="pb-3 font-medium">Amount</th>
-                  <th className="pb-3 font-medium">Status</th>
-                  <th className="pb-3 font-medium">Payout</th>
+                  <th className="pb-3 font-medium">{t('betsHistory.round')}</th>
+                  <th className="pb-3 font-medium">{t('betsHistory.prediction')}</th>
+                  <th className="pb-3 font-medium">{t('betsHistory.amount')}</th>
+                  <th className="pb-3 font-medium">{t('betsHistory.status')}</th>
+                  <th className="pb-3 font-medium">{t('betsHistory.payout')}</th>
                 </tr>
               </thead>
                 <tbody>
@@ -202,7 +205,7 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
           {/* Pagination Controls */}
           <div className={`flex items-center justify-between mt-4 pt-4 border-t ${getBorderColor()}`}>
             <div className="text-sm text-muted-foreground">
-              Showing {indexOfFirstBet + 1}-{Math.min(indexOfLastBet, sortedBets.length)} of {sortedBets.length} bets
+              {t('betsHistory.showing')} {indexOfFirstBet + 1}-{Math.min(indexOfLastBet, sortedBets.length)} of {sortedBets.length} bets
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -218,7 +221,7 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
               </button>
               
               <div className="text-sm text-foreground">
-                Page {currentPage} of {totalPages}
+                {t('betsHistory.page')} {currentPage} {t('betsHistory.of')} {totalPages}
               </div>
               
               <button
@@ -241,13 +244,13 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
         <div className={`mt-6 pt-4 border-t ${getBorderColor()}`}>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Total Bets</div>
+              <div className="text-xs text-muted-foreground mb-1">{t('betsHistory.total')}</div>
               <div className="text-sm font-semibold text-foreground">
                 {totalBets}
               </div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Won</div>
+              <div className="text-xs text-muted-foreground mb-1">{t('betsHistory.won')}</div>
               <div className={`text-sm font-semibold ${
                 theme === 'dark' ? 'text-green-400' : 'text-green-600'
               }`}>
@@ -255,7 +258,7 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
               </div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Lost</div>
+              <div className="text-xs text-muted-foreground mb-1">{t('betsHistory.lost')}</div>
               <div className={`text-sm font-semibold ${
                 theme === 'dark' ? 'text-red-400' : 'text-red-600'
               }`}>
@@ -263,7 +266,7 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
               </div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Win Rate</div>
+              <div className="text-xs text-muted-foreground mb-1">{t('betsHistory.rate')}</div>
               <div className="text-sm font-semibold text-foreground">
                 {winRate}%
               </div>
@@ -272,13 +275,13 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-muted">
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Total Wagered</div>
+              <div className="text-xs text-muted-foreground mb-1">{t('betsHistory.wagered')}</div>
               <div className="text-sm font-semibold text-foreground">
                 {formatNum(totalWagered)} SOL
               </div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Total Payout</div>
+              <div className="text-xs text-muted-foreground mb-1">{t('betsHistory.payout')}</div>
               <div className={`text-sm font-semibold ${
                 theme === 'dark' ? 'text-green-400' : 'text-green-600'
               }`}>
@@ -286,7 +289,7 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
               </div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground mb-1">Net Profit</div>
+              <div className="text-xs text-muted-foreground mb-1">{t('betsHistory.profit')}</div>
               <div className={`text-sm font-semibold ${
                 netProfit >= 0 
                   ? theme === 'dark' ? 'text-green-400' : 'text-green-600'

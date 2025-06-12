@@ -2,7 +2,7 @@
 "use client";
 
 import Image from "next/image";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import SVG from "./svg.component";
 import io from "socket.io-client";
 import axios from "axios";
@@ -14,6 +14,7 @@ import { API_URL } from "@/lib/config";
 import { formatNum } from "@/lib/utils";
 import { network } from "./wallet.provider.component";
 import { dir } from "console";
+import { useTranslation } from "next-i18next";
 
 // Define the Bet interface
 interface Bet {
@@ -52,7 +53,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
   const [newBetSignatures, setNewBetSignatures] = useState<Set<string>>(
     new Set()
   );
-
+      const {t} = useTranslation("common");
   // Animation styles
   const animationStyles = `
     @keyframes slideDownFade {
@@ -320,6 +321,8 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
     }`;
   };
 
+
+
   return (
     <>
       <style jsx>{animationStyles}</style>
@@ -334,7 +337,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
         >
           <div className="flex py-1 items-center gap-2">
             <SVG iconName="medal" width={20} height={20} />
-            Leaderboard
+            {t("table")}
           </div>
         </div>
 
@@ -347,14 +350,14 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
                   theme === "dark" ? "bg-green-400" : "bg-green-500"
                 } animate-pulse`}
               ></div>
-              Live Bets
+              {t('liveBets')}
               {currentRound ? (
                 <span
                   className={`text-sm font-normal ${
                     theme === "dark" ? "text-gray-400" : "text-gray-500"
                   }`}
                 >
-                  Round #{currentRound}
+                  {t('round')} #{currentRound}
                 </span>
               ) : (
                 ""
@@ -371,7 +374,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
                   onClick={() => window.location.reload()}
                   className="mt-2 text-sm underline hover:no-underline"
                 >
-                  Try again
+                  {t('retry')}
                 </button>
               </div>
             </div>
@@ -379,22 +382,22 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
             <div className={`${getStateMessageStyle()} ${getLoadingStyle()}`}>
               <div className="flex flex-col items-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
-                <div>Loading bets...</div>
+                <div>{t('loading')}...</div>
               </div>
             </div>
           ) : currentRound === null ? (
             <div className={getStateMessageStyle()}>
               <div>
                 <SVG iconName="clock" width={24} height={24} />
-                <div className="mt-2">No active round</div>
+                <div className="mt-2">{t('noRound')}</div>
               </div>
             </div>
           ) : liveBets.length === 0 ? (
             <div className={getStateMessageStyle()}>
               <div>
-                <div className="mt-2">No bets yet </div>
+                <div className="mt-2">{t('none')}</div>
                 <div className="text-xs mt-1 opacity-60">
-                  Be the first to place a prediction!
+                  {t('first')}
                 </div>
               </div>
             </div>
@@ -499,7 +502,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
                         theme === "dark" ? "text-gray-400" : "text-gray-500"
                       }
                     >
-                      Total Volume
+                      {t('totalVol')}
                     </span>
                     <span className={`font-semibold ${getAmountTextStyle()}`}>
                       {formatNum(

@@ -7,6 +7,7 @@ import BetFailed from "@/public/assets/BetFailure.png";
 import Cheers from "@/public/assets/cheers.png";
 import Withdraw from "@/public/assets/Withdrawal.png";
 import { formatNum } from "@/lib/utils";
+import { useTranslation } from "next-i18next";
 
 ////////////////////////////////////////////////////////////////////////////////
 // 1) ClaimNotConnectedToast
@@ -16,6 +17,8 @@ export function ClaimNotConnectedToast({
 }: {
   theme: "light" | "dark";
 }) {
+const {t} = useTranslation('common')
+
   return (
     <div
       className={`
@@ -29,7 +32,7 @@ export function ClaimNotConnectedToast({
       }}
     >
       <p className="max-w-sm mx-auto text-xs font-semibold">
-        Please connect your wallet to claim rewards
+        {t('toasts.notConnected')}
       </p>
     </div>
   );
@@ -43,6 +46,8 @@ export function NoClaimableBetsToast({
 }: {
   theme: string | undefined;
 }) {
+const {t} = useTranslation('common')
+
   return (
     <div
       className={`
@@ -56,7 +61,7 @@ export function NoClaimableBetsToast({
       }}
     >
       <p className="max-w-sm mx-auto text-xs font-semibold">
-        No claimable bets available
+        {t('toasts.noClaimable')}
       </p>
     </div>
   );
@@ -72,6 +77,8 @@ export function ClaimSuccessToast({
   theme: string | undefined;
   claimableAmount: number;
 }) {
+const {t} = useTranslation('common')
+
   return (
     <div
       className={`
@@ -94,11 +101,11 @@ export function ClaimSuccessToast({
       </div>
 
       <h3 className="font-bold text-2xl animate-toast-pulse mb-2">
-        Cheers to more withdrawals
+       {t('toasts.claimSuccess')}
       </h3>
 
       <p className="max-w-sm mx-auto text-sm">
-        You have withdrawn {formatNum(claimableAmount)} SOL
+        {t('toasts.withdraw')} {formatNum(claimableAmount)} SOL
       </p>
     </div>
   );
@@ -111,6 +118,8 @@ export function ClaimSuccessToastMini({
     theme: string | undefined;
     claimableAmount: number;
   }) {
+const {t} = useTranslation('common')
+
     return (
       <div
         className={`
@@ -124,11 +133,11 @@ export function ClaimSuccessToastMini({
         }}
       >
         <h3 className="font-bold text-sm animate-toast-pulse mb-2">
-          Cheers to more withdrawals
+             {t('toasts.claimSuccess')}
         </h3>
   
         <p className="max-w-sm mx-auto text-xs">
-          You have withdrawn {formatNum(claimableAmount)} SOL
+            {t('toasts.withdraw')} {formatNum(claimableAmount)} SOL
         </p>
       </div>
     );
@@ -142,6 +151,8 @@ export function ClaimFailureToast({
 }: {
   theme: string | undefined;
 }) {
+const {t} = useTranslation('common')
+
   return (
     <div
       className={`
@@ -164,11 +175,11 @@ export function ClaimFailureToast({
       </div> */}
 
       <h3 className="font-bold text-sm text-center animate-toast-pulse mb-2">
-        Withdrawal Failed
+        {t('toasts.withdrawFailed')}
       </h3>
 
       <p className="text-xs">
-        You were unable to withdraw, please recheck and try again
+        {t('toasts.withdrawFailedReason')}
       </p>
     </div>
   );
@@ -182,6 +193,8 @@ export function BetSuccessToast({
 }: {
   theme: string | undefined;
 }) {
+const {t} = useTranslation('common')
+
   return (
     <div
       className={`
@@ -203,10 +216,10 @@ export function BetSuccessToast({
         />
       </div>
       <h3 className="font-bold text-2xl mb-2 animate-toast-pulse">
-        Bet successful
+       {t('toasts.betPlaced')}
       </h3>
       <p className="max-w-sm mx-auto text-sm">
-        You have successfully placed a bet, cheers to potential wins
+        {t('toasts.betPlacedMessage')}
       </p>
     </div>
   );
@@ -218,6 +231,8 @@ export function BetSuccessToastMini({
   }: {
     theme: string | undefined;
   }) {
+const {t} = useTranslation('common')
+
     return (
       <div
         className={`
@@ -230,10 +245,10 @@ export function BetSuccessToastMini({
         }}
       >
         <h3 className="font-bold text-sm mb-2 animate-toast-pulse">
-          Bet successful
+         {t('toasts.betPlaced')}
         </h3>
         <p className="max-w-sm mx-auto text-xs">
-          You have successfully placed a bet, cheers to potential wins
+         {t('toasts.betPlacedMessage')}
         </p>
       </div>
     );
@@ -247,6 +262,8 @@ export function BetFailedToast({
 }: {
   theme: string | undefined;
 }) {
+const {t} = useTranslation('common')
+
   return (
     <div
       className={`
@@ -269,11 +286,11 @@ export function BetFailedToast({
       </div> */}
 
       <h3 className="font-bold text-sm text-center animate-toast-pulse mb-2">
-        Bet Failed
+       {t('toasts.betFailed')}
       </h3>
 
       <p className="text-xs">
-        You were unable to place the bet, please try again later
+        {t('toasts.betFailedMessage')}
       </p>
     </div>
   );
@@ -284,6 +301,8 @@ export function TransactionFailedToast({
 }: {
   theme: string | undefined;
 }) {
+const {t} = useTranslation('common')
+
   return (
     <div
       className={`
@@ -306,7 +325,7 @@ export function TransactionFailedToast({
       </div> */}
 
       <h3 className="font-bold text-sm text-center animate-toast-pulse mb">
-       Transaction Cancelled
+       {t('toasts.transactionFailed')}
       </h3>
 {/* 
       <p className="text-xs">
@@ -324,6 +343,8 @@ export function AlreadyPlacedBetToast({
 }: {
   theme: string | undefined;
 }) {
+const {t} = useTranslation('common')
+
   return (
     <div
       className={`
@@ -337,7 +358,7 @@ export function AlreadyPlacedBetToast({
       }}
     >
       <p className="max-w-sm mx-auto text-xs font-semibold">
-        You have already placed a bet on this round.
+        {t('toasts.alreadyPlaced')}
       </p>
     </div>
   );
@@ -351,6 +372,8 @@ export function InvalidAmountToast({
 }: {
   theme: string | undefined;
 }) {
+const {t} = useTranslation('common')
+
   return (
     <div
       className={`
@@ -364,7 +387,7 @@ export function InvalidAmountToast({
       }}
     >
       <p className="max-w-sm mx-auto text-xs font-semibold">
-        Please enter a valid amount
+       {t('toasts.validAmount')}
       </p>
     </div>
   );
@@ -378,6 +401,8 @@ export function BettingNotAvailableToast({
 }: {
   theme: string | undefined;
 }) {
+const {t} = useTranslation('common')
+
   return (
     <div
       className={`
@@ -391,7 +416,7 @@ export function BettingNotAvailableToast({
       }}
     >
       <p className="max-w-sm mx-auto text-xs font-semibold">
-        Betting is not available for this round
+        {t('toasts.notAvailable')}"
       </p>
     </div>
   );
@@ -401,6 +426,8 @@ export function BettingNotAvailableToast({
 // 10) ConnectWalletBetToast
 ////////////////////////////////////////////////////////////////////////////////
 export function ConnectWalletBetToast() {
+const {t} = useTranslation('common')
+
   return (
     <div
       className={`
@@ -413,7 +440,7 @@ export function ConnectWalletBetToast() {
       }}
     >
       <p className="text-sm font-semibold">
-        Please connect your wallet first
+        {t('toasts.connectWallet')}
       </p>
     </div>
   );

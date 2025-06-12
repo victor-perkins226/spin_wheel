@@ -4,6 +4,7 @@ import Image from "next/image";
 import NumberFlow from "@number-flow/react";
 import { PuffLoader } from "react-spinners";
 import { formatNum } from "@/lib/utils";
+import { useTranslation } from "next-i18next";
 
 export interface MarketHeaderProps {
   /** Latest SOL/USDT price (as a number, e.g. 172.5234) */
@@ -66,8 +67,9 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
     formatTimeLeft,
   }) => {
 
+    const {t} = useTranslation("common");
     const displayTime = useMemo(() => {
-      if (isLocked) return "Closing";
+      if (isLocked) return <>{t('closing')}</>;
       return formatTimeLeft(timeLeft);
     }, [isLocked, timeLeft, formatTimeLeft]);
 const lockMinutes = useMemo(() => {
@@ -179,7 +181,7 @@ const lockMinutes = useMemo(() => {
                   theme === "dark" ? "text-[#D1D5DB]" : "text-gray-500"
                 }`}
               >
-                {lockMinutes}m
+                {lockMinutes === 0 ? <>{t('locked')}</>: lockMinutes}m
               </span>
             </div>
           </div>
@@ -190,7 +192,7 @@ const lockMinutes = useMemo(() => {
           <div className="glass rounded-xl p-4 flex justify-between items-center flex-wrap gap-4">
             {/* User Balance */}
             <div>
-              <p className="text-sm opacity-70">Your Balance</p>
+              <p className="text-sm opacity-70">{t('balance')}</p>
               <div className="flex items-center gap-1 font-semibold">
                 <Image
                   src="/assets/solana_logo.png"
@@ -207,7 +209,7 @@ const lockMinutes = useMemo(() => {
             {claimableRewards > 0 && (
               <div className="flex items-center gap-3">
                 <div>
-                  <p className="text-sm opacity-70">Unclaimed Rewards</p>
+                  <p className="text-sm opacity-70">{t('unclaimed')}</p>
                   <div className="flex items-center gap-1 font-semibold text-green-500">
                     <Image
                       src="/assets/solana_logo.png"
@@ -227,7 +229,9 @@ const lockMinutes = useMemo(() => {
                   {isClaiming ? (
                     <PuffLoader size={20} color={theme==="dark"? "#fff": "#000"} />
                   ) : (
-                    "Claim"
+                    <>
+                      {t('claim')}
+                    </>
                   )}
                 </button>
               </div>
@@ -236,7 +240,7 @@ const lockMinutes = useMemo(() => {
         ) : (
           <div className="glass rounded-xl p-4 flex justify-center items-center">
             <p className="text-sm opacity-70">
-              Connect your wallet to place bets and view your balance
+              {t('connect')}
             </p>
           </div>
         )}
