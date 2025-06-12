@@ -90,5 +90,10 @@
     "validAmount": "Inserisci un importo valido",
     "notAvailable": "Non è possibile scommettere per questo round",
     "connectWallet": "Collega il tuo portafoglio per piazzare scommesse"
+  },
+    "referral": {
+    "others": "Altri",
+    "curious": "Siamo curiosi, cosa ti ha portato qui?",
+    "discover": "Come hai scoperto questo sito web?"
   }
 }

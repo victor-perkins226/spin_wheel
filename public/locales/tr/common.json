@@ -90,5 +90,10 @@
     "validAmount": "Lütfen geçerli bir miktar girin",
     "notAvailable": "Bu tur için bahis yapılamıyor",
     "connectWallet": "Bahis yapmak için lütfen cüzdanınızı bağlayın"
+  },
+    "referral": {
+    "others": "Diğer",
+    "curious": "Merak ediyoruz, sizi buraya getiren ne oldu?",
+    "discover": "Bu web sitesini nasıl keşfettiniz?"
   }
 }

@@ -90,5 +90,10 @@
     "validAmount": "Tafadhali ingiza kiasi halali",
     "notAvailable": "Dau haipitiki kwa raundi hii",
     "connectWallet": "Unganisha mkoba wako kuweka dau"
+  },
+   "referral": {
+    "others": "Nyingine",
+    "curious": "Tuna hamu, nini kilikuleta kwetu?",
+    "discover": "Umegundua tovuti hii vipi?"
   }
 }
