@@ -9,26 +9,35 @@ import { useTheme } from "next-themes";
 
 import Lock from "@/public/assets/lock.png";
 import Image from "next/image";
+import { useTranslation } from "next-i18next";
+import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 
-export const getServerSideProps: GetServerSideProps = async ({ req }) => {
+export const getServerSideProps: GetServerSideProps = async ({
+  req,
+  locale,
+}) => {
   const rawCountry = req.headers["x-vercel-ip-country"] as string | undefined;
   const country = rawCountry ? rawCountry.toUpperCase() : "";
   const isBanned = BANNED_COUNTRY_CODES.includes(country);
 
   return {
-    props: { isBanned },
+    props: {
+      isBanned,
+      ...(await serverSideTranslations(locale ?? "en", ["common"])),
+    },
   };
 };
 
 export default function Home({ isBanned }: { isBanned: boolean }) {
   const { theme } = useTheme();
+  const { t } = useTranslation("common");
 
   return (
     <>
       {isBanned ? (
         <>
           <Head>
-            <title>Access Restricted</title>
+            <title> {t("homeRestrict.title")}</title>
           </Head>
           <main className="flex items-center justify-center ">
             <div
@@ -38,22 +47,14 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
               `}
             >
               <div className="relative w-full h-full mb-6">
-                <Image
-                  src={Lock}
-                  alt="lock"
-                  fill
-                  className="object-contain"
-                />
+                <Image src={Lock} alt="lock" fill className="object-contain" />
               </div>
 
               <h3 className="font-bold text-3xl mb-4">
-                Access is restricted in your region.
+                {t("homeRestrict.heading")}
               </h3>
 
-              <p className="text-lg ">
-                We can&apos;t provide service in your area because of local rules.
-                Please try from another location or check your settings.
-              </p>
+              <p className="text-lg ">{t("homeRestrict.message")}</p>
             </div>
           </main>
         </>

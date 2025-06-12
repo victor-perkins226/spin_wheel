@@ -39,6 +39,7 @@ import {
   NoClaimableBetsToast,
 } from "./toasts";
 import { API_URL, RPC_URL } from "@/lib/config";
+import { useTranslation } from "next-i18next";
 const BetsHistory = React.lazy(() => import("./BetsHistory"));
 
 const LineChart = React.lazy(() => import("./LineChart"));
@@ -68,6 +69,7 @@ export default function PredictionCards() {
   const lastLiveRoundRef = useRef<number | null>(null);
   const [swiperReady, setSwiperReady] = useState(false);
   const { theme } = useTheme();
+  const { t } = useTranslation('common');
   const {
     config,
     currentRound,
@@ -885,16 +887,15 @@ export default function PredictionCards() {
                   width={64}
                   height={64}
                 />
-                <h3 className="text-xl font-semibold">Connect Your Wallet</h3>
+                <h3 className="text-xl font-semibold">{t('closed.title')}</h3>
                 <p className="text-sm opacity-70">
-                  To start predicting SOL price movements and placing bets,
-                  please connect your Solana wallet.
+                 {t('closed.message')}
                 </p>
                 <div className="flex flex-col gap-2 text-xs opacity-60">
-                  <p>• View live prediction rounds</p>
-                  <p>• Place UP/DOWN bets</p>
-                  <p>• Track your betting history</p>
-                  <p>• Claim your winnings</p>
+                  <p>• {t('closed.list1')}</p>
+                  <p>• {t('closed.list2')}</p>
+                  <p>• {t('closed.list3')}</p>
+                  <p>• {t('closed.list4')}</p>
                 </div>
               </div>
             </div>
