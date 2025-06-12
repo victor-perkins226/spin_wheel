@@ -4,7 +4,7 @@ import Head from "next/head";
 import Image from "next/image";
 import SolanaLogo from "@/public/assets/solana_logo.png";
 import axios from "axios";
-import { GetStaticProps } from "next";
+import { GetServerSideProps, GetStaticProps } from "next";
 import { ThemeToggle } from "@/components/Themetoggle";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -23,25 +23,18 @@ type Leader = {
 
 type Props = { leaders: Leader[] };
 
-export const getStaticProps: GetStaticProps<Props> = async ({locale}) => {
+export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
+  const translations = await serverSideTranslations(locale ?? 'en', ['common']);
+  let leaders = [];
   try {
-    const { data: leaders } = await axios.get<Leader[]>(
-      `${API_URL}/leaderboard`
-    );
-    return {
-      props: { leaders,
-         ...(await serverSideTranslations(locale ?? 'en', ['common'])),
-       },
-
-      revalidate: 60,
-    };
-  } catch (err) {
-    console.error("Leaderboard fetch failed:", err);
-    return { props: { leaders: [],
-       ...(await serverSideTranslations(locale ?? 'en', ['common'])),
-     }, revalidate: 60 };
+    const { data } = await axios.get(`${API_URL}/leaderboard`);
+    leaders = data;
+  } catch (e) {
+    console.error('SSR fetch failed:', e);
   }
+  return { props: { ...translations, leaders } };
 };
+
 
 export default function Leaderboard({ leaders }: Props) {
   const [currentPage, setCurrentPage] = useState(1);
@@ -92,7 +85,7 @@ export default function Leaderboard({ leaders }: Props) {
               </tr>
             </thead>
             <tbody>
-              {leaders.map((L) => {
+              {currentLeaders.map((L) => {
                 const shortAddr = `${L.userWalletAddress.slice(
                   0,
                   6

@@ -13,7 +13,7 @@ import BigBet from "@/public/assets/Big-Bet.png";
 import { API_URL } from "@/lib/config";
 import { formatNum } from "@/lib/utils";
 import { network } from "./wallet.provider.component";
-import { dir } from "console";
+import { GiBurningMeteor } from "react-icons/gi";
 import { useTranslation } from "next-i18next";
 
 // Define the Bet interface
@@ -336,7 +336,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
           onClick={() => (window.location.href = "/leaderboard")}
         >
           <div className="flex py-1 items-center gap-2">
-            <SVG iconName="medal" width={20} height={20} />
+            <GiBurningMeteor size={20} />
             {t("table")}
           </div>
         </div>
