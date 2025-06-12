@@ -90,5 +90,10 @@
     "validAmount": "Digite um valor válido",
     "notAvailable": "Apostas não disponíveis nesta rodada",
     "connectWallet": "Conecte sua carteira para apostar"
+  },
+    "referral": {
+    "others": "Outros",
+    "curious": "Estamos curiosos, o que te trouxe até aqui?",
+    "discover": "Como você descobriu este site?"
   }
 }

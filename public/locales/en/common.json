@@ -90,5 +90,10 @@
     "validAmount": "Please enter a valid amount",
     "notAvailable": "Betting is not available for this round",
     "connectWallet": "Please connect your wallet to place bets"
+  },
+  "referral": {
+    "others": "Others",
+    "curious": "We’re curious, what brought you our way?",
+    "discover": "How did you discover this website?"
   }
 }

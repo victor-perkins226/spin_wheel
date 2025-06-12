@@ -90,5 +90,10 @@
     "validAmount": "유효한 금액을 입력하세요",
     "notAvailable": "이 라운드에서는 베팅할 수 없습니다",
     "connectWallet": "베팅을 위해 지갑을 연결하세요"
+  },
+    "referral": {
+    "others": "기타",
+    "curious": "궁금합니다. 어떻게 저희 웹사이트를 찾으셨나요?",
+    "discover": "이 웹사이트를 어떻게 발견하셨나요?"
   }
 }

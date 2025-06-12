@@ -90,5 +90,10 @@
     "validAmount": "Por favor ingresa una cantidad válida",
     "notAvailable": "No se puede apostar en esta ronda",
     "connectWallet": "Conecta tu cartera para realizar apuestas"
+  },
+    "referral": {
+    "others": "Otros",
+    "curious": "Tenemos curiosidad, ¿qué te trajo hasta aquí?",
+    "discover": "¿Cómo descubriste este sitio web?"
   }
 }

@@ -90,5 +90,11 @@
     "validAmount": "Veuillez entrer un montant valide",
     "notAvailable": "Les paris ne sont pas disponibles pour ce round",
     "connectWallet": "Veuillez connecter votre portefeuille pour parier"
+  },
+    "referral": {
+    "others": "Autres",
+    "curious": "Nous sommes curieux, qu'est-ce qui vous a amené jusqu'ici ?",
+    "discover": "Comment avez-vous découvert ce site ?"
   }
+
 }
