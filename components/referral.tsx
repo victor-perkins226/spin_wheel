@@ -10,15 +10,6 @@ import {
 } from "react-icons/fa";
 
 
-
-export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
-  return {
-    props: {
-      ...(await serverSideTranslations(locale ?? "en", ["common"])),
-    },
-  };
-};
-
 export default function Referral() {
   const { t } = useTranslation("common");
 
