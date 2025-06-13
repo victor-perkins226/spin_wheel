@@ -32,6 +32,10 @@ export default function Referral() {
   { label: "Discord", value: "discord", Icon: FaDiscord },
   { label: (<>{t('referral.others')}</>), value: "others", Icon: null },
 ];
+  const handleSubmit = () => {
+    // TODO: wire this up to your API or form handler
+    console.log({ selected, otherSource });
+  };
   return (
     <div className="glass rounded-3xl max-w-[1300px]  mx-auto mt-8">
       <div className="max-w-2xl mx-auto p-10 rounded-xl ">
@@ -86,6 +90,15 @@ export default function Referral() {
                 : "bg-gray-200/10"
             }`}
           />
+        </div>
+         <div className="mt-6 text-right">
+          <button
+            type="button"
+            onClick={handleSubmit}
+            className="px-6 py-3 glass cursor-pointer hover:!bg-gray-100/40 text-white rounded-2xl font-semibold transition-colors"
+          >
+            Submit
+          </button>
         </div>
       </div>
     </div>
