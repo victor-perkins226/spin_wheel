@@ -11,6 +11,8 @@ import Lock from "@/public/assets/lock.png";
 import Image from "next/image";
 import { useTranslation } from "next-i18next";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
+import { useEffect, useState } from "react";
+import Referral from "@/components/referral";
 
 export const getServerSideProps: GetServerSideProps = async ({
   req,
@@ -32,9 +34,15 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
   const { theme } = useTheme();
   const { t } = useTranslation("common");
 
-  return (
-    <>
-      {isBanned ? (
+   const [showReferralModal, setShowReferralModal] = useState(false);
+
+  // Open on first render
+  useEffect(() => {
+    setShowReferralModal(true);
+  }, []);
+
+  if (isBanned){
+    (
         <>
           <Head>
             <title> {t("homeRestrict.title")}</title>
@@ -58,15 +66,32 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
             </div>
           </main>
         </>
-      ) : (
+    );
+  }
+
+  return (
         <>
           <Head>
             <title>Prediction | FORTUVA</title>
           </Head>
+           {showReferralModal && (
+        <div onClick={() => setShowReferralModal(false)} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div   onClick={(e) => e.stopPropagation()} className="relative w-full max-w-[1000px] mx-4">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowReferralModal(false)}
+              className="absolute top-2 right-2 text-white text-2xl leading-none"
+            >
+              &times;
+            </button>
+            {/* Your existing Referral panel */}
+            <Referral />
+          </div>
+        </div>
+      )}
+
           <Hero />
           <PredictionCards />
-        </>
-      )}
     </>
   );
 }
