@@ -181,7 +181,7 @@ const lockMinutes = useMemo(() => {
                   theme === "dark" ? "text-[#D1D5DB]" : "text-gray-500"
                 }`}
               >
-                {lockMinutes === 0 ? <>{t('locked')}</>: lockMinutes}m
+                {lockMinutes === 0 ? <>{t('locked')}</>: <>{lockMinutes}m</>}
               </span>
             </div>
           </div>

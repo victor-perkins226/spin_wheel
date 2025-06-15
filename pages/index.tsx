@@ -80,12 +80,11 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
             {/* Close Button */}
             <button
               onClick={() => setShowReferralModal(false)}
-              className="absolute top-2 right-2 text-white text-2xl leading-none"
+              className="absolute top-[4rem]  right-10 z-[100] cursor-pointer text-white text-4xl leading-none"
             >
               &times;
             </button>
-            {/* Your existing Referral panel */}
-            <Referral />
+            <Referral  onCancel={() => setShowReferralModal(false)} />
           </div>
         </div>
       )}

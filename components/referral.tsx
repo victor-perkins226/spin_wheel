@@ -8,9 +8,13 @@ import {
   FaInstagram,
   FaDiscord,
 } from "react-icons/fa";
+import { SiSolana } from "react-icons/si";
+interface ReferralProps {
+  onCancel: () => void;
+}
 
+export default function Referral({ onCancel }: ReferralProps) {
 
-export default function Referral() {
   const { t } = useTranslation("common");
 
   const [selected, setSelected] = useState("telegram");
@@ -21,11 +25,18 @@ export default function Referral() {
   { label: "Twitter", value: "twitter", Icon: FaTwitter },
   { label: "Instagram", value: "instagram", Icon: FaInstagram },
   { label: "Discord", value: "discord", Icon: FaDiscord },
+    { label: "Solscan", value: "solscan", Icon: SiSolana },
   { label: (<>{t('referral.others')}</>), value: "others", Icon: null },
 ];
   const handleSubmit = () => {
     // TODO: wire this up to your API or form handler
     console.log({ selected, otherSource });
+  };
+  
+  const handleCancel = () => {
+    setSelected("telegram");
+    setOtherSource("");
+    onCancel();
   };
   return (
     <div className="glass rounded-3xl max-w-[1300px]  mx-auto mt-8">
@@ -82,13 +93,21 @@ export default function Referral() {
             }`}
           />
         </div>
-         <div className="mt-6 text-right">
+         <div className="mt-6 text-right space-x-3">
+       
           <button
             type="button"
             onClick={handleSubmit}
             className="px-6 py-3 glass cursor-pointer hover:!bg-gray-100/40 text-white rounded-2xl font-semibold transition-colors"
           >
             Submit
+          </button>
+              <button
+            type="button"
+            onClick={handleCancel}
+            className="px-6 py-3 glass !bg-red-600/70 cursor-pointer hover:!bg-red-700/40 text-white rounded-2xl font-semibold transition-colors"
+          >
+            Cancel
           </button>
         </div>
       </div>
