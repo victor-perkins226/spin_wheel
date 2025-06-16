@@ -645,7 +645,7 @@ useEffect(() => {
             height={142}
           />
           <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
-            <p>(<>{t('prizePool')}</>)</p>
+            <p>{t('prizePool')}</p>
             <p>{formatNum(nextPrizePool)} SOL</p>
           </div>
         </div>
