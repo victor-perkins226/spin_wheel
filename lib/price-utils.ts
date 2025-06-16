@@ -39,6 +39,7 @@ export const useLivePrice = (): LivePriceData => {
 
     // 2. Listen for 'livePriceUpdate' event from the backend
     socketRef.current.on('livePriceUpdate', (data: { price: number }) => {
+          console.log('Connecting to WebSocket at:', BACKEND_WS_URL);
       if (typeof data.price === 'number') {
         setPrice(data.price);
         setIsLoading(false); // Set to false once the first price is received
