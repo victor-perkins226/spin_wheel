@@ -1,10 +1,12 @@
 
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import NumberFlow from "@number-flow/react";
 import { PuffLoader } from "react-spinners";
 import { formatNum } from "@/lib/utils";
 import { useTranslation } from "next-i18next";
+import axios from "axios";
+import { useWallet } from "@solana/wallet-adapter-react";
 
 export interface MarketHeaderProps {
   /** Latest SOL/USDT price (as a number, e.g. 172.5234) */
@@ -68,6 +70,34 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
   }) => {
 
     const {t} = useTranslation("common");
+
+    
+    const { publicKey } = useWallet();
+
+    const [bonusAmount, setBonusAmount] = useState<number>(10);
+    const [loadingBonus, setLoadingBonus] = useState<boolean>(false);
+
+    useEffect(() => {
+      if (!connected || !publicKey) return;
+      const walletAddress = publicKey.toBase58();
+
+      setLoadingBonus(true);
+      axios
+        .get(
+          `https://sol-prediction-backend-6e3r.onrender.com/user/bonus/${walletAddress}`
+        )
+        .then((res) => {
+          setBonusAmount(res.data);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch bonus:", err);
+        })
+        .finally(() => {
+          setLoadingBonus(false);
+        });
+    }, [connected, publicKey]);
+
+
     const displayTime = useMemo(() => {
       if (isLocked) return <>{t('closing')}</>;
       return formatTimeLeft(timeLeft);
@@ -191,8 +221,9 @@ const lockMinutes = useMemo(() => {
         {connected ? (
           <div className="glass rounded-xl p-4 flex justify-between items-center flex-wrap gap-4">
             {/* User Balance */}
-            <div>
-              <p className="text-sm opacity-70">{t('balance')}</p>
+            <div className="flex  gap-4">
+              <div>
+                <p className="text-sm opacity-70">{t('balance')}</p>
               <div className="flex items-center gap-1 font-semibold">
                 <Image
                   src="/assets/solana_logo.png"
@@ -202,6 +233,30 @@ const lockMinutes = useMemo(() => {
                   className="w-[20px] h-auto object-contain"
                 />
                 <span>{formatNum(userBalance)} SOL</span>
+              </div>
+              </div>
+              <div className="border-l-2 pl-4 border-gray-300" >
+                <p className="text-sm opacity-70">Your Bonuses</p>
+                 <div className="flex items-center gap-1 font-semibold">
+                  <Image
+                    src="/assets/solana_logo.png"
+                    alt="Solana"
+                    width={20}
+                    height={20}
+                    className="w-[20px] h-auto object-contain"
+                  />
+
+                  {loadingBonus ? (
+                    <PuffLoader
+                      size={16}
+                      color={theme === "dark" ? "#fff" : "#000"}
+                    />
+                  ) : (
+                    <>
+                     <span>{formatNum(bonusAmount)} SOL</span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 

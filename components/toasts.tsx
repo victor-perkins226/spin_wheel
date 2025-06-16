@@ -445,3 +445,48 @@ const {t} = useTranslation('common')
     </div>
   );
 }
+
+
+export function ReferralToast() {
+// const {t} = useTranslation('common')
+
+  return (
+    <div
+      className={`
+         glass rounded-2xl
+        shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
+        flex flex-col items-start 
+      `}
+      style={{
+        animation: "fadeInDown 200ms ease-out forwards",
+      }}
+    >
+      <p className="text-sm font-semibold">
+        Input a valid referral means 
+      </p>
+    </div>
+  );
+}
+
+export function ReferralToastFailed() {
+// const {t} = useTranslation('common')
+
+  return (
+    <div
+      className={`
+         glass rounded-2xl
+        shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
+        flex flex-col items-start 
+      `}
+      style={{
+        animation: "fadeInDown 200ms ease-out forwards",
+      }}
+    >
+      <p className="text-sm font-semibold">
+        Failed to submit your referral. Please try again.
+      </p>
+    </div>
+  );
+}
+
+
