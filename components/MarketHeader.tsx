@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import NumberFlow from "@number-flow/react";
 import { PuffLoader } from "react-spinners";
@@ -71,28 +71,35 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
 
     const { publicKey } = useWallet();
 
-    const [bonusAmount, setBonusAmount] = useState<number>(10);
+    const [bonusAmount, setBonusAmount] = useState<number>(0);
     const [loadingBonus, setLoadingBonus] = useState<boolean>(false);
 
-    useEffect(() => {
+    const fetchBonus = useCallback(async () => {
       if (!connected || !publicKey) return;
-      const walletAddress = publicKey.toBase58();
-
       setLoadingBonus(true);
-      axios
-        .get(
+      try {
+        const walletAddress = publicKey.toBase58();
+        const { data } = await axios.get(
           `https://sol-prediction-backend-6e3r.onrender.com/user/bonus/${walletAddress}`
-        )
-        .then((res) => {
-          setBonusAmount(res.data);
-        })
-        .catch((err) => {
-          console.error("Failed to fetch bonus:", err);
-        })
-        .finally(() => {
-          setLoadingBonus(false);
-        });
+        );
+        setBonusAmount(data);
+      } catch (err) {
+        console.error("Failed to fetch bonus:", err);
+      } finally {
+        setLoadingBonus(false);
+      }
     }, [connected, publicKey]);
+
+    useEffect(() => {
+      fetchBonus();
+    }, [fetchBonus]);
+
+    useEffect(() => {
+      window.addEventListener("betPlaced", fetchBonus);
+      return () => {
+        window.removeEventListener("betPlaced", fetchBonus);
+      };
+    }, [fetchBonus]);
 
     const displayTime = useMemo(() => {
       if (isLocked) return <>{t("closing")}</>;
