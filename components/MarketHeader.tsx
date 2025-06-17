@@ -239,8 +239,18 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
                   <span>{formatNum(userBalance)} SOL</span>
                 </div>
               </div>
-              <div className="border-l-2 pl-4 border-gray-300">
-                <p className="text-sm opacity-70">Your Bonus</p>
+              <div className="relative border-l-2 pl-4 border-gray-300 group">
+                <p className="text-sm opacity-70 cursor-help">Your Bonus</p>
+
+                {/* tooltip panel */}
+                <div className="pointer-events-none absolute left-0 bottom-full mt-2 w-64 !bg-gray-500 glass rounded-md z-[100] p-3 text-xs opacity-0 transition-opacity group-hover:opacity-100">
+                  <p className="whitespace-pre-line leading-snug">
+                    You can get 0.1FN/Bet for the bonus token.
+                    If you bet with over 1 sol, you can get 1FN/Bet.
+                    {"\n"}You will be get airdropped after token launch.
+                  </p>
+                </div>
+
                 <div className="flex items-center gap-1 font-semibold">
                   {loadingBonus ? (
                     <PuffLoader
@@ -248,9 +258,7 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
                       color={theme === "dark" ? "#fff" : "#000"}
                     />
                   ) : (
-                    <>
-                      <span>{formatNum(bonusAmount)} FN</span>
-                    </>
+                    <span>{formatNum(bonusAmount)} FN</span>
                   )}
                 </div>
               </div>
