@@ -240,7 +240,7 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
                 </div>
               </div>
               <div className="border-l-2 pl-4 border-gray-300">
-                <p className="text-sm opacity-70">Your Bonuses</p>
+                <p className="text-sm opacity-70">Your Bonus</p>
                 <div className="flex items-center gap-1 font-semibold">
                   {loadingBonus ? (
                     <PuffLoader
