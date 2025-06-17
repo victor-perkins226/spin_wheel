@@ -2,6 +2,6 @@ import LogRocket from 'logrocket';
 
 export const initLogRocket = () => {
   if (typeof window !== 'undefined' && process.env.NODE_ENV === 'production') {
-    LogRocket.init('ydb4xc/fortuva');
+    LogRocket.init('udpyby/fortuva-sol-prediction');
   }
 };
