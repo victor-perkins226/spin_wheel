@@ -47,31 +47,57 @@ export const useSolPredictor = (): SolPredictorHook => {
   const pendingTransactionRef = useRef<string | null>(null);
   const { theme } = useTheme();
 
+  // const [configPda] = PublicKey.findProgramAddressSync(
+  //   [Buffer.from("config")],
+  //   programId
+  // );
+  // const getRoundPda = (roundNumber: number) =>
+  //   PublicKey.findProgramAddressSync(
+  //     [Buffer.from("round"), new BN(roundNumber).toArrayLike(Buffer, "le", 8)],
+  //     program!.programId
+  //   )[0];
+
+  // const getEscrowPda = (roundNumber: number) =>
+  //   PublicKey.findProgramAddressSync(
+  //     [Buffer.from("escrow"), new BN(roundNumber).toArrayLike(Buffer, "le", 8)],
+  //     program!.programId
+  //   )[0];
+
+  // const getUserBetPda = (user: PublicKey, roundNumber: number) =>
+  //   PublicKey.findProgramAddressSync(
+  //     [
+  //       Buffer.from("user_bet"),
+  //       user.toBuffer(),
+  //       new BN(roundNumber).toArrayLike(Buffer, "le", 8),
+  //     ],
+  //     program!.programId
+  //   )[0];
+
   const [configPda] = PublicKey.findProgramAddressSync(
-    [Buffer.from("config")],
-    programId
-  );
-  const getRoundPda = (roundNumber: number) =>
-    PublicKey.findProgramAddressSync(
-      [Buffer.from("round"), new BN(roundNumber).toArrayLike(Buffer, "le", 8)],
-      program!.programId
-    )[0];
+  [Buffer.from("config")],
+  programId
+);
+const [treasuryPda] = PublicKey.findProgramAddressSync(
+  [Buffer.from("treasury")],
+  programId
+);
 
-  const getEscrowPda = (roundNumber: number) =>
-    PublicKey.findProgramAddressSync(
-      [Buffer.from("escrow"), new BN(roundNumber).toArrayLike(Buffer, "le", 8)],
-      program!.programId
-    )[0];
+const getRoundPda = (roundNumber: number) =>
+  PublicKey.findProgramAddressSync(
+    [Buffer.from("round"), new BN(roundNumber).toArrayLike(Buffer, "le", 8)],
+    program!.programId
+  )[0];
 
-  const getUserBetPda = (user: PublicKey, roundNumber: number) =>
-    PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("user_bet"),
-        user.toBuffer(),
-        new BN(roundNumber).toArrayLike(Buffer, "le", 8),
-      ],
-      program!.programId
-    )[0];
+
+const getUserBetPda = (user: PublicKey, roundNumber: number) =>
+  PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("user_bet"),
+      user.toBuffer(),
+      new BN(roundNumber).toArrayLike(Buffer, "le", 8),
+    ],
+    program!.programId
+  )[0];
 
   const fetchUserBets = useCallback(async (): Promise<ClaimableBet[]> => {
     if (!publicKey || !connected || !program) {
@@ -185,7 +211,7 @@ export const useSolPredictor = (): SolPredictorHook => {
       try {
         // 1) Derive our PDAs
         const roundPda = getRoundPda(roundId);
-        const escrowPda = getEscrowPda(roundId);
+        // const escrowPda = getEscrowPda(roundId);
         const userBetPda = getUserBetPda(publicKey, roundId);
 
         // 2) (Optional) Quick on‐chain checks to see if the round is still accepting bets
@@ -217,7 +243,7 @@ export const useSolPredictor = (): SolPredictorHook => {
               round: roundPda,
               userBet: userBetPda,
               user: publicKey,
-              escrow: escrowPda,
+              treasury: treasuryPda,
               systemProgram: SystemProgram.programId,
             })
             .signers([])
@@ -314,7 +340,7 @@ export const useSolPredictor = (): SolPredictorHook => {
       configPda,
       fetchUserBets,
       getRoundPda,
-      getEscrowPda,
+      treasuryPda,
       getUserBetPda,
       isPlacingBet,
       theme,
@@ -329,7 +355,7 @@ export const useSolPredictor = (): SolPredictorHook => {
 
       try {
         const roundPda = getRoundPda(roundId);
-        const escrowPda = getEscrowPda(roundId);
+        // const escrowPda = getEscrowPda(roundId);
         const userBetPda = getUserBetPda(publicKey, roundId);
 
         const instruction = await program!.methods
@@ -339,7 +365,7 @@ export const useSolPredictor = (): SolPredictorHook => {
             round: roundPda,
             userBet: userBetPda,
             user: publicKey,
-            escrow: escrowPda,
+            treasury: treasuryPda,
           })
           .signers([])
           .instruction();
@@ -358,7 +384,7 @@ export const useSolPredictor = (): SolPredictorHook => {
       connected,
       program,
       getRoundPda,
-      getEscrowPda,
+      treasuryPda,
       getUserBetPda,
       configPda,
     ]
