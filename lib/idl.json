@@ -93,11 +93,6 @@
           "isSigner": false
         },
         {
-          "name": "escrow",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
           "name": "executor",
           "isMut": true,
           "isSigner": true
@@ -125,11 +120,6 @@
         },
         {
           "name": "nextRound",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "nextEscrow",
           "isMut": true,
           "isSigner": false
         },
@@ -171,16 +161,6 @@
         },
         {
           "name": "newRound",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "previousEscrow",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "newEscrow",
           "isMut": true,
           "isSigner": false
         },
@@ -231,7 +211,7 @@
           "isSigner": true
         },
         {
-          "name": "escrow",
+          "name": "treasury",
           "isMut": true,
           "isSigner": false
         },
@@ -280,7 +260,7 @@
           "isSigner": true
         },
         {
-          "name": "escrow",
+          "name": "treasury",
           "isMut": true,
           "isSigner": false
         }
@@ -1288,6 +1268,6 @@
     }
   ],
   "metadata": {
-    "address": "G4FtNWcNazNpB7HhoiUfYgLZ4n1mEYTYtkToU3ZfCwvy"
+    "address": "51LsCdruBZE3bi5KeNwpjVqDcpwGKXppzZQGrD3xqJZ9"
   }
 }

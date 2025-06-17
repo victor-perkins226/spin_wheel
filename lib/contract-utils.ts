@@ -25,70 +25,108 @@ export async function placeBet(
 
 
     // Derive PDAs
-    const [configPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("config")],
-      programId
-    );
+    // const [configPda] = PublicKey.findProgramAddressSync(
+    //   [Buffer.from("config")],
+    //   programId
+    // );
 
-    const getRoundPda = (roundNumber: number) =>
-      PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("round"),
-          new anchor.BN(roundNumber).toArrayLike(Buffer, "le", 8),
-        ],
-        programId
-      )[0];
+    // const getRoundPda = (roundNumber: number) =>
+    //   PublicKey.findProgramAddressSync(
+    //     [
+    //       Buffer.from("round"),
+    //       new anchor.BN(roundNumber).toArrayLike(Buffer, "le", 8),
+    //     ],
+    //     programId
+    //   )[0];
 
-    const getEscrowPda = (roundNumber: number) =>
-      PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("escrow"),
-          new anchor.BN(roundNumber).toArrayLike(Buffer, "le", 8),
-        ],
-        programId
-      )[0];
-    const getUserBetPda = (user: PublicKey, roundNumber: number) =>
-      PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("user_bet"),
-          user.toBuffer(),
-          new anchor.BN(roundNumber).toArrayLike(Buffer, "le", 8),
-        ],
-        programId
-      )[0];
+    // const getEscrowPda = (roundNumber: number) =>
+    //   PublicKey.findProgramAddressSync(
+    //     [
+    //       Buffer.from("escrow"),
+    //       new anchor.BN(roundNumber).toArrayLike(Buffer, "le", 8),
+    //     ],
+    //     programId
+    //   )[0];
+    // const getUserBetPda = (user: PublicKey, roundNumber: number) =>
+    //   PublicKey.findProgramAddressSync(
+    //     [
+    //       Buffer.from("user_bet"),
+    //       user.toBuffer(),
+    //       new anchor.BN(roundNumber).toArrayLike(Buffer, "le", 8),
+    //     ],
+    //     programId
+    //   )[0];
 
-    const provider = new anchor.AnchorProvider(
-      connection,
-      { publicKey: userPubkey, signTransaction } as any,
-      { commitment: "confirmed" }
-    );
+    // const provider = new anchor.AnchorProvider(
+    //   connection,
+    //   { publicKey: userPubkey, signTransaction } as any,
+    //   { commitment: "confirmed" }
+    // );
 
-    const program = new anchor.Program(idl as any, programId, provider);
+    // const program = new anchor.Program(idl as any, programId, provider);
 
-    const betAmount = new anchor.BN(amount * LAMPORTS_PER_SOL);
+    // const betAmount = new anchor.BN(amount * LAMPORTS_PER_SOL);
     
-    const roundPda = getRoundPda(roundId);
-    const escrowPda = getEscrowPda(roundId);
-    const userBetPda = getUserBetPda(userPubkey, roundId);
+    // const roundPda = getRoundPda(roundId);
+    // const escrowPda = getEscrowPda(roundId);
+    // const userBetPda = getUserBetPda(userPubkey, roundId);
 
-    let isBull = false;
+    // let isBull = false;
 
-    const tx = await program.methods
-      .placeBet(
-        new anchor.BN(amount * anchor.web3.LAMPORTS_PER_SOL),
-        isBull,
-        new anchor.BN(roundId)
-      )
-      .accounts({
-        config: configPda,
-        round: roundPda,
-        userBet: userBetPda,
-        user: userPubkey,
-        escrow: escrowPda,
-        systemProgram: anchor.web3.SystemProgram.programId,
-      })
-      .transaction();
+    // const tx = await program.methods
+    //   .placeBet(
+    //     new anchor.BN(amount * anchor.web3.LAMPORTS_PER_SOL),
+    //     isBull,
+    //     new anchor.BN(roundId)
+    //   )
+    //   .accounts({
+    //     config: configPda,
+    //     round: roundPda,
+    //     userBet: userBetPda,
+    //     user: userPubkey,
+    //     escrow: escrowPda,
+    //     systemProgram: anchor.web3.SystemProgram.programId,
+    //   })
+    //   .transaction();
+const [configPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("config")],
+    programId
+  );
+  const [treasuryPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("treasury")],
+    programId
+  );
+  const roundPda = PublicKey.findProgramAddressSync(
+    [Buffer.from("round"), new anchor.BN(roundId).toArrayLike(Buffer, "le", 8)],
+    programId
+  )[0];
+  const userBetPda = PublicKey.findProgramAddressSync(
+    [Buffer.from("user_bet"), userPubkey.toBuffer(), new anchor.BN(roundId).toArrayLike(Buffer, "le", 8)],
+    programId
+  )[0];
 
+  const provider = new anchor.AnchorProvider(
+    connection,
+    { publicKey: userPubkey, signTransaction } as any,
+    { commitment: "confirmed" }
+  );
+  const program = new anchor.Program(idl as any, programId, provider);
+
+  const tx = await program.methods
+    .placeBet(
+      new anchor.BN(amount * LAMPORTS_PER_SOL),
+      direction === "bull",
+      new anchor.BN(roundId)
+    )
+    .accounts({
+      config: configPda,
+      round: roundPda,
+      userBet: userBetPda,
+      user: userPubkey,
+      treasury: treasuryPda,              // ← use treasury here
+      systemProgram: anchor.web3.SystemProgram.programId,
+    })
+    .transaction();
     // Get fresh blockhash with lastValidBlockHeight for better confirmation
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized');
     tx.recentBlockhash = blockhash;
@@ -154,56 +192,96 @@ export async function claimPayout(
     );
 
 
-    const getRoundPda = (roundNumber: number) =>
-      PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("round"),
-          new anchor.BN(roundNumber).toArrayLike(Buffer, "le", 8),
-        ],
-        programId
-      )[0];
+    // const getRoundPda = (roundNumber: number) =>
+    //   PublicKey.findProgramAddressSync(
+    //     [
+    //       Buffer.from("round"),
+    //       new anchor.BN(roundNumber).toArrayLike(Buffer, "le", 8),
+    //     ],
+    //     programId
+    //   )[0];
 
-    const getEscrowPda = (roundNumber: number) =>
-      PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("escrow"),
-          new anchor.BN(roundNumber).toArrayLike(Buffer, "le", 8),
-        ],
-        programId
-      )[0];
-    const getUserBetPda = (user: PublicKey, roundNumber: number) =>
-      PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("user_bet"),
-          user.toBuffer(),
-          new anchor.BN(roundNumber).toArrayLike(Buffer, "le", 8),
-        ],
-        programId
-      )[0];
+    // const getEscrowPda = (roundNumber: number) =>
+    //   PublicKey.findProgramAddressSync(
+    //     [
+    //       Buffer.from("escrow"),
+    //       new anchor.BN(roundNumber).toArrayLike(Buffer, "le", 8),
+    //     ],
+    //     programId
+    //   )[0];
+    // const getUserBetPda = (user: PublicKey, roundNumber: number) =>
+    //   PublicKey.findProgramAddressSync(
+    //     [
+    //       Buffer.from("user_bet"),
+    //       user.toBuffer(),
+    //       new anchor.BN(roundNumber).toArrayLike(Buffer, "le", 8),
+    //     ],
+    //     programId
+    //   )[0];
 
-    const provider = new anchor.AnchorProvider(
-      connection,
-      { publicKey: userPubkey, signTransaction } as any,
-      { commitment: "confirmed" }
-    );
+    // const provider = new anchor.AnchorProvider(
+    //   connection,
+    //   { publicKey: userPubkey, signTransaction } as any,
+    //   { commitment: "confirmed" }
+    // );
 
-    const program = new anchor.Program(idl as any, programId, provider);
+    // const program = new anchor.Program(idl as any, programId, provider);
 
-    const roundPda = getRoundPda(roundId);
-    const escrowPda = getEscrowPda(roundId);
-    const userBetPda = getUserBetPda(userPubkey, roundId);
+    // const roundPda = getRoundPda(roundId);
+    // const escrowPda = getEscrowPda(roundId);
+    // const userBetPda = getUserBetPda(userPubkey, roundId);
 
-    const tx = await program.methods
-      .claimPayout(new anchor.BN(roundId))
-      .accounts({
-        config: configPda,
-        round: roundPda,
-        userBet: userBetPda,
-        user: userPubkey,
-        escrow: escrowPda,
-        systemProgram: anchor.web3.SystemProgram.programId,
-      })
-      .transaction();
+    // const tx = await program.methods
+    //   .claimPayout(new anchor.BN(roundId))
+    //   .accounts({
+    //     config: configPda,
+    //     round: roundPda,
+    //     userBet: userBetPda,
+    //     user: userPubkey,
+    //     escrow: escrowPda,
+    //     systemProgram: anchor.web3.SystemProgram.programId,
+    //   })
+    //   .transaction();
+
+    const [treasuryPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("treasury")],
+    programId
+  );
+  const roundPda = PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("round"),
+      new anchor.BN(roundId).toArrayLike(Buffer, "le", 8),
+    ],
+    programId
+  )[0];
+  const userBetPda = PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("user_bet"),
+      userPubkey.toBuffer(),
+      new anchor.BN(roundId).toArrayLike(Buffer, "le", 8),
+    ],
+    programId
+  )[0];
+
+  // 2. Build an Anchor provider & program client
+  const provider = new anchor.AnchorProvider(
+    connection,
+    { publicKey: userPubkey, signTransaction } as any,
+    { commitment: "confirmed" }
+  );
+  const program = new anchor.Program(idl as any, programId, provider);
+
+  // 3. Create the claimPayout instruction, with exactly the same accounts your tests use
+  const tx = await program.methods
+    .claimPayout(new anchor.BN(roundId))
+    .accounts({
+      config: configPda,
+      round: roundPda,
+      userBet: userBetPda,
+      user: userPubkey,
+      treasury: treasuryPda,
+    })
+    .transaction();
 
 
     const { blockhash } = await connection.getLatestBlockhash();
