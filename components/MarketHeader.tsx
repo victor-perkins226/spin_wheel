@@ -1,5 +1,4 @@
-
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import NumberFlow from "@number-flow/react";
 import { PuffLoader } from "react-spinners";
@@ -68,46 +67,51 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
     onClaim,
     formatTimeLeft,
   }) => {
+    const { t } = useTranslation("common");
 
-    const {t} = useTranslation("common");
-
-    
     const { publicKey } = useWallet();
 
-    const [bonusAmount, setBonusAmount] = useState<number>(10);
+    const [bonusAmount, setBonusAmount] = useState<number>(0);
     const [loadingBonus, setLoadingBonus] = useState<boolean>(false);
 
-    useEffect(() => {
+    const fetchBonus = useCallback(async () => {
       if (!connected || !publicKey) return;
-      const walletAddress = publicKey.toBase58();
-
       setLoadingBonus(true);
-      axios
-        .get(
+      try {
+        const walletAddress = publicKey.toBase58();
+        const { data } = await axios.get(
           `https://sol-prediction-backend-6e3r.onrender.com/user/bonus/${walletAddress}`
-        )
-        .then((res) => {
-          setBonusAmount(res.data);
-        })
-        .catch((err) => {
-          console.error("Failed to fetch bonus:", err);
-        })
-        .finally(() => {
-          setLoadingBonus(false);
-        });
+        );
+        setBonusAmount(data);
+      } catch (err) {
+        console.error("Failed to fetch bonus:", err);
+      } finally {
+        setLoadingBonus(false);
+      }
     }, [connected, publicKey]);
 
+    useEffect(() => {
+      fetchBonus();
+    }, [fetchBonus]);
+
+    useEffect(() => {
+      window.addEventListener("betPlaced", fetchBonus);
+      return () => {
+        window.removeEventListener("betPlaced", fetchBonus);
+      };
+    }, [fetchBonus]);
 
     const displayTime = useMemo(() => {
-      if (isLocked) return <>{t('closing')}</>;
+      if (isLocked) return <>{t("closing")}</>;
       return formatTimeLeft(timeLeft);
     }, [isLocked, timeLeft, formatTimeLeft]);
-const lockMinutes = useMemo(() => {
-  const safeDuration = typeof lockDuration === "number" && !isNaN(lockDuration)
-    ? lockDuration
-    : 0;
-  return Math.floor(safeDuration / 60);
-}, [lockDuration]);
+    const lockMinutes = useMemo(() => {
+      const safeDuration =
+        typeof lockDuration === "number" && !isNaN(lockDuration)
+          ? lockDuration
+          : 0;
+      return Math.floor(safeDuration / 60);
+    }, [lockDuration]);
 
     return (
       <div className="flex flex-col gap-4 md:gap-4 lg:gap-[16px] col-span-12 xl:col-span-9">
@@ -211,7 +215,7 @@ const lockMinutes = useMemo(() => {
                   theme === "dark" ? "text-[#D1D5DB]" : "text-gray-500"
                 }`}
               >
-                {lockMinutes === 0 ? <>{t('locked')}</>: <>{lockMinutes}m</>}
+                {lockMinutes === 0 ? <>{t("locked")}</> : <>{lockMinutes}m</>}
               </span>
             </div>
           </div>
@@ -223,21 +227,8 @@ const lockMinutes = useMemo(() => {
             {/* User Balance */}
             <div className="flex  gap-4">
               <div>
-                <p className="text-sm opacity-70">{t('balance')}</p>
-              <div className="flex items-center gap-1 font-semibold">
-                <Image
-                  src="/assets/solana_logo.png"
-                  alt="Solana"
-                  width={20}
-                  height={20}
-                  className="w-[20px] h-auto object-contain"
-                />
-                <span>{formatNum(userBalance)} SOL</span>
-              </div>
-              </div>
-              <div className="border-l-2 pl-4 border-gray-300" >
-                <p className="text-sm opacity-70">Your Bonuses</p>
-                 <div className="flex items-center gap-1 font-semibold">
+                <p className="text-sm opacity-70">{t("balance")}</p>
+                <div className="flex items-center gap-1 font-semibold">
                   <Image
                     src="/assets/solana_logo.png"
                     alt="Solana"
@@ -245,7 +236,12 @@ const lockMinutes = useMemo(() => {
                     height={20}
                     className="w-[20px] h-auto object-contain"
                   />
-
+                  <span>{formatNum(userBalance)} SOL</span>
+                </div>
+              </div>
+              <div className="border-l-2 pl-4 border-gray-300">
+                <p className="text-sm opacity-70">Your Bonuses</p>
+                <div className="flex items-center gap-1 font-semibold">
                   {loadingBonus ? (
                     <PuffLoader
                       size={16}
@@ -253,7 +249,7 @@ const lockMinutes = useMemo(() => {
                     />
                   ) : (
                     <>
-                     <span>{formatNum(bonusAmount)} SOL</span>
+                      <span>{formatNum(bonusAmount)} FN</span>
                     </>
                   )}
                 </div>
@@ -264,7 +260,7 @@ const lockMinutes = useMemo(() => {
             {claimableRewards > 0 && (
               <div className="flex items-center gap-3">
                 <div>
-                  <p className="text-sm opacity-70">{t('unclaimed')}</p>
+                  <p className="text-sm opacity-70">{t("unclaimed")}</p>
                   <div className="flex items-center gap-1 font-semibold text-green-500">
                     <Image
                       src="/assets/solana_logo.png"
@@ -282,11 +278,12 @@ const lockMinutes = useMemo(() => {
                   disabled={claimableRewards === 0 || isClaiming}
                 >
                   {isClaiming ? (
-                    <PuffLoader size={20} color={theme==="dark"? "#fff": "#000"} />
+                    <PuffLoader
+                      size={20}
+                      color={theme === "dark" ? "#fff" : "#000"}
+                    />
                   ) : (
-                    <>
-                      {t('claim')}
-                    </>
+                    <>{t("claim")}</>
                   )}
                 </button>
               </div>
@@ -294,9 +291,7 @@ const lockMinutes = useMemo(() => {
           </div>
         ) : (
           <div className="glass rounded-xl p-4 flex justify-center items-center">
-            <p className="text-sm opacity-70">
-              {t('connect')}
-            </p>
+            <p className="text-sm opacity-70">{t("connect")}</p>
           </div>
         )}
       </div>
