@@ -80,7 +80,7 @@
     "claimSuccess": "Cheers to more withdrawal",
     "withdraw": "You have withdrawn ",
     "withdrawFailed": "Withdrawal failed",
-    "withdrawFailedReeason": "  You were unable to withdraw, please recheck and try again",
+    "withdrawFailedReason": "  You were unable to withdraw, please recheck and try again",
     "betPlaced": "Bet placed successfully",
     "betPlacedMessage": "You have successfully placed a bet, cheers to potential wins",
     "betFailed": "Bet failed",
