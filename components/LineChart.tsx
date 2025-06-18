@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import { useTranslation } from "next-i18next";
 
+
 interface ChartPoint {
   x: number;
   y: number;
@@ -44,19 +45,19 @@ const COINGECKO_SIMPLE_PRICE =
   "https://api.coingecko.com/api/v3/simple/price?vs_currencies=usd&ids=solana&x_cg_demo_api_key=CG-EnQ2L2wvdfeMreh3qmY9eCqd";
 const COINGECKO_MARKETCHART_RANGE =
   "https://api.coingecko.com/api/v3/coins/solana/market_chart/range";
-const PYTH_LATEST =
+  const PYTH_LATEST =
   "https://hermes.pyth.network/v2/updates/price/latest?ids[]=0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
 
 const PYTH_HISTORY =
   "https://benchmarks.pyth.network/v1/shims/tradingview/history";
 
-const MAX_DATA_POINTS = {
-  live: 20, // 50 points for live mode (about 4+ minutes at 5-second intervals)
-  "1h": 60, // 60 points for 1 hour
-  "12h": 48, // 48 points for 12 hours
-  "1d": 24, // 24 points for 1 day
-};
-
+  const MAX_DATA_POINTS = {
+    live: 20,    // 50 points for live mode (about 4+ minutes at 5-second intervals)
+    "1h": 60,    // 60 points for 1 hour
+    "12h": 48,   // 48 points for 12 hours  
+    "1d": 24     // 24 points for 1 day
+  };
+  
 // Define chart data type for Recharts
 interface ChartData {
   timestamp: number;
@@ -75,6 +76,7 @@ export const getPythHistoricalPrice = async (
       // LIVE - keep your existing logic
       const { data } = await axios.get<any>(PYTH_LATEST);
       if (!data?.parsed?.[0]?.price) {
+        
         return null;
       }
       const priceData = data.parsed[0].price;
@@ -96,7 +98,7 @@ export const getPythHistoricalPrice = async (
         startTime = endTime - 3600; // 1 hour ago
         resolution = "1"; // 1 minute intervals
       } else if (buttonIndex === 2) {
-        // 12H
+        // 12H  
         startTime = endTime - 43200; // 12 hours ago
         resolution = "15"; // 15 minute intervals
       } else {
@@ -112,6 +114,7 @@ export const getPythHistoricalPrice = async (
         to: endTime,
       };
 
+
       const axiosConfig = {
         params,
         timeout: buttonIndex === 1 ? 12000 : 8000,
@@ -124,12 +127,8 @@ export const getPythHistoricalPrice = async (
       const { data } = await axios.get<any>(PYTH_HISTORY, axiosConfig);
 
       // TradingView format returns: {s: "ok", t: timestamps[], c: closes[], o: opens[], h: highs[], l: lows[], v: volumes[]}
-      if (
-        !data ||
-        data.s !== "ok" ||
-        !Array.isArray(data.t) ||
-        !Array.isArray(data.c)
-      ) {
+      if (!data || data.s !== "ok" || !Array.isArray(data.t) || !Array.isArray(data.c)) {
+       
         return null;
       }
 
@@ -194,18 +193,18 @@ const TradingChart = () => {
   const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   const liveTicks = useMemo<number[] | undefined>(() => {
     if (activeIndex !== 0) return undefined;
-    const end = Date.now();
-    const start = end - 60_000; // 60s ago
-    const step = (end - start) / 3; // 3 intervals → 4 tick positions
-    return [0, 1, 2, 3].map((i) => Math.floor(start + step * i));
+    const end   = Date.now();
+    const start = end - 60_000;         // 60s ago
+    const step  = (end - start) / 3;    // 3 intervals → 4 tick positions
+    return [0,1,2,3].map(i => Math.floor(start + step * i));
   }, [activeIndex, lastFetchTime]);
   const liveWindow = useMemo(() => {
     if (activeIndex !== 0) return null;
     const end = Date.now();
-    const start = end - 60_000; // 1 minute ago
+    const start = end - 60_000;       // 1 minute ago
     return { start, end, ticks: [start, end] };
   }, [activeIndex, lastFetchTime /* or Date.now() update trigger */]);
-
+  
   const isDarkMode =
     mounted &&
     (theme === "dark" || (theme === "system" && systemTheme === "dark"));
@@ -233,7 +232,7 @@ const TradingChart = () => {
 
     if (now - lastFetchTime < minTimeBetweenFetches) {
       const waitTime = minTimeBetweenFetches - (now - lastFetchTime);
-
+    
       await new Promise((resolve) => setTimeout(resolve, waitTime));
     }
 
@@ -303,9 +302,8 @@ const TradingChart = () => {
       // Create evenly spaced data points
       if (Object.keys(cgData).length > 0 || Object.keys(pythData).length > 0) {
         const btn = TIME_BUTTONS[activeIndex];
-        const maxPoints =
-          MAX_DATA_POINTS[btn.id as keyof typeof MAX_DATA_POINTS] || 50;
-
+        const maxPoints = MAX_DATA_POINTS[btn.id as keyof typeof MAX_DATA_POINTS] || 50;
+        
         // Determine time range
         const endTime = Date.now();
         let startTime: number;
@@ -343,11 +341,11 @@ const TradingChart = () => {
         // Interpolate data for each even timestamp
         formattedData = evenTimestamps.map((timestamp) => {
           const date = new Date(timestamp);
-
+          
           // Find closest CoinGecko price
           let cgPrice = 0;
           let minCgDiff = Infinity;
-          Object.keys(cgData).forEach((key) => {
+          Object.keys(cgData).forEach(key => {
             const diff = Math.abs(parseInt(key) - timestamp);
             if (diff < minCgDiff) {
               minCgDiff = diff;
@@ -358,7 +356,7 @@ const TradingChart = () => {
           // Find closest Pyth price
           let pythPrice = 0;
           let minPythDiff = Infinity;
-          Object.keys(pythData).forEach((key) => {
+          Object.keys(pythData).forEach(key => {
             const diff = Math.abs(parseInt(key) - timestamp);
             if (diff < minPythDiff) {
               minPythDiff = diff;
@@ -380,11 +378,9 @@ const TradingChart = () => {
         // Fill missing values by interpolation or using the other source
         formattedData = formattedData.map((item) => {
           if (item.coinGeckoPrice === 0 && item.pythPrice > 0) {
-            item.coinGeckoPrice =
-              item.pythPrice * (0.998 + Math.random() * 0.004);
+            item.coinGeckoPrice = item.pythPrice * (0.998 + Math.random() * 0.004);
           } else if (item.pythPrice === 0 && item.coinGeckoPrice > 0) {
-            item.pythPrice =
-              item.coinGeckoPrice * (0.998 + Math.random() * 0.004);
+            item.pythPrice = item.coinGeckoPrice * (0.998 + Math.random() * 0.004);
           }
           return item;
         });
@@ -394,18 +390,8 @@ const TradingChart = () => {
       if (formattedData.length === 0) {
         const days = getDaysFromIndex(activeIndex);
         const interval = activeIndex === 1 ? 30000 : 60000;
-        const simulatedPyth = simulateHistoricalData(
-          days,
-          interval,
-          false,
-          activeIndex
-        );
-        const simulatedCg = simulateHistoricalData(
-          days,
-          interval,
-          true,
-          activeIndex
-        );
+        const simulatedPyth = simulateHistoricalData(days, interval, false, activeIndex);
+        const simulatedCg = simulateHistoricalData(days, interval, true, activeIndex);
 
         formattedData = simulatedPyth.map((point, index) => {
           const date = new Date(point.x);
@@ -441,18 +427,8 @@ const TradingChart = () => {
       // Generate fallback data even on error
       const days = getDaysFromIndex(activeIndex);
       const interval = activeIndex === 1 ? 30000 : 60000;
-      const pythSimulated = simulateHistoricalData(
-        days,
-        interval,
-        false,
-        activeIndex
-      );
-      const cgSimulated = simulateHistoricalData(
-        days,
-        interval,
-        true,
-        activeIndex
-      );
+      const pythSimulated = simulateHistoricalData(days, interval, false, activeIndex);
+      const cgSimulated = simulateHistoricalData(days, interval, true, activeIndex);
 
       const fallbackData: ChartData[] = pythSimulated.map((point, index) => {
         const date = new Date(point.x);
@@ -477,6 +453,7 @@ const TradingChart = () => {
     }
   };
 
+
   useEffect(() => {
     if (activeIndex !== 0) return;
     let liveUpdateInterval: NodeJS.Timeout;
@@ -485,28 +462,28 @@ const TradingChart = () => {
         // ─── 1) Fetch the last 2 minutes of Pyth history ───
         const nowSec = Math.floor(Date.now() / 1000);
         const startSec = nowSec - 120; // 120 seconds ago
-
+    
         const pythResp = await axios.get(PYTH_HISTORY, {
           params: {
             symbol: "Crypto.SOL/USD",
-            resolution: "1", // 1-minute bars
+            resolution: "1",  // 1-minute bars
             from: startSec,
             to: nowSec,
           },
           timeout: 8000,
           headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
         });
-
+    
         if (pythResp.data.s !== "ok" || !Array.isArray(pythResp.data.t)) {
           throw new Error("Invalid Pyth history");
         }
-
+    
         const pythPts: { timestamp: number; pythPrice: number }[] =
           pythResp.data.t.map((t: number, i: number) => ({
             timestamp: t * 1000,
             pythPrice: pythResp.data.c[i],
           }));
-
+    
         // ─── 2) Fetch the last 2 minutes of CoinGecko history ───
         const cgResp = await axios.get(COINGECKO_MARKETCHART_RANGE, {
           params: {
@@ -518,17 +495,17 @@ const TradingChart = () => {
           timeout: 8000,
           headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
         });
-
+    
         if (!Array.isArray(cgResp.data.prices)) {
           throw new Error("Invalid CoinGecko history");
         }
-
+    
         const cgPts: { timestamp: number; coinGeckoPrice: number }[] =
           cgResp.data.prices.map((p: [number, number]) => ({
             timestamp: p[0],
             coinGeckoPrice: p[1],
           }));
-
+    
         // ─── 3) Zip into ChartData[] ───
         const initialData: ChartData[] = pythPts.map((pt, i) => ({
           timestamp: pt.timestamp,
@@ -540,14 +517,12 @@ const TradingChart = () => {
           pythPrice: pt.pythPrice,
           coinGeckoPrice: cgPts[i]?.coinGeckoPrice ?? pt.pythPrice,
         }));
-
+    
         // ─── 4) Populate state and turn off loading ───
         setChartData(initialData);
-        setCurrentPrice(
-          initialData[initialData.length - 1].pythPrice.toFixed(2)
-        );
+        setCurrentPrice(initialData[initialData.length - 1].pythPrice.toFixed(2));
         setIsLoading(false);
-
+    
         // ─── 5) Start 5 s polling to append live prices ───
         liveUpdateInterval = setInterval(async () => {
           try {
@@ -557,7 +532,7 @@ const TradingChart = () => {
               headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
             });
             const newCg = cgSimple.data.solana.usd ?? newP;
-
+    
             const ts = Date.now();
             const next: ChartData = {
               timestamp: ts,
@@ -569,7 +544,7 @@ const TradingChart = () => {
               pythPrice: newP,
               coinGeckoPrice: newCg,
             };
-
+    
             setChartData((prev) =>
               // keep only the last MAX_DATA_POINTS.live points
               [...prev, next].slice(-MAX_DATA_POINTS.live)
@@ -588,7 +563,7 @@ const TradingChart = () => {
     initialize();
     return () => clearInterval(liveUpdateInterval);
   }, [activeIndex]);
-
+  
   // Fetch historical data when active index changes (except for LIVE mode)
   useEffect(() => {
     if (activeIndex === 0) return; // Skip for LIVE mode
@@ -596,14 +571,14 @@ const TradingChart = () => {
     fetchData();
   }, [activeIndex]);
 
-  const { t } = useTranslation("common");
+  const {t} = useTranslation('common');
 
   return (
     <div className="w-full">
       {/* Chart header with title and current price */}
       <div className="mb-5 flex items-center justify-between">
         <div className="flex gap-3 items-center">
-          <h3 className="font-medium">{t("overview")}</h3>
+          <h3 className="font-medium">{t('overview')}</h3>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
             <p className="text-[14px]">SOL/USD</p>
@@ -632,12 +607,16 @@ const TradingChart = () => {
       <div className="flex mb-5 items-center space-x-4 text-sm">
         <div className="flex items-center">
           <div className="w-3 h-3 rounded-full bg-green-500 mr-1"></div>
-          <span className="text-xs ">Pyth Oracle</span>
+          <span className="text-xs ">
+            Pyth Oracle
+          </span>
         </div>
 
         <div className="flex items-center">
           <div className="w-3 h-3 rounded-full bg-blue-500 mr-1"></div>
-          <span className="text-xs">CoinGecko</span>
+          <span className="text-xs">
+            CoinGecko
+          </span>
         </div>
       </div>
 
@@ -649,32 +628,27 @@ const TradingChart = () => {
 
         {/* Chart canvas */}
         <div className="relative z-10 w-full h-full">
-          {/* 1) NO INTERNET */}
-          {!navigator.onLine ? (
-            <div className="flex items-center justify-center h-full text-red-500">
-              Unable to load chart. No internet connection.
-            </div>
-          ) : isLoading ? (
-            <div className="flex items-center justify-center h-full text-gray-400">
-              Loading chart data…
+          {isLoading ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="animate-pulse text-gray-400">
+                Loading chart data...
+              </div>
             </div>
           ) : errorState.hasError ? (
-            <div className="flex flex-col items-center justify-center h-full text-red-500">
-              <p>Unable to load chart: {errorState.message}</p>
+            <div className="w-full h-full flex flex-col items-center justify-center">
+              <div className="text-red-500 mb-2">
+                Unable to load chart: {errorState.message}
+              </div>
               <button
                 onClick={fetchData}
-                className="mt-2 px-4 py-2 bg-blue-600 text-white rounded"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
                 Retry
               </button>
             </div>
-          ) : chartData.length === 0 ? (
-            <div className="flex items-center justify-center h-full text-gray-500">
-              No data available.
-            </div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
+              <LineChart data={chartData} >
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke={
@@ -683,29 +657,27 @@ const TradingChart = () => {
                       : "rgba(71, 85, 105, 0.1)"
                   }
                 />
-                <XAxis
-                  dataKey="timestamp"
-                  type="number"
-                  scale="time"
-                  domain={["dataMin", "dataMax"]}
-                  ticks={
-                    activeIndex === 0 && chartData.length > 0
-                      ? [
-                          chartData[0].timestamp,
-                          chartData[chartData.length - 1].timestamp,
-                        ]
-                      : undefined
-                  }
-                  tickFormatter={(ts) =>
-                    new Date(ts).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      second: "2-digit",
-                    })
-                  }
-                  stroke={isDarkMode ? "#94a3b8" : "#475562"}
-                  fontSize={isMobile ? 9 : 11}
-                />
+                   <XAxis
+      dataKey="timestamp"
+      type="number"
+      scale="time"
+      domain={['dataMin','dataMax']}
+      ticks={
+        activeIndex === 0 && chartData.length > 0
+          ? [chartData[0].timestamp, chartData[chartData.length-1].timestamp]
+          : undefined
+      }
+      tickFormatter={(ts) =>
+        new Date(ts).toLocaleTimeString([], {
+          hour:   '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        })
+      }
+
+      stroke={isDarkMode ? '#94a3b8' : '#475562'}
+      fontSize={isMobile ? 9 : 11}
+    />
 
                 <YAxis
                   domain={["dataMin - 1", "dataMax + 1"]}
@@ -748,21 +720,16 @@ function simulateHistoricalData(
   activeIndex: number = 1
 ): ChartPoint[] {
   const basePrice = 165 + (Math.random() - 0.5) * 10;
-
+  
   // Get max points based on current active button
   const btn = TIME_BUTTONS.find((_, index) => index === activeIndex);
-  const maxPoints = btn
-    ? MAX_DATA_POINTS[btn.id as keyof typeof MAX_DATA_POINTS] || 50
-    : 50;
-
+  const maxPoints = btn ? MAX_DATA_POINTS[btn.id as keyof typeof MAX_DATA_POINTS] || 50 : 50;
+  
   const endTime = Date.now();
   const startTime = endTime - days * 24 * 60 * 60 * 1000;
-
+  
   // Use maxPoints instead of calculating from interval
-  const points = Math.min(
-    maxPoints,
-    Math.ceil((endTime - startTime) / interval)
-  );
+  const points = Math.min(maxPoints, Math.ceil((endTime - startTime) / interval));
 
   const data: ChartPoint[] = [];
   let lastPrice = basePrice;
@@ -831,7 +798,7 @@ async function initializeLiveMode(): Promise<number> {
     }
 
     // Fallback to a reasonable default price
-
+   
     return 165.0;
   } catch (error) {
     console.error("Error initializing live mode:", error);
@@ -839,11 +806,9 @@ async function initializeLiveMode(): Promise<number> {
   }
 }
 
-async function getCoinGeckoHistoricalPrice(
-  buttonIndex: number
-): Promise<any[] | null> {
+async function getCoinGeckoHistoricalPrice(buttonIndex: number): Promise<any[] | null> {
   const btn = TIME_BUTTONS[buttonIndex];
-
+  
   try {
     if (btn.cgDays === null) {
       // LIVE mode - use simple price endpoint
@@ -854,13 +819,13 @@ async function getCoinGeckoHistoricalPrice(
           Pragma: "no-cache",
         },
       });
-
+      
       const price = data?.solana?.usd;
       if (!price || typeof price !== "number" || price <= 0) {
         console.warn("CoinGecko live price data is invalid:", data);
         return null;
       }
-
+      
       return [[Date.now(), price]];
     } else {
       // Historical data - use market chart range endpoint with timestamps
@@ -879,12 +844,13 @@ async function getCoinGeckoHistoricalPrice(
       }
 
       const params = {
-        vs_currency: "usd",
+        vs_currency: 'usd',
         from: startTime,
         to: endTime,
-        x_cg_demo_api_key: "CG-EnQ2L2wvdfeMreh3qmY9eCqd",
+        x_cg_demo_api_key: "CG-EnQ2L2wvdfeMreh3qmY9eCqd"
       };
-
+      
+      
       const axiosConfig = {
         params,
         timeout: buttonIndex === 1 ? 12000 : 8000,
@@ -893,24 +859,14 @@ async function getCoinGeckoHistoricalPrice(
           Pragma: "no-cache",
         },
       };
-
-      const { data } = await axios.get(
-        COINGECKO_MARKETCHART_RANGE,
-        axiosConfig
-      );
-
-      if (
-        !data?.prices ||
-        !Array.isArray(data.prices) ||
-        data.prices.length === 0
-      ) {
-        console.warn(
-          `CoinGecko historical data is invalid for ${btn.id}:`,
-          data
-        );
+      
+      const { data } = await axios.get(COINGECKO_MARKETCHART_RANGE, axiosConfig);
+      
+      if (!data?.prices || !Array.isArray(data.prices) || data.prices.length === 0) {
+        console.warn(`CoinGecko historical data is invalid for ${btn.id}:`, data);
         return null;
       }
-
+      
       return data.prices;
     }
   } catch (error) {
