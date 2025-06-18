@@ -146,11 +146,11 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
             <table className="w-full">
               <thead>
                 <tr className={`text-left text-sm ${getTextColor()}`}>
-                  <th className="pb-3 font-medium">{t('betsHistory.round')}</th>
-                  <th className="pb-3 font-medium">{t('betsHistory.prediction')}</th>
-                  <th className="pb-3 font-medium">{t('betsHistory.amount')}</th>
-                  <th className="pb-3 font-medium">{t('betsHistory.status')}</th>
-                  <th className="pb-3 font-medium">{t('betsHistory.payout')}</th>
+                  <th className="pb-3 text-xs md:text-sm font-medium">{t('betsHistory.round')}</th>
+                  <th className="pb-3 text-xs md:text-sm font-medium">{t('betsHistory.prediction')}</th>
+                  <th className="pb-3 text-xs md:text-sm font-medium">{t('betsHistory.amount')}</th>
+                  <th className="pb-3 text-xs md:text-sm font-medium">{t('betsHistory.status')}</th>
+                  <th className="pb-3 text-xs md:text-sm font-medium">{t('betsHistory.payout')}</th>
                 </tr>
               </thead>
                 <tbody>
@@ -167,14 +167,14 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
                         #{bet.roundId}
                       </td>
                       <td className={`py-3 font-semibold ${getDirectionColor(bet.direction)}`}>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center text-xs md:text-[1rem] gap-1">
                           <span className="text-xs">
                             {bet.direction === 'up' ? '↗' : '↘'}
                           </span>
                           {bet.direction.toUpperCase()}
                         </div>
                       </td>
-                      <td className="py-3 text-foreground font-mono text-sm">
+                      <td className="py-3 text-foreground font-mono text-xs md:text-sm">
                         {formatNum(bet.amount)} SOL
                       </td>
                       <td className="py-3">
@@ -182,7 +182,7 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
                           {statusToShow}
                         </span>
                       </td>
-                      <td className="py-3 text-foreground font-mono text-sm">
+                      <td className="py-3 text-foreground font-mono text-xs md:text-sm">
                         {statusToShow === 'WON' || statusToShow === 'CLAIMED' ? (
                           <span className={theme === 'dark' ? 'text-green-400' : 'text-green-600'}>
                             +{formatNum(bet.payout)} SOL
@@ -204,7 +204,7 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
 
           {/* Pagination Controls */}
           <div className={`flex items-center justify-between mt-4 pt-4 border-t ${getBorderColor()}`}>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-xs md:text-sm text-muted-foreground">
               {t('betsHistory.showing')} {indexOfFirstBet + 1}-{Math.min(indexOfLastBet, sortedBets.length)} of {sortedBets.length} bets
             </div>
             <div className="flex items-center gap-2">
@@ -220,7 +220,7 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
                 <ChevronLeft className="h-4 w-4" />
               </button>
               
-              <div className="text-sm text-foreground">
+              <div className="text-xs md:text-sm text-foreground">
                 {t('betsHistory.page')} {currentPage} {t('betsHistory.of')} {totalPages}
               </div>
               

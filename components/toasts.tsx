@@ -447,46 +447,79 @@ const {t} = useTranslation('common')
 }
 
 
-export function ReferralToast() {
+export function ReferralToast({
+  theme,
+}: {
+  theme: string | undefined;
+}) {
 // const {t} = useTranslation('common')
 
   return (
-    <div
+     <div
       className={`
-         glass rounded-2xl
+         glass text-left rounded-2xl
         shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
-        flex flex-col items-start 
+        flex flex-col items-start p-4 mt-8
+        ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
       `}
       style={{
         animation: "fadeInDown 200ms ease-out forwards",
       }}
     >
       <p className="text-sm font-semibold">
-        Input a valid referral means 
+        Referral Submitted Successfully 
       </p>
     </div>
   );
 }
 
-export function ReferralToastFailed() {
+export function ReferralToastFailed( {theme,
+}: {
+  theme: string | undefined;
+}) {
 // const {t} = useTranslation('common')
 
   return (
-    <div
+     <div
       className={`
-         glass rounded-2xl
+         glass text-left rounded-2xl
         shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
-        flex flex-col items-start 
+        flex flex-col items-start p-4 mt-8
+        ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
       `}
       style={{
         animation: "fadeInDown 200ms ease-out forwards",
       }}
     >
       <p className="text-sm font-semibold">
-        Failed to submit your referral. Please try again.
+        Failed to submit referral, please try again.
       </p>
     </div>
   );
 }
 
+export function ReferralToastInputFailed( {theme,
+}: {
+  theme: string | undefined;
+}) {
+// const {t} = useTranslation('common')
+
+  return (
+     <div
+      className={`
+         glass text-left rounded-2xl
+        shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
+        flex flex-col items-start p-4 mt-8
+        ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
+      `}
+      style={{
+        animation: "fadeInDown 200ms ease-out forwards",
+      }}
+    >
+      <p className="text-sm font-semibold">
+        Input a valid referral source
+      </p>
+    </div>
+  );
+}
 

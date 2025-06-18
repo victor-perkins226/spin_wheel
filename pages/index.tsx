@@ -37,7 +37,6 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
   const [showReferralModal, setShowReferralModal] = useState(false);
   const [checkedReferral, setCheckedReferral] = useState(false);
 
-  // Once the wallet is connected, grab its address and check for an existing referral.
   useEffect(() => {
     if (!connected || !publicKey) return;
 
@@ -91,11 +90,9 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
         <title>Prediction | FORTUVA</title>
       </Head>
 
-      {/* Your page’s main content always shows immediately */}
       <Hero />
       <PredictionCards />
 
-      {/* Once we’ve checked (or errored), we can optionally show the modal */}
       {checkedReferral && showReferralModal && (
         <div
           onClick={() => setShowReferralModal(false)}
@@ -107,7 +104,7 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
           >
             <button
               onClick={() => setShowReferralModal(false)}
-              className="absolute top-[4rem] right-10 z-[100] text-white text-4xl"
+              className="absolute top-[4rem] right-10 cursor-pointer z-[100] text-4xl"
             >
               &times;
             </button>

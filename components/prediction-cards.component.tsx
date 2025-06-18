@@ -89,16 +89,7 @@ export default function PredictionCards() {
     setClaimableRewards(sum);
   }, [claimableBets]); // Remove isClaiming dependency
 
-  useEffect(() => {
-    if (!connected || !publicKey) return;
 
-    // Set up periodic refresh of user bets every 30 seconds
-    const interval = setInterval(() => {
-      fetchUserBets();
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [connected, publicKey, fetchUserBets]);
 
   useEffect(() => {
     if (connected && publicKey) {
@@ -110,6 +101,24 @@ export default function PredictionCards() {
     isLoading: priceLoading,
     error: priceError,
   } = useLivePrice();
+
+  const fetchBalance = useCallback(async () => {
+  if (!connected || !publicKey || !connectionRef.current) return;
+  const lamports = await connectionRef.current.getBalance(publicKey);
+  setUserBalance(lamports / LAMPORTS_PER_SOL);
+}, [connected, publicKey]);
+
+useEffect(() => {
+  fetchBalance();
+
+  window.addEventListener("betPlaced", fetchBalance);
+  window.addEventListener("claimSuccess", fetchBalance);
+
+  return () => {
+    window.removeEventListener("betPlaced", fetchBalance);
+    window.removeEventListener("claimSuccess", fetchBalance);
+  };
+}, [fetchBalance]);
 
   useEffect(() => {
     const updateLivePrice = async () => {
@@ -172,13 +181,7 @@ export default function PredictionCards() {
     }
   }, [liveRoundPrice, previousPrice]);
 
-  useEffect(() => {
-    if (!connected || !publicKey || !connectionRef.current) return;
-    (async () => {
-      const balance = await connectionRef.current!.getBalance(publicKey);
-      setUserBalance(balance / LAMPORTS_PER_SOL);
-    })();
-  }, [connected, publicKey]);
+
 
   const handleBet = async (
     direction: "up" | "down",
@@ -321,7 +324,7 @@ export default function PredictionCards() {
       );
 
       await connectionRef.current.confirmTransaction(signature, "confirmed");
-
+      await fetchUserBets()
       // Refresh user bets and balance in parallel
       await Promise.all([
         fetchUserBets().finally(() => {
@@ -856,6 +859,38 @@ export default function PredictionCards() {
   const skeletonInitial = Math.floor(7 / 2);
   const initial = isDataLoaded ? liveIndex : skeletonInitial;
 
+  const [isOffline, setIsOffline] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const upd = () => setIsOffline(!navigator.onLine);
+    upd(); 
+    window.addEventListener('online', upd);
+    window.addEventListener('offline', upd);
+    return () => {
+      window.removeEventListener('online', upd);
+      window.removeEventListener('offline', upd);
+    };
+  }, []);
+
+  if (mounted && isOffline) {
+    return (
+      <div className="w-full p-4 text-center text-red-500">
+        Unable to load data. Check your internet connection.
+      </div>
+    );
+  }
+
+// if (priceError) {
+//   return (
+//     <div className="w-full p-4 text-center text-red-500">
+//       Unable to load live price. <button onClick={() => window.location.reload()} className="underline">Retry</button>
+//     </div>
+//   );
+// }
   return (
     <div className="container px-3 sm:px-4 md:px-6 lg:px-8 mt-5 md:mt-6 lg:mt-[70px] flex flex-col gap-4 md:gap-6 lg:gap-[40px]">
       <div className="grid grid-cols-12 gap-4 lg:gap-6 xl:gap-[40px]">
@@ -929,14 +964,8 @@ export default function PredictionCards() {
                 breakpoints={{
                   // when window width is >= 0px
                   0: {
-                    slidesPerView: 1,
-                    spaceBetween: 10,
-                    coverflowEffect: {
-                      rotate: 20,
-                      depth: 50,
-                      modifier: 1,
-                      slideShadows: false,
-                    },
+                    slidesPerView: 1.45,
+                    spaceBetween:0,
                   },
 
                   // when window width is >= 1024px
