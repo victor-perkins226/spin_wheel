@@ -9,6 +9,7 @@ import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { useTheme } from "next-themes";
 import { ThemeToggle } from "./Themetoggle";
 import LanguageDropdown from "./LanguageDropdown";
+import ProfileWallet from "./ProfileWallet";
 
 export default function Header() {
   const { theme } = useTheme();
@@ -54,13 +55,10 @@ export default function Header() {
         {/* <WalletDisconnectButton/> */}
       </header>
 
-      <header className="flex md:hidden justify-between p-[20px] mt-[58px]">
-        <SVG iconName="profile" width={52} height={52} />
-        {/* <LanguageDropdown /> */}
-        <WalletMultiButton />
-        <div className="glass p-[15px] rounded-[20px]">
-          <SVG iconName="live" width={21.5} height={18.49} />
-        </div>
+      <header className="flex md:hidden text-xs items-center justify-between pb-10 mt-[58px]">
+        <ProfileWallet/>
+        <LanguageDropdown />
+          <ThemeToggle />
       </header>
     </div>
   );

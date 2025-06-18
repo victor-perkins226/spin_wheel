@@ -13,6 +13,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { useTranslation } from "next-i18next";
 
 
 interface ChartPoint {
@@ -570,12 +571,14 @@ const TradingChart = () => {
     fetchData();
   }, [activeIndex]);
 
+  const {t} = useTranslation('common');
+
   return (
     <div className="w-full">
       {/* Chart header with title and current price */}
       <div className="mb-5 flex items-center justify-between">
         <div className="flex gap-3 items-center">
-          <h3 className="font-medium">Market Overview</h3>
+          <h3 className="font-medium">{t('overview')}</h3>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
             <p className="text-[14px]">SOL/USD</p>

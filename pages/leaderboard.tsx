@@ -4,12 +4,14 @@ import Head from "next/head";
 import Image from "next/image";
 import SolanaLogo from "@/public/assets/solana_logo.png";
 import axios from "axios";
-import { GetStaticProps } from "next";
+import { GetServerSideProps, GetStaticProps } from "next";
 import { ThemeToggle } from "@/components/Themetoggle";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { API_URL } from "@/lib/config";
 import { formatNum } from "@/lib/utils";
+import { useTranslation } from "next-i18next";
+import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 
 type Leader = {
   userWalletAddress: string;
@@ -21,21 +23,18 @@ type Leader = {
 
 type Props = { leaders: Leader[] };
 
-export const getStaticProps: GetStaticProps<Props> = async () => {
+export const getServerSideProps: GetServerSideProps = async ({ locale }) => {
+  const translations = await serverSideTranslations(locale ?? 'en', ['common']);
+  let leaders = [];
   try {
-    const { data: leaders } = await axios.get<Leader[]>(
-      `${API_URL}/leaderboard`
-    );
-    return {
-      props: { leaders },
-      // Re-build this page in the background at most once per minute:
-      revalidate: 60,
-    };
-  } catch (err) {
-    console.error("Leaderboard fetch failed:", err);
-    return { props: { leaders: [] }, revalidate: 60 };
+    const { data } = await axios.get(`${API_URL}/leaderboard`);
+    leaders = data;
+  } catch (e) {
+    console.error('SSR fetch failed:', e);
   }
+  return { props: { ...translations, leaders } };
 };
+
 
 export default function Leaderboard({ leaders }: Props) {
   const [currentPage, setCurrentPage] = useState(1);
@@ -62,28 +61,31 @@ export default function Leaderboard({ leaders }: Props) {
       setCurrentPage(prev => prev - 1);
     }
   };
+
+  const { t } = useTranslation('common');
+
   return (
     <>
       <Head>
-        <title>Leaderboard | FORTUVA</title>
+        <title>{t('leaderboard.title')} | FORTUVA</title>
       </Head>
       <div className="container mt-[67px]">
-        <div className="flex items-center justify-end mb-[30px]">
+        {/* <div className="flex items-center justify-end mb-[30px]">
           <ThemeToggle/>
-        </div>
+        </div> */}
         <div className="glass px-[30px] py-[16px] rounded-[20px] w-full overflow-auto">
           <table className="w-full text-left">
             <thead className="text-[10px] lg:text-[12px]">
               <tr>
-                <th className="pb-[24px] pr-12">User</th>
-                <th className="pb-[24px] pr-12">Winnings</th>
-                <th className="pb-[24px] pr-12">Win Rate</th>
-                <th className="pb-[24px] pr-12">Trades Entered</th>
-                <th className="pb-[24px]">Trades Won</th>
+                <th className="pb-[24px] pr-12">{t('leaderboard.user')}</th>
+                <th className="pb-[24px] pr-12">{t('leaderboard.winnings')}</th>
+                <th className="pb-[24px] pr-12">{t('leaderboard.winRate')}</th>
+                <th className="pb-[24px] pr-12">{t('leaderboard.trades')}</th>
+                <th className="pb-[24px]">{t('leaderboard.tradesWon')}</th>
               </tr>
             </thead>
             <tbody>
-              {leaders.map((L) => {
+              {currentLeaders.map((L) => {
                 const shortAddr = `${L.userWalletAddress.slice(
                   0,
                   6
@@ -131,7 +133,7 @@ export default function Leaderboard({ leaders }: Props) {
           </table>
           <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
             <div className="text-sm ">
-              Showing {indexOfFirstLeader + 1}-{Math.min(indexOfLastLeader, leaders.length)} of {leaders.length}
+              {t('leaderboard.showing')} {indexOfFirstLeader + 1}-{Math.min(indexOfLastLeader, leaders.length)} of {leaders.length}
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -142,7 +144,7 @@ export default function Leaderboard({ leaders }: Props) {
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <div className="text-sm ">
-                Page {currentPage} of {totalPages}
+                {t('leaderboard.page')} {currentPage} {t('leaderboard.of')} {totalPages}
               </div>
               <button
                 onClick={handleNextPage}

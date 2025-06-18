@@ -23,6 +23,7 @@ import {
   InvalidAmountToast,
 } from "./toasts";
 import { formatNum } from "@/lib/utils";
+import { useTranslation } from "next-i18next";
 
 interface IProps {
   variant?: "live" | "expired" | "next" | "later" | "locked";
@@ -164,7 +165,7 @@ useEffect(() => {
   }, [roundId, roundData, roundData?.lockPrice]);
 
   const { theme } = useTheme();
-
+  const {t} = useTranslation('common');
   const { config } = useRoundManager(5, 0);
 
   const roundIdRef = useRef(roundId);
@@ -416,7 +417,7 @@ useEffect(() => {
     !hasUserBet;
 
   const formatTimeLeft = useCallback((seconds: number | null) => {
-    if (seconds === null || seconds <= 0) return "Locked";
+    if (seconds === null || seconds <= 0) return <>{t('locked')}</>;
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
@@ -644,7 +645,7 @@ useEffect(() => {
             height={142}
           />
           <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
-            <p>Prize Pool</p>
+            <p>{t('prizePool')}</p>
             <p>{formatNum(nextPrizePool)} SOL</p>
           </div>
         </div>
@@ -666,7 +667,7 @@ useEffect(() => {
             }`}
             disabled={buttonDisabled}
           >
-            Enter UP
+           <>{t('isUp')}</>
           </Button>
           <Button
             style={{
@@ -684,7 +685,7 @@ useEffect(() => {
             }`}
             disabled={buttonDisabled}
           >
-            Enter DOWN
+            <>{t('isDown')}</>
           </Button>
         </>
       </div>
@@ -712,7 +713,7 @@ useEffect(() => {
       <div className="glass h-[300px] rounded-[20px] flex flex-col gap-[12px] items-center justify-center">
         <div className="flex items-center gap-[12px]">
           <SVG iconName="play-fill" />
-          <p className="font-semibold text-[20px]">Next Play</p>
+          <p className="font-semibold text-[20px]"><>{t('next')}</></p>
         </div>
         <p className="font-semibold text-[35px]">{display}</p>
       </div>
@@ -756,7 +757,7 @@ useEffect(() => {
                 data-testid="loader"
               />
               <h2 className="text-2xl font-semibold mt-4 text-center">
-                Calculating...
+                {t('calculating')}...
               </h2>
             </div>
           </div>
@@ -810,11 +811,11 @@ useEffect(() => {
                 <div
                   className={`flex justify-between items-center ${getLabelTextStyle()}`}
                 >
-                  <p>Locked Price</p>
+                  <p>{t('lockedPrice')}</p>
                   <p>${formatNum(formattedRoundData.lockPrice)}</p>
                 </div>
                 <div className="flex justify-between text-[16px]">
-                  <p>Prize Pool</p>
+                  <p>{t('prizePool')}</p>
                   <p>{formatNum(formattedRoundData.prizePool)} SOL</p>
                 </div>
               </div>
@@ -889,11 +890,11 @@ useEffect(() => {
             <div
               className={`flex justify-between items-center ${getLabelTextStyle()}`}
             >
-              <p>Locked Price</p>
+              <p>{t('lockedPrice')}</p>
               <p>${formatNum(formattedRoundData.lockPrice)}</p>
             </div>
             <div className="flex justify-between text-[16px]">
-              <p>Prize Pool</p>
+              <p>{t('prizePool')}</p>
               <p>{formatNum(formattedRoundData.prizePool)} SOL</p>
             </div>
           </div>
@@ -1026,7 +1027,7 @@ useEffect(() => {
                 <PuffLoader color="#06C729" size={24} />
               ) : (
                 <span className="animate-bounce uppercase">
-                  🎉 You Won! Claim Reward
+                  🎉 {t('reward')}
                 </span>
               )}
             </div>
@@ -1040,19 +1041,19 @@ useEffect(() => {
                 : ""
             } `}
           >
-            <div className="flex justify-center items-center gap-2">
+            <div className="flex justify-center uppercase items-center gap-2">
               {hasUserBet &&
               userBetStatus?.direction === "up" &&
               betValue !== null ? (
                 <p className="text-[20px] font-[600] leading-0">
-                  UP&nbsp;&middot;&nbsp;{formatNum(betValue)}&nbsp;SOL
+                  {t('up')}&nbsp;&middot;&nbsp;{formatNum(betValue)}&nbsp;SOL
                 </p>
               ) : (
-                <p className="text-[20px] font-[600] leading-0">UP</p>
+                <p className="text-[20px] font-[600] leading-0">{t('up')}</p>
               )}
             </div>
             <p className="text-[10px] font-[600] leading-0">
-              {bullMultiplier}x payout
+              {bullMultiplier}x {t('payout')}
             </p>
           </Button>
           {variant === "later"
@@ -1073,19 +1074,19 @@ useEffect(() => {
                 : ""
             }`}
           >
-            <div className="flex justify-center items-center gap-2">
+            <div className="flex justify-center uppercase items-center gap-2">
               {hasUserBet &&
               userBetStatus?.direction === "down" &&
               betValue !== null ? (
                 <p className="text-[20px] font-[600] leading-0">
-                  DOWN&nbsp;&middot;&nbsp;{formatNum(betValue)}&nbsp;SOL
+                  {t('down')}&nbsp;&middot;&nbsp;{formatNum(betValue)}&nbsp;SOL
                 </p>
               ) : (
-                <p className="text-[20px] font-[600] leading-0">DOWN</p>
+                <p className="text-[20px] font-[600] leading-0">{t('down')}</p>
               )}
             </div>
             <p className="text-[10px] font-[600] leading-0">
-              {bearMultiplier}x payout
+              {bearMultiplier}x {t('payout')}
             </p>
           </Button>
         </div>
@@ -1096,10 +1097,10 @@ useEffect(() => {
               iconName="arrow-left"
               onClick={() => setIsFlipped(false)}
             />
-            <p>Place Order</p>
+            <p>{t('placeOrder')}</p>
           </div>
           <div className="flex justify-between items-center">
-            <p className="font-semibold text-[16px]">Enter Amount</p>
+            <p className="font-semibold text-[16px]">{t('amount')}</p>
             <div className="flex items-center gap-[1px]">
               <Image
                 className="w-[30px] h-auto object-contain"
@@ -1191,7 +1192,7 @@ useEffect(() => {
             {isSubmitting ? (
               <PuffLoader color="#ffffff" size={20} />
             ) : (
-              `Buy ${mode?.toUpperCase() || ""}`
+              <>{t('buy')} {mode?.toUpperCase() || ""}</>
             )}
           </Button>
         </div>

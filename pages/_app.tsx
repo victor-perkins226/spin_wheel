@@ -1,79 +1,88 @@
-import Layout from "@/components/layout";
-import "@/styles/globals.css";
-import type { AppProps } from "next/app";
-import { Poppins } from "next/font/google";
-import Head from "next/head";
-import { WalletContextProvider } from "@/components/wallet.provider.component";
-import toast, { Toaster } from "react-hot-toast";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import {ThemeProvider as NextThemesProvider} from "next-themes";
-import { useEffect } from "react";
+  import Layout from "@/components/layout";
+  import "@/styles/globals.css";
+  import type { AppProps } from "next/app";
+  import { Poppins } from "next/font/google";
+  import Head from "next/head";
+  import { WalletContextProvider } from "@/components/wallet.provider.component";
+  import toast, { Toaster } from "react-hot-toast";
+  import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+  import {ThemeProvider as NextThemesProvider} from "next-themes";
+  import { useEffect } from "react";
+  import { initLogRocket } from "@/lib/logrocket";
+  import { appWithTranslation } from "next-i18next";
 
 
-export const poppins = Poppins({
-  variable: "--font-poppins-sans",
-  subsets: ["latin"],
-  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
-});
+  export const poppins = Poppins({
+    variable: "--font-poppins-sans",
+    subsets: ["latin"],
+    weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+  });
 
-// Create QueryClient instance
-const queryClient = new QueryClient();
-
-export default function App({ Component, pageProps }: AppProps) {
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      // if you click anywhere *not* inside a .react-hot-toast toast,
-      // dismiss all toasts
-      const target = e.target as HTMLElement;
-      if (!target.closest(".react-hot-toast")) {
-        toast.dismiss();
-      }
-    };
-    document.addEventListener("click", onClick);
-    return () => document.removeEventListener("click", onClick);
-  }, []);
-  return (
-    <>
-      <Toaster  position="top-center" />
-      <Head>
-        <link
-          rel="apple-touch-icon"
-          sizes="180x180"
-          href="/favicon/apple-touch-icon.png"
-        />
-        <link
-          rel="icon"
-          type="image/png"
-          sizes="32x32"
-          href="/favicon/favicon-32x32.png"
-        />
-        <link
-          rel="icon"
-          type="image/png"
-          sizes="16x16"
-          href="/favicon/favicon-16x16.png"
-        />
-        <link rel="manifest" href="/favicon/site.webmanifest" />
-      </Head>
-      <style jsx global>{`
-        html {
-          font-family: ${poppins.style.fontFamily};
-
-          ::placeholder {
-            font-family: ${poppins.style.fontFamily};
-          }
+  // Create QueryClient instance
+  const queryClient = new QueryClient();
+  function App({ Component, pageProps }: AppProps) {
+    useEffect(() => {
+      const onClick = (e: MouseEvent) => {
+        // if you click anywhere *not* inside a .react-hot-toast toast,
+        // dismiss all toasts
+        const target = e.target as HTMLElement;
+        if (!target.closest(".react-hot-toast")) {
+          toast.dismiss();
         }
-      `}</style>
+      };
+      document.addEventListener("click", onClick);
+      return () => document.removeEventListener("click", onClick);
+    }, []);
+      useEffect(() => {
+      initLogRocket();
+    }, []);
 
-      <QueryClientProvider client={queryClient}>
-        <WalletContextProvider>
-          <NextThemesProvider attribute="class" defaultTheme="dark">
-            <Layout>
-              <Component {...pageProps} />
-            </Layout>
-          </NextThemesProvider>
-        </WalletContextProvider>
-      </QueryClientProvider>
-    </>
-  );
-}
+    return (
+      <>
+        <Toaster  position="top-center" />
+        <Head>
+          <link
+            rel="apple-touch-icon"
+            sizes="180x180"
+            href="/favicon/apple-touch-icon.png"
+          />
+          <link
+            rel="icon"
+            type="image/png"
+            sizes="32x32"
+            href="/favicon/favicon-32x32.png"
+          />
+          <link
+            rel="icon"
+            type="image/png"
+            sizes="16x16"
+            href="/favicon/favicon-16x16.png"
+          />
+          <link rel="manifest" href="/favicon/site.webmanifest" />
+        </Head>
+        <style jsx global>{`
+          html {
+            font-family: ${poppins.style.fontFamily};
+
+            ::placeholder {
+              font-family: ${poppins.style.fontFamily};
+            }
+          }
+        `}</style>
+
+        <QueryClientProvider client={queryClient}>
+          <WalletContextProvider>
+            <NextThemesProvider attribute="class" defaultTheme="dark">
+              <Layout>
+                <Component {...pageProps} />
+              </Layout>
+            </NextThemesProvider>
+          </WalletContextProvider>
+        </QueryClientProvider>
+      </>
+    );
+  }
+
+
+
+  export default appWithTranslation(App)
