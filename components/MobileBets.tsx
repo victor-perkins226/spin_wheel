@@ -11,6 +11,8 @@ import BigBet from "@/public/assets/Big-Bet.png";
 import { API_URL } from "@/lib/config";
 import { formatNum } from "@/lib/utils";
 import { network } from "./wallet.provider.component";
+import { GiBurningMeteor } from "react-icons/gi";
+import { useTranslation } from "react-i18next";
 interface Bet {
   direction: string;
   user: string;
@@ -38,7 +40,10 @@ interface MobileLiveBetsProps {
   onLiveTotalChange: (total: number) => void; // Optional callback for total change
 }
 
-function MobileLiveBets({ currentRound, onLiveTotalChange }: MobileLiveBetsProps) {
+function MobileLiveBets({
+  currentRound,
+  onLiveTotalChange,
+}: MobileLiveBetsProps) {
   const { theme } = useTheme();
   const [liveBets, setLiveBets] = useState<Bet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,6 +71,8 @@ function MobileLiveBets({ currentRound, onLiveTotalChange }: MobileLiveBetsProps
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const { t } = useTranslation("common");
 
   // Fetch bets when currentRound changes
   useEffect(() => {
@@ -103,7 +110,6 @@ function MobileLiveBets({ currentRound, onLiveTotalChange }: MobileLiveBetsProps
           .sort((a: Bet, b: Bet) => b.amount - a.amount)
           .slice(0, 10);
         setLiveBets(bets);
-
       } catch (error) {
         console.error("Error fetching bets:", error);
         setError("Failed to load bets");
@@ -154,8 +160,6 @@ function MobileLiveBets({ currentRound, onLiveTotalChange }: MobileLiveBetsProps
 
       // Show big bet toast ONLY ONCE
       if (formattedBet.amount > BIG_BET_THRESHOLD) {
-        
-
         // Add a unique ID to prevent duplicates
         const toastId = `big-bet-${formattedBet.signature}`;
 
@@ -318,6 +322,21 @@ function MobileLiveBets({ currentRound, onLiveTotalChange }: MobileLiveBetsProps
   return (
     <>
       <style jsx>{animationStyles}</style>
+      <div className="md:hidden mt-[.5rem] flex gap-[23px] items-end">
+        {/* Theme Toggle Button */}
+        {/* <ThemeToggle /> */}
+
+        {/* Leaderboard Button */}
+        <div
+          className={getLeaderboardButtonStyle()}
+          onClick={() => (window.location.href = "/leaderboard")}
+        >
+          <div className="flex py-1 text-sm items-center gap-2">
+            <GiBurningMeteor size={20} />
+            {t("table")}
+          </div>
+        </div>
+      </div>
       <div className="md:hidden mt-[3rem] flex flex-col gap-[43px] items-end">
         {/* Live Bets Container */}
         <div className="glass px-[30px] h-full max-h-[700px] py-[16px] rounded-[20px] w-full">
@@ -423,7 +442,7 @@ function MobileLiveBets({ currentRound, onLiveTotalChange }: MobileLiveBetsProps
                             <span>{bet.user}</span>
                             <span
                               className={`font-semibold text-xs flex ${
-                               bet.direction === "UP"
+                                bet.direction === "UP"
                                   ? theme === "dark"
                                     ? "text-green-400"
                                     : "text-green-600"

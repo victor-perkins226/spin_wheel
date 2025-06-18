@@ -9,10 +9,17 @@ import {
   FaTwitter,
   FaInstagram,
   FaDiscord,
+  FaSpinner,
 } from "react-icons/fa";
 import { SiSolana } from "react-icons/si";
-import { ReferralToast, ReferralToastFailed } from "./toasts";
+import {
+  ReferralToast,
+  ReferralToastFailed,
+  ReferralToastInputFailed,
+} from "./toasts";
 import toast from "react-hot-toast";
+import { useTheme } from "next-themes";
+import { PuffLoader } from "react-spinners";
 
 interface ReferralProps {
   onCancel: () => void;
@@ -27,6 +34,7 @@ export default function Referral({ onCancel }: ReferralProps) {
     "telegram" | "twitter" | "instagram" | "discord" | "solscan" | "others"
   >("telegram");
   const [otherSource, setOtherSource] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const options = [
     { label: "Telegram", value: "telegram", Icon: FaTelegramPlane },
@@ -37,13 +45,16 @@ export default function Referral({ onCancel }: ReferralProps) {
     { label: t("referral.others"), value: "others", Icon: null },
   ];
 
+  const { theme } = useTheme();
+
   const handleSubmit = async () => {
+    if (isSubmitting) return;
     // Validation: if "Others" but no text entered, bail out
     if (selected === "others" && !otherSource.trim()) {
       toast.custom(
         (t) => (
           <>
-            <ReferralToast />
+            <ReferralToastInputFailed theme={theme} />
           </>
         ),
         {
@@ -54,7 +65,7 @@ export default function Referral({ onCancel }: ReferralProps) {
     }
 
     const referralFrom = selected === "others" ? otherSource.trim() : selected;
-
+ setIsSubmitting(true);
     try {
       await axios.post(
         "https://sol-prediction-backend-6e3r.onrender.com/user/referral",
@@ -63,12 +74,22 @@ export default function Referral({ onCancel }: ReferralProps) {
           referralFrom,
         }
       );
+      toast.custom(
+        (t) => (
+          <>
+            <ReferralToast theme={theme} />
+          </>
+        ),
+        {
+          position: "top-right",
+        }
+      );
       onCancel();
     } catch (err) {
       toast.custom(
         (t) => (
           <>
-            <ReferralToastFailed />
+            <ReferralToastFailed theme={theme} />
           </>
         ),
         {
@@ -120,7 +141,7 @@ export default function Referral({ onCancel }: ReferralProps) {
         <div className="mt-4">
           <input
             type="text"
-            placeholder={t("referral.pleaseInputOther")}
+            placeholder={'Please specify if "Others"'}
             value={otherSource}
             onChange={(e) => setOtherSource(e.target.value)}
             disabled={selected !== "others"}
@@ -129,7 +150,9 @@ export default function Referral({ onCancel }: ReferralProps) {
               ${
                 selected !== "others"
                   ? "opacity-50 cursor-not-allowed"
-                  : "bg-gray-200/10"
+                  : theme === "dark"
+                  ? "bg-gray-200/10"
+                  : "bg-gray-500/10"
               }`}
           />
         </div>
@@ -138,20 +161,26 @@ export default function Referral({ onCancel }: ReferralProps) {
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={selected === "others" && !otherSource.trim()}
-            className={`px-6 py-3 glass text-white rounded-2xl font-semibold transition-colors
+            disabled={selected === "others" && !otherSource.trim() || isSubmitting}
+            className={`px-6 py-3 glass rounded-2xl cursor-pointer font-semibold transition-colors
               ${
                 selected === "others" && !otherSource.trim()
                   ? "opacity-50 cursor-not-allowed"
-                  : "hover:!bg-gray-100/40"
+                  : "hover:!bg-gray-100/40 "
               }`}
           >
-            Submit
+               {isSubmitting ? (
+              <div className="flex items-center gap-2"><PuffLoader size={16} className="animate-spin" />Submitting...</div>
+            ) : (
+              <>Submit</>
+            )}
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="px-6 py-3 glass !bg-red-600/70 hover:!bg-red-700/40 text-white rounded-2xl font-semibold transition-colors"
+
+            disabled={isSubmitting}
+            className="px-6 py-3 glass cursor-pointer !bg-red-600/70 hover:!bg-red-700/40 text-white rounded-2xl font-semibold transition-colors"
           >
             Cancel
           </button>

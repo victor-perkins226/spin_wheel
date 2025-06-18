@@ -38,7 +38,7 @@ interface SolPredictorHook {
 }
 
 const programId = new PublicKey(PROGRAM_ID);
-export const useSolPredictor = (): SolPredictorHook => {
+export const useSolPredictor = (): SolPredictorHook & { userBalance: number } => {
   const { publicKey, connected } = useWallet();
   const { program } = useProgram();
   const [claimableBets, setClaimableBets] = useState<ClaimableBet[]>([]);
@@ -47,32 +47,21 @@ export const useSolPredictor = (): SolPredictorHook => {
   const pendingTransactionRef = useRef<string | null>(null);
   const { theme } = useTheme();
 
-  // const [configPda] = PublicKey.findProgramAddressSync(
-  //   [Buffer.from("config")],
-  //   programId
-  // );
-  // const getRoundPda = (roundNumber: number) =>
-  //   PublicKey.findProgramAddressSync(
-  //     [Buffer.from("round"), new BN(roundNumber).toArrayLike(Buffer, "le", 8)],
-  //     program!.programId
-  //   )[0];
+       const [userBalance, setUserBalance] = useState<number>(0);
 
-  // const getEscrowPda = (roundNumber: number) =>
-  //   PublicKey.findProgramAddressSync(
-  //     [Buffer.from("escrow"), new BN(roundNumber).toArrayLike(Buffer, "le", 8)],
-  //     program!.programId
-  //   )[0];
+  const fetchUserBalance = useCallback(async () => {
+    if (!publicKey || !program) return;
+    const lamports = await program.provider.connection.getBalance(publicKey);
+    setUserBalance(lamports / LAMPORTS_PER_SOL);
+  }, [ publicKey, program ]);
 
-  // const getUserBetPda = (user: PublicKey, roundNumber: number) =>
-  //   PublicKey.findProgramAddressSync(
-  //     [
-  //       Buffer.from("user_bet"),
-  //       user.toBuffer(),
-  //       new BN(roundNumber).toArrayLike(Buffer, "le", 8),
-  //     ],
-  //     program!.programId
-  //   )[0];
+  // On mount & whenever wallet changes
+  useEffect(() => {
+    fetchUserBalance();
+  }, [ fetchUserBalance ]);
 
+
+  
   const [configPda] = PublicKey.findProgramAddressSync(
   [Buffer.from("config")],
   programId
@@ -98,6 +87,8 @@ const getUserBetPda = (user: PublicKey, roundNumber: number) =>
     ],
     program!.programId
   )[0];
+
+  
 
   const fetchUserBets = useCallback(async (): Promise<ClaimableBet[]> => {
     if (!publicKey || !connected || !program) {
@@ -185,7 +176,6 @@ const getUserBetPda = (user: PublicKey, roundNumber: number) =>
         claimable.push({ roundNumber, amount: amountSol, predictBull, payout });
       }
     }
-
     setUserBets(bets);
     setClaimableBets(claimable);
     return claimable;
@@ -279,6 +269,7 @@ const getUserBetPda = (user: PublicKey, roundNumber: number) =>
 
             try {
               await fetchUserBets();
+ 
             } catch (fetchErr) {
               console.error(
                 "fetchUserBets() failed after an 'already processed' error:",
@@ -318,6 +309,7 @@ const getUserBetPda = (user: PublicKey, roundNumber: number) =>
         // 4) Only once we know on‐chain RPC has succeeded (and toast is already shown), refresh local bets:
         try {
           await fetchUserBets();
+          await fetchUserBalance();
         } catch (fetchErr) {
           console.error(
             "fetchUserBets() failed after a successful bet:",
@@ -344,6 +336,7 @@ const getUserBetPda = (user: PublicKey, roundNumber: number) =>
       getUserBetPda,
       isPlacingBet,
       theme,
+      fetchUserBalance
     ]
   );
 
@@ -387,6 +380,7 @@ const getUserBetPda = (user: PublicKey, roundNumber: number) =>
       treasuryPda,
       getUserBetPda,
       configPda,
+      fetchUserBalance,
     ]
   );
 
@@ -406,6 +400,7 @@ const getUserBetPda = (user: PublicKey, roundNumber: number) =>
     claimableBets,
     userBets,
     fetchUserBets,
+    userBalance,
     isPlacingBet,
   };
 };
