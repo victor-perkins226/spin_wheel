@@ -135,7 +135,7 @@ body {
   background: var(--glass-bg) !important;
   backdrop-filter: blur(40px) !important;
   border: 1px solid var(--glass-border) !important;
-  color: var(--foreground) !important;
+  color: #fff;
   transition: all 0.3s ease !important;
 }
 

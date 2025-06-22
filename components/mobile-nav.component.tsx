@@ -6,9 +6,9 @@ import { useRouter } from "next/router";
 
 const MOBILE_NAV_LINKS: { icon: IconType; url: string }[] = [
   { icon: "home", url: routes.home() },
-  { icon: "chart", url: "/" },
+  // { icon: "chart", url: "/" },
   { icon: "medal", url: "/leaderboard" }, // should be "/leaderboard"
-  { icon: "bag", url: "/" },
+  // { icon: "bag", url: "/" },
 ];
 
 export default function MobileNav() {
