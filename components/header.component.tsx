@@ -66,7 +66,7 @@ export default function Header() {
           )}
           
         </Link>
-        <div className="flex justify-between w-full ">
+        <div className="flex justify-between items-end w-full ">
             
         <ProfileWallet />
         <LanguageDropdown />

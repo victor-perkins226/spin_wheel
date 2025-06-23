@@ -100,18 +100,18 @@ export default function Referral({ onCancel }: ReferralProps) {
   };
 
   return (
-    <div className="glass rounded-3xl max-w-[1300px] mx-auto mt-8">
+    <div className="glass rounded-3xl max-w-[1300px] mx-auto md:mt-8">
       <div className="max-w-2xl mx-auto p-10 rounded-xl">
-        <h2 className="text-3xl pt-8 font-semibold">
+        <h2 className="text-xl md:text-3xl pt-8 font-semibold">
           {t("referral.discover")}
         </h2>
-        <p className="mt-2">{t("referral.curious")}</p>
+        <p className="mt-2 text-sm">{t("referral.curious")}</p>
 
         <div className="mt-6 space-y-4">
           {options.map(({ label, value, Icon }) => (
             <label
               key={value}
-              className={`flex items-center p-4 rounded-lg border transition-colors cursor-pointer
+              className={`flex items-center p-2 rounded-lg border transition-colors cursor-pointer
                 ${
                   selected === value
                     ? "border-blue-500 ring-1 ring-blue-500 bg-gray-200/10"
@@ -133,7 +133,7 @@ export default function Referral({ onCancel }: ReferralProps) {
                   ?
                 </span>
               )}
-              <span className="text-lg">{label}</span>
+              <span className="text-sm md:text-lg">{label}</span>
             </label>
           ))}
         </div>

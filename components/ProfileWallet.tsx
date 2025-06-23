@@ -87,10 +87,10 @@ export default function ProfileWallet() {
     <div ref={containerRef} className="relative inline-block">
       <button
         onClick={handleClick}
-        className="flex items-center space-x-2 px-3 py-1 glass-card rounded-2xl focus:outline-none"
+        className="flex items-center flex-col gap-1 space-x-2 px-3 py-1 glass-card rounded-2xl focus:outline-none"
       >
-        <SVG iconName="profile" width={20} height={20} />
-        <span className="text-white text-sm">{mainLabel}</span>
+        <SVG iconName="profile" width={30} height={30} />
+        <span className=" text-sm">{mainLabel}</span>
       </button>
 
       {wallet.connected && open && (

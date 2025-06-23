@@ -12,9 +12,10 @@ import {
   SolflareWalletAdapter,
   CloverWalletAdapter,
   LedgerWalletAdapter,
-  TorusWalletAdapter,
+  Coin98WalletAdapter,
   TrezorWalletAdapter,
   BitgetWalletAdapter,
+  TrustWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { clusterApiUrl } from "@solana/web3.js";
@@ -50,16 +51,8 @@ export const WalletContextProvider = ({
 
       new LedgerWalletAdapter(),
       new CloverWalletAdapter(),
-
-      // Torus needs a valid OAuth clientId
-      new TorusWalletAdapter({
-        options: {
-          clientId:"BKhfWCgCPa8DUD068R4lhBuYWzOPRKtaFVTPoE0kTj-BSrFoX7DqnRDFH8ElbDUbNMs4ei2Z4jBz2RdDjtYhS9o",
-           network: "devnet",   
-        },
-      }),
-
-      // Trezor requires a manifest (email + app URL)
+      new Coin98WalletAdapter(),
+      new TrustWalletAdapter(),
       new TrezorWalletAdapter({
         manifest: {
           email: process.env.NEXT_PUBLIC_TREZOR_MANIFEST_EMAIL ?? "",
