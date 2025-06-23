@@ -55,10 +55,23 @@ export default function Header() {
         {/* <WalletDisconnectButton/> */}
       </header>
 
-      <header className="flex md:hidden text-xs items-center justify-between pb-10 mt-[58px]">
-        <ProfileWallet/>
+      <header className="flex flex-col md:hidden text-xs gap-10 justify-between pb-10 mt-[58px]">
+          <Link href={routes.home()}>
+          {mounted && (
+            <Image
+              className="w-[140px]"
+              src={theme === "dark" ? darkLogo : lightLogo}
+              alt="fortuva logo"
+            />
+          )}
+          
+        </Link>
+        <div className="flex justify-between items-end w-full ">
+            
+        <ProfileWallet />
         <LanguageDropdown />
-          <ThemeToggle />
+        <ThemeToggle />
+          </div>
       </header>
     </div>
   );

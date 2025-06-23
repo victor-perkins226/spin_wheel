@@ -130,6 +130,8 @@ body {
   }
 } 
 
+
+
 /* Wallet button styling for both themes */
 .wallet-adapter-button {
   background: var(--glass-bg) !important;
@@ -141,6 +143,10 @@ body {
 
 .wallet-adapter-button:hover {
   opacity: 0.8 !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button{
+  color: #fff !important;
 }
 
 @keyframes fadeOut {
@@ -325,6 +331,7 @@ input[type="number"] {
         background: #1d1f20;        /* or whatever solid color you want inside */
         border-radius: 22px;         /* matches the border thickness below */
         z-index: 0;  
+        height: 99%;
         border: var(--borderWidth) solid transparent; /* this is the border thickness */
 
       }

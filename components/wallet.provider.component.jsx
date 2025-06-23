@@ -1,4 +1,5 @@
-"use client"
+// components/WalletContextProvider.tsx
+"use client";
 
 import React, { useState, useEffect, useMemo } from "react";
 import {
@@ -11,64 +12,65 @@ import {
   SolflareWalletAdapter,
   CloverWalletAdapter,
   LedgerWalletAdapter,
-  TorusWalletAdapter,
+  Coin98WalletAdapter,
   TrezorWalletAdapter,
-  BitgetWalletAdapter
+  BitgetWalletAdapter,
+  TrustWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
-import {
-  WalletModalProvider,
-  WalletDisconnectButton,
-  WalletMultiButton,
-} from "@solana/wallet-adapter-react-ui";
+import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { clusterApiUrl } from "@solana/web3.js";
 
 // Default styles that can be overridden by your app
 import "@solana/wallet-adapter-react-ui/styles.css";
+
 import { RPC_URL } from "@/lib/config";
 
- export const network = WalletAdapterNetwork.Devnet;
+export const network = WalletAdapterNetwork.Devnet;
 
-export const WalletContextProvider = ({ children }) => {
-  // The network can be set to 'devnet', 'testnet', or 'mainnet-beta'.
-
-  // You can also provide a custom RPC endpoint.
-  const endpoint = useMemo(
-    () => RPC_URL,
-    []
-  );
-
-  // Client-side only code
+export const WalletContextProvider = ({
+  children,
+}) => {
   const [mounted, setMounted] = useState(false);
+
+  // mark when we're on the client
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Instantiate adapters inside useMemo to avoid re-creation on every render
-  const wallets = useMemo(
-    () => [
+  const endpoint = useMemo(() => RPC_URL, []);
+
+  const wallets = useMemo(() => {
+    // only construct adapters in the browser
+    if (!mounted) return [];
+
+    return [
       new PhantomWalletAdapter(),
+
+      // Pass in the network
       new SolflareWalletAdapter({ network }),
+
       new LedgerWalletAdapter(),
       new CloverWalletAdapter(),
-      new TorusWalletAdapter(),
-      new TrezorWalletAdapter(),
-      new BitgetWalletAdapter(),
-    ],
-    [network]
-  );
+      new Coin98WalletAdapter(),
+      new TrustWalletAdapter(),
+      new TrezorWalletAdapter({
+        manifest: {
+          email: process.env.NEXT_PUBLIC_TREZOR_MANIFEST_EMAIL ?? "",
+          appUrl: process.env.NEXT_PUBLIC_TREZOR_MANIFEST_APP_URL ?? "",
+        },
+      }),
+
+      // Bitget needs network as well
+      new BitgetWalletAdapter({ network }),
+    ];
+  }, [mounted]);
 
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
-          {/* If not mounted (server-side), render children without wallet UI */}
-          {mounted ? (
-            <>
-              {children}
-            </>
-          ) : (
-            <div style={{ visibility: "hidden" }}>{children}</div>
-          )}
+          {/* hide UI until client-side */}
+          {mounted ? children : <div style={{ visibility: "hidden" }}>{children}</div>}
         </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>

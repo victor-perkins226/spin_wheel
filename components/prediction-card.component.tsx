@@ -660,7 +660,7 @@ useEffect(() => {
             onClick={() =>
               buttonDisabled ? undefined : handleEnterPrediction("up")
             }
-            className={`glass flex flex-col gap-4 py-[16px] ${
+            className={`glass flex flex-col gap-4 md:py-[16px] py-2 ${
               buttonDisabled
                 ? "opacity-50 cursor-not-allowed"
                 : "cursor-pointer hover:opacity-80"
@@ -678,7 +678,7 @@ useEffect(() => {
             onClick={() =>
               buttonDisabled ? undefined : handleEnterPrediction("down")
             }
-            className={`glass flex flex-col gap-4 py-[16px] ${
+            className={`glass flex flex-col gap-4  md:py-[16px] py-2 ${
               buttonDisabled
                 ? "opacity-50 cursor-not-allowed"
                 : "cursor-pointer hover:opacity-80"
@@ -724,7 +724,7 @@ useEffect(() => {
     if (variant !== "live") return null;
 
     const getPriceTextStyle = () => {
-      return `text-[20px] ${
+      return `text-sm md:text-[20px] ${
         theme === "dark" ? "text-[#FEFEFE]" : "text-gray-900"
       }`;
     };
@@ -830,7 +830,7 @@ useEffect(() => {
     if (variant !== "expired" && variant !== "locked") return null;
 
     const getPriceTextStyle = () => {
-      return `text-[20px] ${
+      return `text-sm md:text-[20px] ${
         theme === "dark" ? "text-[#FEFEFE]" : "text-gray-900"
       }`;
     };
@@ -939,7 +939,7 @@ useEffect(() => {
       <div
         className={` ${
           theme === "light" ? "bg-[#fffffff1]" : "bg-[#2a2a4c]"
-        }  rounded-[20px] min-w-[240px] sm:min-w-[273px] w-full p-4`}
+        }  rounded-[20px] min-w-[220px] sm:min-w-[273px] w-full p-4`}
       >
         <div
           className={`${

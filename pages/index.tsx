@@ -104,7 +104,7 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
           >
             <button
               onClick={() => setShowReferralModal(false)}
-              className="absolute top-[4rem] right-10 cursor-pointer z-[100] text-4xl"
+              className="absolute top-[3rem] right-10 cursor-pointer z-[100] text-4xl"
             >
               &times;
             </button>

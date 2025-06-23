@@ -255,7 +255,7 @@ useEffect(() => {
   }, [fetchUserBets, safeFetchMoreRounds]);
   function SkeletonCard() {
     return (
-      <div className="card_container glass  min-w-[240px]  rounded-[20px] p-[15px] sm:p-[25px] w-full animate-pulse">
+      <div className="card_container glass  md:min-w-[240px] min-w-[220px]  rounded-[20px] p-[15px] sm:p-[25px] w-full animate-pulse">
         <div className="flex justify-between items-center">
           <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded w-1/3 "></div>
           <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded w-1/3 "></div>
