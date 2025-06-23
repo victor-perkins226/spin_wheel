@@ -3,6 +3,7 @@ import SVG, { IconType } from "./svg.component";
 import Link from "next/link";
 import routes from "@/helpers/routes";
 import { useRouter } from "next/router";
+import { useTheme } from "next-themes";
 
 const MOBILE_NAV_LINKS: { icon: IconType; url: string }[] = [
   { icon: "home", url: routes.home() },
@@ -13,6 +14,7 @@ const MOBILE_NAV_LINKS: { icon: IconType; url: string }[] = [
 
 export default function MobileNav() {
   const { pathname, asPath } = useRouter();
+  const {theme} = useTheme()
 
 const isNavActive = (url: string) => pathname === url;
   return (
@@ -24,13 +26,13 @@ const isNavActive = (url: string) => pathname === url;
           className="flex flex-col gap-3 items-center"
         >
           {isNavActive(el.url) && !["chart", "bag"].includes(el.icon) && (
-            <div className="size-[8px] rounded-full bg-white"></div>
+            <div className={`size-[8px] rounded-full ${theme === "light" ? "bg-black": "bg-white"}`}></div>
           )}
           <SVG
             color={
               isNavActive(el.url) && !["chart", "bag"].includes(el.icon)
-                ? "#ffffff"
-                : "#BAC2CC"
+                ? theme === "dark" ? "#ffffff" : "#000000"
+                : theme === "dark" ? "#BAC2CC" : "#000000d1"
             }
             width={24}
             height={24}
