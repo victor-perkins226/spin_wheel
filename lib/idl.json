@@ -492,29 +492,7 @@
       }
     },
     {
-      "name": "AdminMultisig",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "signers",
-            "type": {
-              "vec": "publicKey"
-            }
-          },
-          {
-            "name": "threshold",
-            "type": "u8"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "OperatorMultisig",
+      "name": "Multisig",
       "type": {
         "kind": "struct",
         "fields": [
@@ -1268,6 +1246,6 @@
     }
   ],
   "metadata": {
-    "address": "51LsCdruBZE3bi5KeNwpjVqDcpwGKXppzZQGrD3xqJZ9"
+    "address": "FKxohzkYZR8wRct6cZGiSdrrhDKtby3m27smuui8xuXK"
   }
 }
