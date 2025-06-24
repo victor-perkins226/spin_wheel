@@ -94,7 +94,7 @@ export default function ProfileWallet() {
       </button>
 
       {wallet.connected && open && (
-        <div className="absolute top-full left-0 mt-2 w-40 glass rounded-md shadow-lg z-50">
+        <div className="absolute top-full left-0 mt-2 w-40 glass_test rounded-md shadow-lg z-50">
           {menuItems.map((item) => (
             <button
               key={item.key}
