@@ -56,6 +56,7 @@ export default function Header() {
       </header>
 
       <header className="flex flex-col md:hidden text-xs gap-10 justify-between pb-10 mt-[58px]">
+                  <div className="flex justify-between items-center w-full ">
           <Link href={routes.home()}>
           {mounted && (
             <Image
@@ -66,10 +67,12 @@ export default function Header() {
           )}
           
         </Link>
+        
+        <LanguageDropdown />
+        </div>
         <div className="flex justify-between items-end w-full ">
             
         <ProfileWallet />
-        <LanguageDropdown />
         <ThemeToggle />
           </div>
       </header>

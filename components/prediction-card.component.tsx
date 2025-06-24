@@ -756,7 +756,7 @@ useEffect(() => {
                 aria-label="Loading Spinner"
                 data-testid="loader"
               />
-              <h2 className="text-2xl font-semibold mt-4 text-center">
+              <h2 className="text-lg md:text-2xl font-semibold mt-4 text-center">
                 {t('calculating')}...
               </h2>
             </div>
