@@ -936,7 +936,7 @@ useEffect(() => {
             </div>
           ) : (
             // Show cards only when wallet is connected
-            <div className="relative px-4 md:px-0">
+            <div className="relative my-4 px-4 md:px-0">
               <Swiper
                 // key={liveIndex}
                 key={`swiper-${initial}`}
@@ -1095,7 +1095,6 @@ useEffect(() => {
                       );
                     })}
               </Swiper>
-              <div className="swiper-pagination !relative !mt-4" />
             </div>
           )}
 

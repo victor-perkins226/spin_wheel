@@ -917,7 +917,7 @@ useEffect(() => {
       className={`
         relative
           card_container rounded-[18px]
-          mt-4
+          my-8
           ${
             variant === "expired"
               ? "opacity-50 glass cursor-not-allowed hover:opacity-80 "

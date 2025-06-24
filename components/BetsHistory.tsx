@@ -131,7 +131,7 @@ export default function BetsHistory({ userBets, currentRound }: BetsHistoryProps
   const netProfit = totalPayout - totalWagered;
 
   return (
-    <div className={`${getBackgroundColor()} backdrop-blur-sm rounded-xl p-6 shadow-sm`}>
+    <div className={`${getBackgroundColor()} backdrop-blur-sm mt-12 rounded-xl p-6 shadow-sm`}>
       <h2 className="text-lg font-semibold mb-4 text-foreground">{t('betsHistory.title')}</h2>
       
       {sortedBets.length === 0 ? (
