@@ -231,6 +231,9 @@ useEffect(() => {
     totalBear: number, 
     totalFeeBps: number 
   ) {
+    console.log("totalBull", totalBull);
+    console.log("totalBear", totalBear);
+    console.log("totalFeeBps", totalFeeBps);
     const totalPool = totalBull + totalBear;
 
     const feeAmount = (totalPool * totalFeeBps) / 10000; 
@@ -1150,7 +1153,7 @@ useEffect(() => {
           )}
           <input
             type="range"
-            min="0.01"
+            min={(config?.minBetAmount || 0.01).toString()}
             max={maxAmount}
             step="0.000000001"
             value={Math.min(amount, maxAmount)}
