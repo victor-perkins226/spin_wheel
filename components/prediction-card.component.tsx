@@ -191,18 +191,9 @@ useEffect(() => {
     // keep the latest roundId in a ref
     roundIdRef.current = roundId;
 
-    const handlePrizePool = (data: any) => {
-      if (data.roundId !== roundIdRef.current) return;
-      const up = data.newBullAmount / LAMPORTS_PER_SOL;
-      const down = data.newBearAmount / LAMPORTS_PER_SOL;
-      setUpBetsLocal(up);
-      setDownBetsLocal(down);
-      // for “next” cards, also bump the prize pool so multipliers recalc
-      if (variant === "next") setPrizePoolLocal(up + down);
-    };
-
     const handleNewBet = (evt: any) => {
       const { round_number, amount, prediction, user } = evt.data;
+      console.log("event", evt.data);
       if (round_number !== roundIdRef.current) return;
       const solAmt = amount / LAMPORTS_PER_SOL;
       if (prediction) setUpBetsLocal((prev) => prev + solAmt);
@@ -224,7 +215,7 @@ useEffect(() => {
     return () => {
       socket.off("newBetPlaced", handleNewBet);
     };
-  }, [socket, publicKey, variant]);
+  }, [socket, publicKey, variant, roundId]);
 
   function calculateMultipliers(
     totalBull: number, 
@@ -295,23 +286,23 @@ useEffect(() => {
     })();
   }, [connected, publicKey, connection]);
 
-  useEffect(() => {
-    if (!connected || !publicKey) return;
+  // useEffect(() => {
+  //   if (!connected || !publicKey) return;
 
-    const handleNewBet = (newBet: any) => {
-      if (
-        newBet.data.user === publicKey.toString() &&
-        newBet.data.round_number === roundId
-      ) {
-        setScriptBetPlaced(true);
-      }
-    };
+  //   const handleNewBet = (newBet: any) => {
+  //     if (
+  //       newBet.data.user === publicKey.toString() &&
+  //       newBet.data.round_number === roundId
+  //     ) {
+  //       setScriptBetPlaced(true);
+  //     }
+  //   };
 
-    socket.on("newBetPlaced", handleNewBet);
-    return () => {
-      socket.off("newBetPlaced", handleNewBet);
-    };
-  }, [connected, publicKey, roundId, socket]);
+  //   socket.on("newBetPlaced", handleNewBet);
+  //   return () => {
+  //     socket.off("newBetPlaced", handleNewBet);
+  //   };
+  // }, [connected, publicKey, roundId, socket]);
 
   const handlePrizePoolUpdate = useCallback((data: any) => {
     if (data.roundId === roundIdRef.current) {
