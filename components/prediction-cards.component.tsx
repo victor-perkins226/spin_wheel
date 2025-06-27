@@ -69,7 +69,7 @@ export default function PredictionCards() {
   const lastLiveRoundRef = useRef<number | null>(null);
   const [swiperReady, setSwiperReady] = useState(false);
   const { theme } = useTheme();
-  const { t } = useTranslation('common');
+  const { t } = useTranslation("common");
   const {
     config,
     currentRound,
@@ -89,7 +89,7 @@ export default function PredictionCards() {
     setClaimableRewards(sum);
   }, [claimableBets]); // Remove isClaiming dependency
 
-
+  const bonusRef = useRef<(() => void) | undefined>(undefined);
 
   useEffect(() => {
     if (connected && publicKey) {
@@ -103,22 +103,56 @@ export default function PredictionCards() {
   } = useLivePrice();
 
   const fetchBalance = useCallback(async () => {
-  if (!connected || !publicKey || !connectionRef.current) return;
-  const lamports = await connectionRef.current.getBalance(publicKey);
-  setUserBalance(lamports / LAMPORTS_PER_SOL);
-}, [connected, publicKey]);
+    if (!connected || !publicKey || !connectionRef.current) return;
+    const lamports = await connectionRef.current.getBalance(publicKey);
+    setUserBalance(lamports / LAMPORTS_PER_SOL);
+  }, [connected, publicKey]);
 
 useEffect(() => {
-  fetchBalance();
+  if (!connected || !publicKey) {
+    setUserBalance(0);
+    return;
+  }
 
-  window.addEventListener("betPlaced", fetchBalance);
-  window.addEventListener("claimSuccess", fetchBalance);
+  // 1) initialize a fresh Connection whenever publicKey changes
+  const conn = new Connection(RPC_URL, { commitment: "finalized" });
+  connectionRef.current = conn;
+
+  let active = true;
+
+  // 2) one‐time fetch
+  conn.getBalance(publicKey).then(lamports => {
+    if (active) setUserBalance(lamports / LAMPORTS_PER_SOL);
+  });
+
+  // 3) subscribe to on‐chain changes
+  const listenerId = conn.onAccountChange(
+    publicKey,
+    (accountInfo) => {
+      if (!active) return;
+      setUserBalance(accountInfo.lamports / LAMPORTS_PER_SOL);
+    },
+    { commitment: "confirmed" }
+  );
 
   return () => {
-    window.removeEventListener("betPlaced", fetchBalance);
-    window.removeEventListener("claimSuccess", fetchBalance);
+    active = false;
+    conn.removeAccountChangeListener(listenerId);
   };
-}, [fetchBalance]);
+}, [connected, publicKey])
+
+
+  // useEffect(() => {
+  //   fetchBalance();
+
+  //   window.addEventListener("betPlaced", fetchBalance);
+  //   window.addEventListener("claimSuccess", fetchBalance);
+
+  //   return () => {
+  //     window.removeEventListener("betPlaced", fetchBalance);
+  //     window.removeEventListener("claimSuccess", fetchBalance);
+  //   };
+  // }, [fetchBalance]);
 
   useEffect(() => {
     const updateLivePrice = async () => {
@@ -161,6 +195,8 @@ useEffect(() => {
       }
     };
   }, []);
+  
+
 
   useEffect(() => {
     if (previousPrice !== liveRoundPrice) {
@@ -181,8 +217,6 @@ useEffect(() => {
     }
   }, [liveRoundPrice, previousPrice]);
 
-
-
   const handleBet = async (
     direction: "up" | "down",
     amount: number,
@@ -197,6 +231,8 @@ useEffect(() => {
     try {
       const ok = await handlePlaceBet(roundId, direction === "up", amount);
       if (ok) {
+        await fetchBalance();
+        bonusRef.current?.();
         const lamports = await connectionRef.current!.getBalance(publicKey);
         setUserBalance(lamports / LAMPORTS_PER_SOL);
         await Promise.all([fetchUserBets(), fetchMoreRounds()]);
@@ -245,7 +281,7 @@ useEffect(() => {
         fetchUserBets();
         safeFetchMoreRounds();
       }, 1000);
-      return () => clearTimeout(timer);
+      // Don't return the clearTimeout function here - it should be handled in the main cleanup
     };
 
     window.addEventListener("betPlaced", onBetPlaced);
@@ -271,7 +307,7 @@ useEffect(() => {
             <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/3"></div>
             <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/3"></div>
           </div>
-           <div className="flex my-4 justify-between items-center">
+          <div className="flex my-4 justify-between items-center">
             <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/3"></div>
             <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/3"></div>
           </div>
@@ -300,6 +336,8 @@ useEffect(() => {
       return;
     }
 
+    bonusRef.current?.();
+
     setIsClaiming(true);
     const claimedAmount = claimableRewards; // Store before clearing
 
@@ -324,12 +362,13 @@ useEffect(() => {
       );
 
       await connectionRef.current.confirmTransaction(signature, "confirmed");
-      await fetchUserBets()
+      await fetchUserBets();
       // Refresh user bets and balance in parallel
       await Promise.all([
         fetchUserBets().finally(() => {
           setJustClaimed(false);
         }),
+        await fetchBalance(),
         (async () => {
           const newLamports = await connectionRef.current!.getBalance(
             publicKey
@@ -867,12 +906,12 @@ useEffect(() => {
 
   useEffect(() => {
     const upd = () => setIsOffline(!navigator.onLine);
-    upd(); 
-    window.addEventListener('online', upd);
-    window.addEventListener('offline', upd);
+    upd();
+    window.addEventListener("online", upd);
+    window.addEventListener("offline", upd);
     return () => {
-      window.removeEventListener('online', upd);
-      window.removeEventListener('offline', upd);
+      window.removeEventListener("online", upd);
+      window.removeEventListener("offline", upd);
     };
   }, []);
 
@@ -884,24 +923,27 @@ useEffect(() => {
     );
   }
 
-// if (priceError) {
-//   return (
-//     <div className="w-full p-4 text-center text-red-500">
-//       Unable to load live price. <button onClick={() => window.location.reload()} className="underline">Retry</button>
-//     </div>
-//   );
-// }
+  // if (priceError) {
+  //   return (
+  //     <div className="w-full p-4 text-center text-red-500">
+  //       Unable to load live price. <button onClick={() => window.location.reload()} className="underline">Retry</button>
+  //     </div>
+  //   );
+  // }
   return (
     <div className="container px-3 sm:px-4 md:px-6 lg:px-8 mt-5 md:mt-6 lg:mt-[70px] flex flex-col gap-4 md:gap-6 lg:gap-[40px]">
       <div className="grid grid-cols-12 gap-4 lg:gap-6 xl:gap-[40px]">
         <div className=" gap-6 md:gap-8 lg:gap-[40px] col-span-12 xl:col-span-9">
           <MarketHeader
-            key={`header-${claimableRewards}-${isClaiming}-${claimableBets.length}`}
+            // key={`header-${claimableRewards}-${isClaiming}-${claimableBets.length}`}
             liveRoundPrice={liveRoundPrice}
             priceColor={priceColor}
             isLocked={isLocked}
             timeLeft={timeLeft}
             lockDuration={config?.lockDuration}
+            registerBonusRefresh={(fn) => {
+              bonusRef.current = fn;
+            }}
             theme={theme === "dark" ? "dark" : "light"}
             connected={connected}
             userBalance={userBalance}
@@ -922,15 +964,13 @@ useEffect(() => {
                   width={64}
                   height={64}
                 />
-                <h3 className="text-xl font-semibold">{t('closed.title')}</h3>
-                <p className="text-sm opacity-70">
-                 {t('closed.message')}
-                </p>
+                <h3 className="text-xl font-semibold">{t("closed.title")}</h3>
+                <p className="text-sm opacity-70">{t("closed.message")}</p>
                 <div className="flex flex-col gap-2 text-xs opacity-60">
-                  <p>• {t('closed.list1')}</p>
-                  <p>• {t('closed.list2')}</p>
-                  <p>• {t('closed.list3')}</p>
-                  <p>• {t('closed.list4')}</p>
+                  <p>• {t("closed.list1")}</p>
+                  <p>• {t("closed.list2")}</p>
+                  <p>• {t("closed.list3")}</p>
+                  <p>• {t("closed.list4")}</p>
                 </div>
               </div>
             </div>
@@ -965,7 +1005,7 @@ useEffect(() => {
                   // when window width is >= 0px
                   0: {
                     slidesPerView: 1.45,
-                    spaceBetween:0,
+                    spaceBetween: 0,
                   },
 
                   // when window width is >= 1024px

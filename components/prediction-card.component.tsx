@@ -1000,8 +1000,9 @@ useEffect(() => {
                             (config?.lockDuration || 180)) *
                             7
                         )
-                          ? "#E5E7EB"
-                          : "#6B7280",
+                          ? (theme === "dark" ?  "#E5E7EB" : "#6B7280" )
+                          :  (theme === "dark" ?  "#6B7280" : "#E5E7EB" )
+                          ,
                     }}
                   />
                 ))}

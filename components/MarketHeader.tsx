@@ -43,7 +43,7 @@ export interface MarketHeaderProps {
    * The parent should wrap this in useCallback so it doesn’t change on every render.
    */
   onClaim: () => void;
-
+  registerBonusRefresh: (refresh: () => void) => void;
   /**
    * Utility function to format a “seconds remaining” into MM:SS.
    * If you already have a shared helper, pass it in.
@@ -66,7 +66,7 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
     isClaiming,
     onClaim,
     formatTimeLeft,
-  }) => {
+    registerBonusRefresh,   }) => {
     const { t } = useTranslation("common");
 
     const { publicKey } = useWallet();
@@ -78,11 +78,10 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
       if (!connected || !publicKey) return;
       setLoadingBonus(true);
       try {
-        const walletAddress = publicKey.toBase58();
-        const { data } = await axios.get(
-          `https://sol-prediction-backend-6e3r.onrender.com/user/bonus/${walletAddress}`
-        );
-        setBonusAmount(data);
+         const { data } = await axios.get<number>(
+        `https://sol-prediction-backend-6e3r.onrender.com/user/bonus/${publicKey.toBase58()}`
+      );
+      setBonusAmount(data);
       } catch (err) {
         console.error("Failed to fetch bonus:", err);
       } finally {
@@ -90,17 +89,21 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
       }
     }, [connected, publicKey]);
 
-    useEffect(() => {
-      fetchBonus();
-    }, [fetchBonus]);
+   useEffect(() => {
+    fetchBonus();
+  }, [claimableRewards, fetchBonus]);
 
-    useEffect(() => {
-      window.addEventListener("betPlaced", fetchBonus);
-      return () => {
-        window.removeEventListener("betPlaced", fetchBonus);
-      };
-    }, [fetchBonus]);
+  useEffect(() => {
+  registerBonusRefresh(fetchBonus);
+}, [fetchBonus, registerBonusRefresh]);
 
+// Fetch once on mount / wallet change:
+useEffect(() => {
+  if (connected && publicKey) {
+    fetchBonus();
+  }
+}, [connected, publicKey, fetchBonus]);
+   
     const displayTime = useMemo(() => {
       if (isLocked) return <>{t("closing")}</>;
       return formatTimeLeft(timeLeft);
@@ -254,7 +257,7 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
                 <div className="flex items-center gap-1 font-semibold">
                   {loadingBonus ? (
                     <PuffLoader
-                      size={16}
+                      size={32}
                       color={theme === "dark" ? "#fff" : "#000"}
                     />
                   ) : (
