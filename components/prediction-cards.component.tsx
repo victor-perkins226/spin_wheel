@@ -412,7 +412,7 @@ bonusRef.current?.();
     }
     if (err.message.includes("6012")) {
       toast.custom((t) => <MarketPausedToast theme={theme} />, {
-        position: "center",
+        position: "top-right",
       });
       return;
     }
