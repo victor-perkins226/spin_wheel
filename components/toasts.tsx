@@ -8,6 +8,7 @@ import Cheers from "@/public/assets/cheers.png";
 import Withdraw from "@/public/assets/Withdrawal.png";
 import { formatNum } from "@/lib/utils";
 import { useTranslation } from "next-i18next";
+import Paused from "@/public/assets/paused.png";
 
 ////////////////////////////////////////////////////////////////////////////////
 // 1) ClaimNotConnectedToast
@@ -523,3 +524,37 @@ export function ReferralToastInputFailed( {theme,
   );
 }
 
+export function MarketPausedToast({
+  theme,
+}: {
+  theme: string | undefined;
+}) {
+  return (
+     <div
+      className={`
+        glass animate-toast-bounce-in w-full glass text-center h-[400px] max-w-[600px]
+        rounded-2xl shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
+        flex flex-col items-center p-4 pb-12 mt-16
+        ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
+      `}
+      style={{
+        animation: "fadeInDown 200ms ease-out forwards",
+      }}
+    >
+      <div className="animate-vibrate w-full h-[280px] relative mb-4">
+        <Image
+          src={Paused}
+          alt="Bet Successful"
+          fill
+          className="object-contain rounded-xl"
+        />
+      </div>
+      <h3 className="font-bold text-2xl mb-2 animate-toast-pulse">
+       Market Paused
+      </h3>
+      <p className="max-w-sm mx-auto text-sm">
+       Trading has been temporarily halted, please check back later.
+      </p>
+    </div>
+  )
+}

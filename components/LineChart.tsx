@@ -479,8 +479,10 @@ const TradingChart = () => {
 
   useEffect(() => {
     if (activeIndex !== 0) return;
+      setIsLoading(true);
     let liveUpdateInterval: NodeJS.Timeout;
     const initialize = async () => {
+          await new Promise(resolve => setTimeout(resolve, 1500));
       try {
         // ─── 1) Fetch the last 2 minutes of Pyth history ───
         const nowSec = Math.floor(Date.now() / 1000);
@@ -595,6 +597,10 @@ const TradingChart = () => {
     setRetryCount(0); // Reset retry count when changing timeframes
     fetchData();
   }, [activeIndex]);
+
+  useEffect(() => {
+  setIsLoading(true);
+}, [activeIndex]);
 
   const { t } = useTranslation("common");
 
