@@ -144,13 +144,18 @@ export default function PredictionCards() {
 
 useEffect(() => {
   // whenever we place a bet, re‐fetch on‐chain balance
-  window.addEventListener("betPlaced", fetchBalance);
+  
+  const onBet = () => {
+  fetchBalance();
+  bonusRef.current?.();      
+};
+window.addEventListener("betPlaced", onBet);
   // after any successful or failed claim, we also want fresh balance
   window.addEventListener("claimSuccess", fetchBalance);
   window.addEventListener("claimFailure", fetchBalance);
 
   return () => {
-    window.removeEventListener("betPlaced", fetchBalance);
+    window.removeEventListener("betPlaced", onBet);
     window.removeEventListener("claimSuccess", fetchBalance);
     window.removeEventListener("claimFailure", fetchBalance);
   };
