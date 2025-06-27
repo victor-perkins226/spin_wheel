@@ -17,7 +17,7 @@ import "swiper/css";
 import "swiper/css/effect-coverflow";
 import "swiper/css/pagination";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { Connection, LAMPORTS_PER_SOL, Transaction } from "@solana/web3.js";
+import { Connection, Keypair, LAMPORTS_PER_SOL, Transaction } from "@solana/web3.js";
 import MobileLiveBets from "./MobileBets";
 import LiveBets from "./LiveBets";
 import { useRoundManager } from "@/hooks/roundManager";
@@ -103,17 +103,27 @@ export default function PredictionCards() {
     error: priceError,
   } = useLivePrice();
 
-  const fetchBalance = useCallback(async () => {
-    if (!connected || !publicKey || !connectionRef.current) return;
-    const lamports = await connectionRef.current.getBalance(publicKey);
+    const tempKeypairRef = useRef<Keypair>(null);
+  if (!tempKeypairRef.current) {
+    tempKeypairRef.current = Keypair.generate();
+  }
+  const effectivePublicKey = connected
+    ? publicKey!
+    : tempKeypairRef.current.publicKey;
+
+
+    const fetchBalance = useCallback(async () => {
+    if (!effectivePublicKey || !connectionRef.current) return;
+    const lamports = await connectionRef.current.getBalance(effectivePublicKey);
     setUserBalance(lamports / LAMPORTS_PER_SOL);
-  }, [connected, publicKey]);
+  }, [effectivePublicKey]);
 
   useEffect(() => {
     if (!connected || !publicKey) {
       setUserBalance(0);
       return;
     }
+
 
     // 1) initialize a fresh Connection whenever publicKey changes
     const conn = new Connection(RPC_URL, { commitment: "finalized" });
@@ -320,6 +330,12 @@ window.addEventListener("betPlaced", onBet);
   }
 
   // Replace the handleClaimRewards function with better state management:
+
+
+
+  // 2) Use effectivePublicKey in your balance‐fetch:
+
+
 
   const handleClaimRewards = useCallback(async () => {
     if (!connected || !publicKey || !connectionRef.current || !program) {
