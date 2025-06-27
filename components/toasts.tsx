@@ -13,12 +13,8 @@ import Paused from "@/public/assets/paused.png";
 ////////////////////////////////////////////////////////////////////////////////
 // 1) ClaimNotConnectedToast
 ////////////////////////////////////////////////////////////////////////////////
-export function ClaimNotConnectedToast({
-  theme,
-}: {
-  theme: "light" | "dark";
-}) {
-const {t} = useTranslation('common')
+export function ClaimNotConnectedToast({ theme }: { theme: "light" | "dark" }) {
+  const { t } = useTranslation("common");
 
   return (
     <div
@@ -33,7 +29,7 @@ const {t} = useTranslation('common')
       }}
     >
       <p className="max-w-sm mx-auto text-xs font-semibold">
-        {t('toasts.notConnected')}
+        {t("toasts.notConnected")}
       </p>
     </div>
   );
@@ -42,12 +38,8 @@ const {t} = useTranslation('common')
 ////////////////////////////////////////////////////////////////////////////////
 // 2) NoClaimableBetsToast
 ////////////////////////////////////////////////////////////////////////////////
-export function NoClaimableBetsToast({
-  theme,
-}: {
-  theme: string | undefined;
-}) {
-const {t} = useTranslation('common')
+export function NoClaimableBetsToast({ theme }: { theme: string | undefined }) {
+  const { t } = useTranslation("common");
 
   return (
     <div
@@ -62,7 +54,7 @@ const {t} = useTranslation('common')
       }}
     >
       <p className="max-w-sm mx-auto text-xs font-semibold">
-        {t('toasts.noClaimable')}
+        {t("toasts.noClaimable")}
       </p>
     </div>
   );
@@ -78,7 +70,7 @@ export function ClaimSuccessToast({
   theme: string | undefined;
   claimableAmount: number;
 }) {
-const {t} = useTranslation('common')
+  const { t } = useTranslation("common");
 
   return (
     <div
@@ -102,57 +94,53 @@ const {t} = useTranslation('common')
       </div>
 
       <h3 className="font-bold text-2xl animate-toast-pulse mb-2">
-       {t('toasts.claimSuccess')}
+        {t("toasts.claimSuccess")}
       </h3>
 
       <p className="max-w-sm mx-auto text-sm">
-        {t('toasts.withdraw')} {formatNum(claimableAmount)} SOL
+        {t("toasts.withdraw")} {formatNum(claimableAmount)} SOL
       </p>
     </div>
   );
 }
 
 export function ClaimSuccessToastMini({
-    theme,
-    claimableAmount,
-  }: {
-    theme: string | undefined;
-    claimableAmount: number;
-  }) {
-const {t} = useTranslation('common')
+  theme,
+  claimableAmount,
+}: {
+  theme: string | undefined;
+  claimableAmount: number;
+}) {
+  const { t } = useTranslation("common");
 
-    return (
-      <div
-        className={`
+  return (
+    <div
+      className={`
           w-full glass text-center px-8 rounded-2xl
           shadow-xl animate-toast-bounce ring-1 ring-black ring-opacity-5 overflow-hidden
           flex flex-col items-center p-4 mt-8
           ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
         `}
-        style={{
-          animation: "fadeInDown 200ms ease-out forwards",
-        }}
-      >
-        <h3 className="font-bold text-sm animate-toast-pulse mb-2">
-             {t('toasts.claimSuccess')}
-        </h3>
-  
-        <p className="max-w-sm mx-auto text-xs">
-            {t('toasts.withdraw')} {formatNum(claimableAmount)} SOL
-        </p>
-      </div>
-    );
-  }
+      style={{
+        animation: "fadeInDown 200ms ease-out forwards",
+      }}
+    >
+      <h3 className="font-bold text-sm animate-toast-pulse mb-2">
+        {t("toasts.claimSuccess")}
+      </h3>
+
+      <p className="max-w-sm mx-auto text-xs">
+        {t("toasts.withdraw")} {formatNum(claimableAmount)} SOL
+      </p>
+    </div>
+  );
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // 4) ClaimFailureToast
 ////////////////////////////////////////////////////////////////////////////////
-export function ClaimFailureToast({
-  theme,
-}: {
-  theme: string | undefined;
-}) {
-const {t} = useTranslation('common')
+export function ClaimFailureToast({ theme }: { theme: string | undefined }) {
+  const { t } = useTranslation("common");
 
   return (
     <div
@@ -176,12 +164,41 @@ const {t} = useTranslation('common')
       </div> */}
 
       <h3 className="font-bold text-sm text-center animate-toast-pulse mb-2">
-        {t('toasts.withdrawFailed')}
+        {t("toasts.withdrawFailed")}
       </h3>
 
-      <p className="text-xs">
-        {t('toasts.withdrawFailedReason')}
-      </p>
+      <p className="text-xs">{t("toasts.withdrawFailedReason")}</p>
+    </div>
+  );
+}
+
+export function ClaimCancelledToast({ theme }: { theme: string | undefined }) {
+  const { t } = useTranslation("common");
+
+  return (
+    <div
+      className={`
+        glass text-center animate-toast-bounce rounded-2xl
+        shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
+        flex flex-col items-start p-4 mt-8
+        ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
+      `}
+      style={{
+        animation: "fadeInDown 200ms ease-out forwards",
+      }}
+    >
+      {/* <div className="w-full animate-pulse h-[80px] relative mb-4">
+        <Image
+          src={Withdraw}
+          alt="Withdrawal Failed"
+          fill
+          className="object-contain rounded-xl"
+        />
+      </div> */}
+
+      <h3 className="font-bold text-sm text-center animate-toast-pulse mb-2">
+        Claim Transactiion Cancelled
+      </h3>
     </div>
   );
 }
@@ -189,12 +206,8 @@ const {t} = useTranslation('common')
 ////////////////////////////////////////////////////////////////////////////////
 // 5) BetSuccessToast
 ////////////////////////////////////////////////////////////////////////////////
-export function BetSuccessToast({
-  theme,
-}: {
-  theme: string | undefined;
-}) {
-const {t} = useTranslation('common')
+export function BetSuccessToast({ theme }: { theme: string | undefined }) {
+  const { t } = useTranslation("common");
 
   return (
     <div
@@ -217,53 +230,40 @@ const {t} = useTranslation('common')
         />
       </div>
       <h3 className="font-bold text-2xl mb-2 animate-toast-pulse">
-       {t('toasts.betPlaced')}
+        {t("toasts.betPlaced")}
       </h3>
-      <p className="max-w-sm mx-auto text-sm">
-        {t('toasts.betPlacedMessage')}
-      </p>
+      <p className="max-w-sm mx-auto text-sm">{t("toasts.betPlacedMessage")}</p>
     </div>
   );
 }
 
+export function BetSuccessToastMini({ theme }: { theme: string | undefined }) {
+  const { t } = useTranslation("common");
 
-export function BetSuccessToastMini({
-    theme,
-  }: {
-    theme: string | undefined;
-  }) {
-const {t} = useTranslation('common')
-
-    return (
-      <div
-        className={`
+  return (
+    <div
+      className={`
           glass animate-toast-bounce-in
           rounded-2xl shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
           flex flex-col items-start p-4 mt-8
         `}
-        style={{
-          animation: "fadeInDown 200ms ease-out forwards",
-        }}
-      >
-        <h3 className="font-bold text-sm mb-2 animate-toast-pulse">
-         {t('toasts.betPlaced')}
-        </h3>
-        <p className="max-w-sm mx-auto text-xs">
-         {t('toasts.betPlacedMessage')}
-        </p>
-      </div>
-    );
-  }
+      style={{
+        animation: "fadeInDown 200ms ease-out forwards",
+      }}
+    >
+      <h3 className="font-bold text-sm mb-2 animate-toast-pulse">
+        {t("toasts.betPlaced")}
+      </h3>
+      <p className="max-w-sm mx-auto text-xs">{t("toasts.betPlacedMessage")}</p>
+    </div>
+  );
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // 6) BetFailedToast
 ////////////////////////////////////////////////////////////////////////////////
-export function BetFailedToast({
-  theme,
-}: {
-  theme: string | undefined;
-}) {
-const {t} = useTranslation('common')
+export function BetFailedToast({ theme }: { theme: string | undefined }) {
+  const { t } = useTranslation("common");
 
   return (
     <div
@@ -287,12 +287,10 @@ const {t} = useTranslation('common')
       </div> */}
 
       <h3 className="font-bold text-sm text-center animate-toast-pulse mb-2">
-       {t('toasts.betFailed')}
+        {t("toasts.betFailed")}
       </h3>
 
-      <p className="text-xs">
-        {t('toasts.betFailedMessage')}
-      </p>
+      <p className="text-xs">{t("toasts.betFailedMessage")}</p>
     </div>
   );
 }
@@ -302,7 +300,7 @@ export function TransactionFailedToast({
 }: {
   theme: string | undefined;
 }) {
-const {t} = useTranslation('common')
+  const { t } = useTranslation("common");
 
   return (
     <div
@@ -326,9 +324,9 @@ const {t} = useTranslation('common')
       </div> */}
 
       <h3 className="font-bold text-sm text-center animate-toast-pulse mb">
-       {t('toasts.transactionFailed')}
+        {t("toasts.transactionFailed")}
       </h3>
-{/* 
+      {/* 
       <p className="text-xs">
         You were unable to place the bet, please try again later
       </p> */}
@@ -344,7 +342,7 @@ export function AlreadyPlacedBetToast({
 }: {
   theme: string | undefined;
 }) {
-const {t} = useTranslation('common')
+  const { t } = useTranslation("common");
 
   return (
     <div
@@ -359,7 +357,7 @@ const {t} = useTranslation('common')
       }}
     >
       <p className="max-w-sm mx-auto text-xs font-semibold">
-        {t('toasts.alreadyPlaced')}
+        {t("toasts.alreadyPlaced")}
       </p>
     </div>
   );
@@ -368,12 +366,8 @@ const {t} = useTranslation('common')
 ////////////////////////////////////////////////////////////////////////////////
 // 8) InvalidAmountToast
 ////////////////////////////////////////////////////////////////////////////////
-export function InvalidAmountToast({
-  theme,
-}: {
-  theme: string | undefined;
-}) {
-const {t} = useTranslation('common')
+export function InvalidAmountToast({ theme }: { theme: string | undefined }) {
+  const { t } = useTranslation("common");
 
   return (
     <div
@@ -388,7 +382,7 @@ const {t} = useTranslation('common')
       }}
     >
       <p className="max-w-sm mx-auto text-xs font-semibold">
-       {t('toasts.validAmount')}
+        {t("toasts.validAmount")}
       </p>
     </div>
   );
@@ -402,7 +396,7 @@ export function BettingNotAvailableToast({
 }: {
   theme: string | undefined;
 }) {
-const {t} = useTranslation('common')
+  const { t } = useTranslation("common");
 
   return (
     <div
@@ -417,7 +411,7 @@ const {t} = useTranslation('common')
       }}
     >
       <p className="max-w-sm mx-auto text-xs font-semibold">
-        {t('toasts.notAvailable')}"
+        {t("toasts.notAvailable")}"
       </p>
     </div>
   );
@@ -427,7 +421,7 @@ const {t} = useTranslation('common')
 // 10) ConnectWalletBetToast
 ////////////////////////////////////////////////////////////////////////////////
 export function ConnectWalletBetToast() {
-const {t} = useTranslation('common')
+  const { t } = useTranslation("common");
 
   return (
     <div
@@ -440,23 +434,16 @@ const {t} = useTranslation('common')
         animation: "fadeInDown 200ms ease-out forwards",
       }}
     >
-      <p className="text-sm font-semibold">
-        {t('toasts.connectWallet')}
-      </p>
+      <p className="text-sm font-semibold">{t("toasts.connectWallet")}</p>
     </div>
   );
 }
 
-
-export function ReferralToast({
-  theme,
-}: {
-  theme: string | undefined;
-}) {
-// const {t} = useTranslation('common')
+export function ReferralToast({ theme }: { theme: string | undefined }) {
+  // const {t} = useTranslation('common')
 
   return (
-     <div
+    <div
       className={`
          glass text-left rounded-2xl
         shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
@@ -467,21 +454,16 @@ export function ReferralToast({
         animation: "fadeInDown 200ms ease-out forwards",
       }}
     >
-      <p className="text-sm font-semibold">
-        Referral Submitted Successfully 
-      </p>
+      <p className="text-sm font-semibold">Referral Submitted Successfully</p>
     </div>
   );
 }
 
-export function ReferralToastFailed( {theme,
-}: {
-  theme: string | undefined;
-}) {
-// const {t} = useTranslation('common')
+export function ReferralToastFailed({ theme }: { theme: string | undefined }) {
+  // const {t} = useTranslation('common')
 
   return (
-     <div
+    <div
       className={`
          glass text-left rounded-2xl
         shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
@@ -499,14 +481,15 @@ export function ReferralToastFailed( {theme,
   );
 }
 
-export function ReferralToastInputFailed( {theme,
+export function ReferralToastInputFailed({
+  theme,
 }: {
   theme: string | undefined;
 }) {
-// const {t} = useTranslation('common')
+  // const {t} = useTranslation('common')
 
   return (
-     <div
+    <div
       className={`
          glass text-left rounded-2xl
         shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
@@ -517,20 +500,14 @@ export function ReferralToastInputFailed( {theme,
         animation: "fadeInDown 200ms ease-out forwards",
       }}
     >
-      <p className="text-sm font-semibold">
-        Input a valid referral source
-      </p>
+      <p className="text-sm font-semibold">Input a valid referral source</p>
     </div>
   );
 }
 
-export function MarketPausedToast({
-  theme,
-}: {
-  theme: string | undefined;
-}) {
+export function MarketPausedToast({ theme }: { theme: string | undefined }) {
   return (
-     <div
+    <div
       className={`
         glass animate-toast-bounce-in w-full glass text-center h-[400px] max-w-[600px]
         rounded-2xl shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
@@ -550,11 +527,11 @@ export function MarketPausedToast({
         />
       </div>
       <h3 className="font-bold text-2xl mb-2 animate-toast-pulse">
-       Market Paused
+        Market Paused
       </h3>
       <p className="max-w-sm mx-auto text-sm">
-       Trading has been temporarily halted, please check back later.
+        Trading has been temporarily halted, please check back later.
       </p>
     </div>
-  )
+  );
 }

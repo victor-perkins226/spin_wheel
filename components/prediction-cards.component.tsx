@@ -33,9 +33,11 @@ import { useTheme } from "next-themes";
 import { PuffLoader } from "react-spinners";
 import MarketHeader from "./MarketHeader";
 import {
+  ClaimCancelledToast,
   ClaimFailureToast,
   ClaimSuccessToast,
   ConnectWalletBetToast,
+  MarketPausedToast,
   NoClaimableBetsToast,
 } from "./toasts";
 import { API_URL, RPC_URL } from "@/lib/config";
@@ -231,7 +233,6 @@ useEffect(() => {
     try {
       const ok = await handlePlaceBet(roundId, direction === "up", amount);
       if (ok) {
-        await fetchBalance();
         bonusRef.current?.();
         const lamports = await connectionRef.current!.getBalance(publicKey);
         setUserBalance(lamports / LAMPORTS_PER_SOL);
@@ -336,8 +337,7 @@ useEffect(() => {
       return;
     }
 
-    bonusRef.current?.();
-
+    
     setIsClaiming(true);
     const claimedAmount = claimableRewards; // Store before clearing
 
@@ -376,6 +376,7 @@ useEffect(() => {
           setUserBalance(newLamports / LAMPORTS_PER_SOL);
         })(),
       ]);
+bonusRef.current?.();
 
       setClaimableRewards(0);
       setJustClaimed(true);
@@ -393,28 +394,30 @@ useEffect(() => {
         ),
         { position: "top-center" }
       );
-    } catch (error: any) {
-      console.error("Failed to claim rewards:", error);
+    } catch (err: any) {
+      console.error("Failed to claim rewards:", err);
 
-      let errorMessage = "Failed to claim rewards. Please try again.";
-      if (error.message.includes("6012")) {
-        errorMessage = "Contract is paused.";
-      } else if (error.message.includes("6006")) {
-        errorMessage = "Payout already claimed.";
-      } else if (error.message.includes("6003")) {
-        errorMessage = "Round has not ended yet.";
-      } else if (error.message.includes("6004")) {
-        errorMessage = "Round has not closed yet.";
-      } else if (error.message.includes("6015")) {
-        errorMessage = "No rewards available for this round.";
-      } else if (error.message.includes("6007")) {
-        errorMessage = "Invalid round number.";
-      } else if (error.message.includes("6010")) {
-        errorMessage = "Insufficient funds in escrow.";
-      } else if (error.message.includes("Signature request denied")) {
-        errorMessage = "Transaction was not signed.";
-      }
+         // 1) user cancelled
+    if (
+      err.name === "WalletSendTransactionError" ||
+      err.name === "WalletSignTransactionError" ||
+      err.message.includes("User rejected") ||
+      err.message.includes("Transaction was not signed")
+    ) {
+      toast.custom((t) => <ClaimCancelledToast theme={theme} />, {
+        position: "top-right",
+      });
       setIsClaiming(false);
+      return;
+    }
+    if (err.message.includes("6012")) {
+      toast.custom((t) => <MarketPausedToast theme={theme} />, {
+        position: "top-right",
+      });
+      return;
+    }
+
+      
       window.dispatchEvent(new CustomEvent("claimFailure"));
       toast.custom((t) => <ClaimFailureToast theme={theme} />, {
         position: "top-right",
@@ -470,7 +473,9 @@ useEffect(() => {
 
           // now refresh (user-only)
           await fetchUserBets();
-
+bonusRef.current?.();
+const newLamports = await connectionRef.current!.getBalance(publicKey!);
+setUserBalance(newLamports / LAMPORTS_PER_SOL);
           // 🔥 Replace the `0` below with the actual payout amount from claimableBets:
           const thisPayout =
             claimableBets.find((b) => b.roundNumber === roundId)?.payout ?? 0;
@@ -952,6 +957,16 @@ useEffect(() => {
             onClaim={handleClaimRewards}
             formatTimeLeft={formatTimeLeft}
           />
+
+           {
+            config?.isPaused && (
+              <div className="absolute z-10 left-1/3">
+                <MarketPausedToast
+                theme={theme}
+                />
+              </div>
+            )
+          }
 
           {!connected ? (
             // Show wallet connection prompt instead of cards when not connected

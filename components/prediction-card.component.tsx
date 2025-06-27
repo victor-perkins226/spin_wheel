@@ -333,11 +333,11 @@ useEffect(() => {
     if (!roundData) return;
 
     socket.on("prizePoolUpdate", handlePrizePoolUpdate);
-    socket.on("roundLocked", handleRoundLocked);
+    // socket.on("roundLocked", handleRoundLocked);
 
     return () => {
       socket.off("prizePoolUpdate", handlePrizePoolUpdate);
-      socket.off("roundLocked", handleRoundLocked);
+      // socket.off("roundLocked", handleRoundLocked);
     };
   }, [roundData, socket, handlePrizePoolUpdate, handleRoundLocked]);
 
