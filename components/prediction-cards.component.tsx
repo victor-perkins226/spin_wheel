@@ -19,7 +19,6 @@ import "swiper/css/pagination";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Connection, LAMPORTS_PER_SOL, Transaction } from "@solana/web3.js";
 import MobileLiveBets from "./MobileBets";
-import NumberFlow from "@number-flow/react";
 import LiveBets from "./LiveBets";
 import { useRoundManager } from "@/hooks/roundManager";
 import { Round } from "@/types/round";
@@ -110,51 +109,52 @@ export default function PredictionCards() {
     setUserBalance(lamports / LAMPORTS_PER_SOL);
   }, [connected, publicKey]);
 
+  useEffect(() => {
+    if (!connected || !publicKey) {
+      setUserBalance(0);
+      return;
+    }
+
+    // 1) initialize a fresh Connection whenever publicKey changes
+    const conn = new Connection(RPC_URL, { commitment: "finalized" });
+    connectionRef.current = conn;
+
+    let active = true;
+
+    // 2) one‐time fetch
+    conn.getBalance(publicKey).then((lamports) => {
+      if (active) setUserBalance(lamports / LAMPORTS_PER_SOL);
+    });
+
+    // 3) subscribe to on‐chain changes
+    const listenerId = conn.onAccountChange(
+      publicKey,
+      (accountInfo) => {
+        if (!active) return;
+        setUserBalance(accountInfo.lamports / LAMPORTS_PER_SOL);
+      },
+      { commitment: "confirmed" }
+    );
+
+    return () => {
+      active = false;
+      conn.removeAccountChangeListener(listenerId);
+    };
+  }, [connected, publicKey]);
+
 useEffect(() => {
-  if (!connected || !publicKey) {
-    setUserBalance(0);
-    return;
-  }
-
-  // 1) initialize a fresh Connection whenever publicKey changes
-  const conn = new Connection(RPC_URL, { commitment: "finalized" });
-  connectionRef.current = conn;
-
-  let active = true;
-
-  // 2) one‐time fetch
-  conn.getBalance(publicKey).then(lamports => {
-    if (active) setUserBalance(lamports / LAMPORTS_PER_SOL);
-  });
-
-  // 3) subscribe to on‐chain changes
-  const listenerId = conn.onAccountChange(
-    publicKey,
-    (accountInfo) => {
-      if (!active) return;
-      setUserBalance(accountInfo.lamports / LAMPORTS_PER_SOL);
-    },
-    { commitment: "confirmed" }
-  );
+  // whenever we place a bet, re‐fetch on‐chain balance
+  window.addEventListener("betPlaced", fetchBalance);
+  // after any successful or failed claim, we also want fresh balance
+  window.addEventListener("claimSuccess", fetchBalance);
+  window.addEventListener("claimFailure", fetchBalance);
 
   return () => {
-    active = false;
-    conn.removeAccountChangeListener(listenerId);
+    window.removeEventListener("betPlaced", fetchBalance);
+    window.removeEventListener("claimSuccess", fetchBalance);
+    window.removeEventListener("claimFailure", fetchBalance);
   };
-}, [connected, publicKey])
-
-
-  // useEffect(() => {
-  //   fetchBalance();
-
-  //   window.addEventListener("betPlaced", fetchBalance);
-  //   window.addEventListener("claimSuccess", fetchBalance);
-
-  //   return () => {
-  //     window.removeEventListener("betPlaced", fetchBalance);
-  //     window.removeEventListener("claimSuccess", fetchBalance);
-  //   };
-  // }, [fetchBalance]);
+}, [fetchBalance]);;
 
   useEffect(() => {
     const updateLivePrice = async () => {
@@ -177,10 +177,6 @@ useEffect(() => {
   }, [fetchMoreRounds]);
 
   useEffect(() => {
-    connectionRef.current = new Connection(RPC_URL, {
-      commitment: "finalized",
-      wsEndpoint: undefined,
-    });
 
     const updateScreenWidth = () => {
       setScreenWidth(window.innerWidth);
@@ -197,8 +193,6 @@ useEffect(() => {
       }
     };
   }, []);
-  
-
 
   useEffect(() => {
     if (previousPrice !== liveRoundPrice) {
@@ -337,7 +331,6 @@ useEffect(() => {
       return;
     }
 
-    
     setIsClaiming(true);
     const claimedAmount = claimableRewards; // Store before clearing
 
@@ -361,22 +354,15 @@ useEffect(() => {
         { skipPreflight: false }
       );
 
-      await connectionRef.current.confirmTransaction(signature, "confirmed");
+await connectionRef.current.confirmTransaction(signature);
+      // **immediately** grab the fresh balance
+      const lam = await connectionRef.current.getBalance(publicKey);
+      setUserBalance(lam / LAMPORTS_PER_SOL);
+
+      // then refresh your bets
       await fetchUserBets();
-      // Refresh user bets and balance in parallel
-      await Promise.all([
-        fetchUserBets().finally(() => {
-          setJustClaimed(false);
-        }),
-        await fetchBalance(),
-        (async () => {
-          const newLamports = await connectionRef.current!.getBalance(
-            publicKey
-          );
-          setUserBalance(newLamports / LAMPORTS_PER_SOL);
-        })(),
-      ]);
-bonusRef.current?.();
+      setJustClaimed(true);
+      bonusRef.current?.();
 
       setClaimableRewards(0);
       setJustClaimed(true);
@@ -397,27 +383,30 @@ bonusRef.current?.();
     } catch (err: any) {
       console.error("Failed to claim rewards:", err);
 
-         // 1) user cancelled
-    if (
-      err.name === "WalletSendTransactionError" ||
-      err.name === "WalletSignTransactionError" ||
-      err.message.includes("User rejected") ||
-      err.message.includes("Transaction was not signed")
-    ) {
-      toast.custom((t) => <ClaimCancelledToast theme={theme} />, {
-        position: "top-right",
-      });
-      setIsClaiming(false);
-      return;
-    }
-    if (err.message.includes("6012")) {
-      toast.custom((t) => <MarketPausedToast theme={theme} />, {
-        position: "top-right",
-      });
-      return;
-    }
+      // detect user cancellation
+      const isCancelled =
+        err.name === "WalletSendTransactionError" ||
+        err.name === "WalletSignTransactionError" ||
+        err.message.includes("User rejected") ||
+        err.message.includes("Transaction was not signed");
 
-      
+      if (isCancelled) {
+        // notify all claim buttons to stop loading
+        window.dispatchEvent(new CustomEvent("claimFailure"));
+        setIsClaiming(false);
+        return;
+      }
+
+      // handle “market paused”
+      if (err.message.includes("6012")) {
+        toast.custom((t) => <MarketPausedToast theme={theme} />, {
+          position: "top-right",
+        });
+        window.dispatchEvent(new CustomEvent("claimFailure"));
+        return;
+      }
+
+      // any other error
       window.dispatchEvent(new CustomEvent("claimFailure"));
       toast.custom((t) => <ClaimFailureToast theme={theme} />, {
         position: "top-right",
@@ -469,13 +458,16 @@ bonusRef.current?.();
           const sig = await sendTransaction(tx, connectionRef.current!, {
             skipPreflight: false,
           });
+           // confirm on-chain
           await connectionRef.current!.confirmTransaction(sig, "confirmed");
 
-          // now refresh (user-only)
+          // immediately fetch balance
+          const lam = await connectionRef.current!.getBalance(publicKey!);
+          setUserBalance(lam / LAMPORTS_PER_SOL);
+
+          // then refresh bets
           await fetchUserBets();
-bonusRef.current?.();
-const newLamports = await connectionRef.current!.getBalance(publicKey!);
-setUserBalance(newLamports / LAMPORTS_PER_SOL);
+          bonusRef.current?.();
           // 🔥 Replace the `0` below with the actual payout amount from claimableBets:
           const thisPayout =
             claimableBets.find((b) => b.roundNumber === roundId)?.payout ?? 0;
@@ -514,6 +506,24 @@ setUserBalance(newLamports / LAMPORTS_PER_SOL);
     sendTransaction,
     theme,
   ]);
+
+  useEffect(() => {
+    const onClaimAll = () => setIsClaiming(true);
+    const onClaimDone = () => {
+      setIsClaiming(false);
+      setClaimingRoundId(null);
+    };
+
+    window.addEventListener("claimAll", onClaimAll);
+    window.addEventListener("claimSuccess", onClaimDone);
+    window.addEventListener("claimFailure", onClaimDone);
+
+    return () => {
+      window.removeEventListener("claimAll", onClaimAll);
+      window.removeEventListener("claimSuccess", onClaimDone);
+      window.removeEventListener("claimFailure", onClaimDone);
+    };
+  }, []);
 
   const getSlidesPerView = () => {
     if (!mounted) return 1;
@@ -954,204 +964,202 @@ setUserBalance(newLamports / LAMPORTS_PER_SOL);
             userBalance={userBalance}
             claimableRewards={justClaimed ? 0 : claimableRewards}
             isClaiming={isClaiming}
-            onClaim={handleClaimRewards}
+            onClaim={() => {
+              window.dispatchEvent(new CustomEvent("claimAll"));
+              handleClaimRewards();
+            }}
             formatTimeLeft={formatTimeLeft}
           />
 
-           {
-            config?.isPaused && (
-              <div className="absolute z-10 left-1/3">
-                <MarketPausedToast
-                theme={theme}
-                />
-              </div>
-            )
-          }
-
-          {!connected ? (
-            // Show wallet connection prompt instead of cards when not connected
-            <div className="flex flex-col items-center justify-center min-h-[400px] gap-6">
-              <div className="glass rounded-xl p-8 flex flex-col items-center gap-4 max-w-md mx-auto text-center">
-                <Image
-                  className="w-16 h-16 object-contain opacity-50"
-                  src="/assets/solana_logo.png"
-                  alt="Solana"
-                  width={64}
-                  height={64}
-                />
-                <h3 className="text-xl font-semibold">{t("closed.title")}</h3>
-                <p className="text-sm opacity-70">{t("closed.message")}</p>
-                <div className="flex flex-col gap-2 text-xs opacity-60">
-                  <p>• {t("closed.list1")}</p>
-                  <p>• {t("closed.list2")}</p>
-                  <p>• {t("closed.list3")}</p>
-                  <p>• {t("closed.list4")}</p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            // Show cards only when wallet is connected
-            <div className="relative my-4 px-4 md:px-0">
-              <Swiper
-                // key={liveIndex}
-                key={`swiper-${initial}`}
-                initialSlide={initial}
-                onBeforeInit={(swiper) => {
-                  swiper.params.initialSlide = initial;
-                }}
-                onSwiper={(swiper) => {
-                  swiperRef.current = swiper;
-                  setSwiperReady(true);
-                }}
-                onSlideChange={handleSlideChange}
-                effect="coverflow"
-                grabCursor={true}
-                centeredSlides={true}
-                slidesPerView={getSlidesPerView()}
-                spaceBetween={mounted && screenWidth < 640 ? 10 : 20}
-                coverflowEffect={{
-                  rotate: mounted && screenWidth < 640 ? 20 : 50,
-                  stretch: 0,
-                  depth: mounted && screenWidth < 640 ? 50 : 100,
-                  modifier: 1,
-                  slideShadows: false,
-                }}
-                breakpoints={{
-                  // when window width is >= 0px
-                  0: {
-                    slidesPerView: 1.45,
-                    spaceBetween: 0,
-                  },
-
-                  // when window width is >= 1024px
-                  1024: {
-                    slidesPerView: 3,
-                    spaceBetween: 30,
-                    coverflowEffect: {
-                      rotate: 50,
-                      depth: 100,
-                      modifier: 1,
-                      slideShadows: false,
-                    },
-                  },
-                }}
-                modules={[Pagination, EffectCoverflow]}
-                className="w-full px-4 sm:px-0"
-              >
-                {!isDataLoaded
-                  ? Array.from({ length: 7 }).map((_, i) => (
-                      <SwiperSlide
-                        key={`skeleton-${i}`}
-                        className="flex justify-center items-center"
-                      >
-                        <SkeletonCard />
-                      </SwiperSlide>
-                    ))
-                  : finalDisplayRoundsForSwiper.map((round, index) => {
-                      if (!round || !round.number) {
-                        // Add a check for valid round object
-                        console.warn(
-                          "Skipping invalid round object in Swiper map:",
-                          round
-                        );
-                        return null;
-                      }
-                      const roundNumber = Number(round.number);
-                      const isClaimableForThisRound = claimableBets.some(
-                        (b) => b.roundNumber === roundNumber
-                      );
-                      const startTimeMs =
-                        typeof round.startTime === "number" &&
-                        !isNaN(round.startTime)
-                          ? round.startTime * 1000
-                          : round.startTime instanceof Date
-                          ? round.startTime.getTime()
-                          : 0;
-                      const lockTime =
-                        round.lockTime instanceof Date
-                          ? round.lockTime.getTime() / 1000
-                          : typeof round.lockTime === "string" &&
-                            !isNaN(Number(round.lockTime))
-                          ? Number(round.lockTime)
-                          : startTimeMs / 1000 + (config?.lockDuration || 180);
-                      const closeTime =
-                        round.closeTime instanceof Date
-                          ? round.closeTime.getTime() / 1000
-                          : typeof round.closeTime === "string" &&
-                            !isNaN(Number(round.closeTime))
-                          ? Number(round.closeTime)
-                          : lockTime + (config?.lockDuration || 180);
-
-                      // Get the variant for this card
-                      const cardVariant = formatCardVariant(
-                        round,
-                        currentRoundNumber
-                      );
-
-                      return (
-                        <SwiperSlide
-                          key={round.number} // Ensure key is stable and unique
-                          className="flex justify-center items-center"
-                        >
-                          <PredictionCard
-                            variant={cardVariant}
-                            roundId={Number(round.number)}
-                            roundData={{
-                              lockPrice: formatPrice(round.lockPrice),
-                              closePrice: formatPrice(round.endPrice),
-                              currentPrice: (() => {
-                                // For expired rounds, use the close price as current price
-                                if (cardVariant === "expired") {
-                                  return (
-                                    formatPrice(round.endPrice) ||
-                                    formatPrice(round.lockPrice) ||
-                                    liveRoundPrice
-                                  );
-                                }
-                                // For live/calculating rounds, use live price
-                                return liveRoundPrice;
-                              })(),
-                              prizePool:
-                                (round.totalAmount || 0) / LAMPORTS_PER_SOL,
-                              upBets:
-                                (round.totalBullAmount || 0) / LAMPORTS_PER_SOL,
-                              downBets:
-                                (round.totalBearAmount || 0) / LAMPORTS_PER_SOL,
-                              timeRemaining: Math.max(
-                                0,
-                                closeTime - Date.now() / 1000
-                              ),
-                              lockTimeRemaining:
-                                timeLeft !== null &&
-                                roundNumber === Number(config?.currentRound)
-                                  ? timeLeft
-                                  : Math.max(0, lockTime - Date.now() / 1000),
-                              lockTime:
-                                timeLeft !== null &&
-                                roundNumber === Number(config?.currentRound)
-                                  ? Date.now() / 1000 + timeLeft
-                                  : lockTime,
-                              closeTime,
-                              isActive: round.isActive ? true : false,
-                              treasuryFee: config ? treasuryFee! : 5,
-                            }}
-                            onPlaceBet={handleBet}
-                            currentRoundId={Number(config?.currentRound)}
-                            bufferTimeInSeconds={0}
-                            liveRoundPrice={liveRoundPrice}
-                            userBets={userBets} // Only show user bets if connected
-                            isLocked={isLocked}
-                            timeLeft={timeLeft}
-                            liveTotalForThisRound={liveTotal}
-                            isClaimable={isClaimableForThisRound}
-                            isClaiming={claimingRoundId === roundNumber}
-                          />
-                        </SwiperSlide>
-                      );
-                    })}
-              </Swiper>
+          {config?.isPaused && (
+            <div className="absolute z-10 left-1/3">
+              <MarketPausedToast theme={theme} />
             </div>
           )}
+
+          {/* // Show wallet connection prompt instead of cards when not connected
+            // <div className="flex flex-col items-center justify-center min-h-[400px] gap-6">
+            //   <div className="glass rounded-xl p-8 flex flex-col items-center gap-4 max-w-md mx-auto text-center">
+            //     <Image
+            //       className="w-16 h-16 object-contain opacity-50"
+            //       src="/assets/solana_logo.png"
+            //       alt="Solana"
+            //       width={64}
+            //       height={64}
+            //     />
+            //     <h3 className="text-xl font-semibold">{t("closed.title")}</h3>
+            //     <p className="text-sm opacity-70">{t("closed.message")}</p>
+            //     <div className="flex flex-col gap-2 text-xs opacity-60">
+            //       <p>• {t("closed.list1")}</p>
+            //       <p>• {t("closed.list2")}</p>
+            //       <p>• {t("closed.list3")}</p>
+            //       <p>• {t("closed.list4")}</p>
+            //     </div>
+            //   </div>
+            // </div> */}
+
+          <div className="relative my-4 px-4 md:px-0">
+            <Swiper
+              // key={liveIndex}
+              key={`swiper-${initial}`}
+              initialSlide={initial}
+              onBeforeInit={(swiper) => {
+                swiper.params.initialSlide = initial;
+              }}
+              onSwiper={(swiper) => {
+                swiperRef.current = swiper;
+                setSwiperReady(true);
+              }}
+              onSlideChange={handleSlideChange}
+              effect="coverflow"
+              grabCursor={true}
+              centeredSlides={true}
+              slidesPerView={getSlidesPerView()}
+              spaceBetween={mounted && screenWidth < 640 ? 10 : 20}
+              coverflowEffect={{
+                rotate: mounted && screenWidth < 640 ? 20 : 50,
+                stretch: 0,
+                depth: mounted && screenWidth < 640 ? 50 : 100,
+                modifier: 1,
+                slideShadows: false,
+              }}
+              breakpoints={{
+                // when window width is >= 0px
+                0: {
+                  slidesPerView: 1.45,
+                  spaceBetween: 0,
+                },
+
+                // when window width is >= 1024px
+                1024: {
+                  slidesPerView: 3,
+                  spaceBetween: 30,
+                  coverflowEffect: {
+                    rotate: 50,
+                    depth: 100,
+                    modifier: 1,
+                    slideShadows: false,
+                  },
+                },
+              }}
+              modules={[Pagination, EffectCoverflow]}
+              className="w-full px-4 sm:px-0"
+            >
+              {!isDataLoaded
+                ? Array.from({ length: 7 }).map((_, i) => (
+                    <SwiperSlide
+                      key={`skeleton-${i}`}
+                      className="flex justify-center items-center"
+                    >
+                      <SkeletonCard />
+                    </SwiperSlide>
+                  ))
+                : finalDisplayRoundsForSwiper.map((round, index) => {
+                    if (!round || !round.number) {
+                      // Add a check for valid round object
+                      console.warn(
+                        "Skipping invalid round object in Swiper map:",
+                        round
+                      );
+                      return null;
+                    }
+                    const roundNumber = Number(round.number);
+                    const isClaimableForThisRound = claimableBets.some(
+                      (b) => b.roundNumber === roundNumber
+                    );
+                    const startTimeMs =
+                      typeof round.startTime === "number" &&
+                      !isNaN(round.startTime)
+                        ? round.startTime * 1000
+                        : round.startTime instanceof Date
+                        ? round.startTime.getTime()
+                        : 0;
+                    const lockTime =
+                      round.lockTime instanceof Date
+                        ? round.lockTime.getTime() / 1000
+                        : typeof round.lockTime === "string" &&
+                          !isNaN(Number(round.lockTime))
+                        ? Number(round.lockTime)
+                        : startTimeMs / 1000 + (config?.lockDuration || 180);
+                    const closeTime =
+                      round.closeTime instanceof Date
+                        ? round.closeTime.getTime() / 1000
+                        : typeof round.closeTime === "string" &&
+                          !isNaN(Number(round.closeTime))
+                        ? Number(round.closeTime)
+                        : lockTime + (config?.lockDuration || 180);
+
+                    // Get the variant for this card
+                    const cardVariant = formatCardVariant(
+                      round,
+                      currentRoundNumber
+                    );
+
+                    return (
+                      <SwiperSlide
+                        key={round.number} // Ensure key is stable and unique
+                        className="flex justify-center items-center"
+                      >
+                        <PredictionCard
+                          variant={cardVariant}
+                          roundId={Number(round.number)}
+                          roundData={{
+                            lockPrice: formatPrice(round.lockPrice),
+                            closePrice: formatPrice(round.endPrice),
+                            currentPrice: (() => {
+                              // For expired rounds, use the close price as current price
+                              if (cardVariant === "expired") {
+                                return (
+                                  formatPrice(round.endPrice) ||
+                                  formatPrice(round.lockPrice) ||
+                                  liveRoundPrice
+                                );
+                              }
+                              // For live/calculating rounds, use live price
+                              return liveRoundPrice;
+                            })(),
+                            prizePool:
+                              (round.totalAmount || 0) / LAMPORTS_PER_SOL,
+                            upBets:
+                              (round.totalBullAmount || 0) / LAMPORTS_PER_SOL,
+                            downBets:
+                              (round.totalBearAmount || 0) / LAMPORTS_PER_SOL,
+                            timeRemaining: Math.max(
+                              0,
+                              closeTime - Date.now() / 1000
+                            ),
+                            lockTimeRemaining:
+                              timeLeft !== null &&
+                              roundNumber === Number(config?.currentRound)
+                                ? timeLeft
+                                : Math.max(0, lockTime - Date.now() / 1000),
+                            lockTime:
+                              timeLeft !== null &&
+                              roundNumber === Number(config?.currentRound)
+                                ? Date.now() / 1000 + timeLeft
+                                : lockTime,
+                            closeTime,
+                            isActive: round.isActive ? true : false,
+                            treasuryFee: config ? treasuryFee! : 5,
+                          }}
+                          onPlaceBet={handleBet}
+                          currentRoundId={Number(config?.currentRound)}
+                          bufferTimeInSeconds={0}
+                          liveRoundPrice={liveRoundPrice}
+                          userBets={userBets} // Only show user bets if connected
+                          isLocked={isLocked}
+                          timeLeft={timeLeft}
+                          liveTotalForThisRound={liveTotal}
+                          isClaimable={isClaimableForThisRound}
+                          isClaiming={
+                            isClaiming || claimingRoundId === roundNumber
+                          }
+                        />
+                      </SwiperSlide>
+                    );
+                  })}
+            </Swiper>
+          </div>
 
           <div className="xl:hidden">
             <MobileLiveBets

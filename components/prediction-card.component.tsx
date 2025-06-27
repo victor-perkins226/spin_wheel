@@ -1024,7 +1024,7 @@ useEffect(() => {
                 window.dispatchEvent(new CustomEvent("claimAll"));
               }}
             >
-              {claimLoading ? (
+              {(isClaiming ) ? (
                 <PuffLoader color="#06C729" size={24} />
               ) : (
                 <span className="animate-bounce uppercase">
@@ -1133,16 +1133,18 @@ useEffect(() => {
                 }
               }
             }}
-            onBlur={() => {
-              const parsed = parseFloat(inputValue);
-              if (isNaN(parsed) || parsed <= 0) {
-                setAmount(0);
-                setInputValue("");
-              } else {
-                const clamped = Math.min(parsed, maxAmount);
-                setAmount(clamped);
-              }
-            }}
+             onBlur={() => {
+   const parsed = parseFloat(inputValue);
+   if (isNaN(parsed) || parsed <= 0) {
+     setAmount(0);
+     setInputValue("");
+   } else {
+     const clamped = Math.min(parsed, maxAmount);
+     setAmount(clamped);
+     // normalize the display so “0.200” → “0.2”
+     setInputValue(formatNum(clamped));
+   }
+ }}
             className="glass h-[65px] text-right rounded-[20px] pr-4 font-semibold text-[16px] outline-0"
           />
 
