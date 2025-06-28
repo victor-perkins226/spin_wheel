@@ -24,6 +24,7 @@ import {
 } from "./toasts";
 import { formatNum } from "@/lib/utils";
 import { useTranslation } from "next-i18next";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 
 interface IProps {
   variant?: "live" | "expired" | "next" | "later" | "locked";
@@ -57,6 +58,7 @@ interface IProps {
   liveTotalForThisRound: number;
   isClaimable?: boolean;
   isClaiming?: boolean;
+  claimableBets?: Array<{ roundNumber: number; payout: number; }>;
 }
 
 const CUSTOM_INPUTS = [
@@ -91,6 +93,7 @@ export default function PredictionCard({
   liveTotalForThisRound,
   isClaimable,
   isClaiming,
+  claimableBets,
 }: IProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [mode, setMode] = useState<"up" | "down" | "">("");
@@ -100,7 +103,7 @@ export default function PredictionCard({
   const [justBet, setJustBet] = useState(false);
   const [inputError, setInputError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { connected, publicKey } = useWallet();
+  const { connected, publicKey, connect } = useWallet();
   const { connection } = useConnection();
   const isValidAmount = useMemo(
     () =>
@@ -110,10 +113,16 @@ export default function PredictionCard({
       parseFloat(inputValue) <= maxAmount,
     [inputValue, maxAmount]
   );
+  useEffect(() => {
+    if (!isFlipped) return;
+    if (!connected || isLocked || (timeLeft !== null && timeLeft <= bufferTimeInSeconds)) {
+      setIsFlipped(false);
+    }
+  }, [isFlipped, connected, isLocked, timeLeft, bufferTimeInSeconds]);
 
   const buyDisabled = useMemo(
-    () => isSubmitting || !isValidAmount,
-    [isSubmitting, isValidAmount]
+    () => isSubmitting || !isValidAmount || !connected,
+    [isSubmitting, isValidAmount, connected]
   );
 
   const [claimLoading, setClaimLoading] = useState(false);
@@ -139,16 +148,16 @@ export default function PredictionCard({
     roundData?.downBets ?? 0
   );
 
-useEffect(() => {
-  // only seed the first time we get a positive lockPrice
-  if (
-    lockedPriceLocal == null &&
-    typeof roundData?.lockPrice === "number" &&
-    roundData.lockPrice > 0
-  ) {    
-    setLockedPriceLocal(roundData.lockPrice);
-  }
-}, [roundData?.lockPrice, lockedPriceLocal]);
+  useEffect(() => {
+    // only seed the first time we get a positive lockPrice
+    if (
+      lockedPriceLocal == null &&
+      typeof roundData?.lockPrice === "number" &&
+      roundData.lockPrice > 0
+    ) {
+      setLockedPriceLocal(roundData.lockPrice);
+    }
+  }, [roundData?.lockPrice, lockedPriceLocal]);
   useEffect(() => {
     if (!roundData) return;
     setUpBetsLocal(roundData.upBets);
@@ -165,7 +174,7 @@ useEffect(() => {
   }, [roundId, roundData, roundData?.lockPrice]);
 
   const { theme } = useTheme();
-  const {t} = useTranslation('common');
+  const { t } = useTranslation("common");
   const { config } = useRoundManager(5, 0);
 
   const roundIdRef = useRef(roundId);
@@ -175,13 +184,11 @@ useEffect(() => {
   const feeBps = roundData?.treasuryFee || 0;
   const socket = useMemo(() => getSocket(), []);
 
-
-
   useEffect(() => {
     roundIdRef.current = roundId;
   }, [roundId]);
 
-    useEffect(() => {
+  useEffect(() => {
     if (!isFlipped) return;
     if (isLocked || (timeLeft !== null && timeLeft <= bufferTimeInSeconds)) {
       setIsFlipped(false);
@@ -199,15 +206,15 @@ useEffect(() => {
       if (prediction) setUpBetsLocal((prev) => prev + solAmt);
       else setDownBetsLocal((prev) => prev + solAmt);
       setPrizePoolLocal((prev) => prev + solAmt);
-       if (user === publicKey?.toString()) {
-      setScriptBetPlaced(true);
+      if (user === publicKey?.toString()) {
+        setScriptBetPlaced(true);
 
-      window.dispatchEvent(
-        new CustomEvent("betPlaced", {
-          detail: { roundId: round_number, direction: prediction, amount }
-        })
-      );
-    }
+        window.dispatchEvent(
+          new CustomEvent("betPlaced", {
+            detail: { roundId: round_number, direction: prediction, amount },
+          })
+        );
+      }
     };
 
     socket.on("newBetPlaced", handleNewBet);
@@ -218,17 +225,17 @@ useEffect(() => {
   }, [socket, publicKey, variant, roundId]);
 
   function calculateMultipliers(
-    totalBull: number, 
-    totalBear: number, 
-    totalFeeBps: number 
+    totalBull: number,
+    totalBear: number,
+    totalFeeBps: number
   ) {
     console.log("totalBull", totalBull);
     console.log("totalBear", totalBear);
     console.log("totalFeeBps", totalFeeBps);
     const totalPool = totalBull + totalBear;
 
-    const feeAmount = (totalPool * totalFeeBps) / 10000; 
-    const netPool = totalPool - feeAmount; 
+    const feeAmount = (totalPool * totalFeeBps) / 10000;
+    const netPool = totalPool - feeAmount;
 
     const bullMultiplier = totalBull > 0 ? netPool / totalBull : 1;
     const bearMultiplier = totalBear > 0 ? netPool / totalBear : 1;
@@ -316,7 +323,6 @@ useEffect(() => {
     }
   }, []);
 
-
   useEffect(() => {
     const onRoundLocked = (data: { roundId: number; lockPrice: number }) => {
       if (data.roundId === roundId) {
@@ -369,7 +375,6 @@ useEffect(() => {
     };
   }, []);
 
-
   const prevBetRef = useRef<UserBet["status"] | null>(null);
 
   useEffect(() => {
@@ -383,10 +388,7 @@ useEffect(() => {
   }, [socket, roundId]);
 
   const lockPrice =
-    lockedPriceLocal ?? 
-    roundData?.lockPrice ??
-    roundData?.currentPrice ??
-    0;
+    lockedPriceLocal ?? roundData?.lockPrice ?? roundData?.currentPrice ?? 0;
 
   function getPriceMovement() {
     if (!roundData) return { difference: 0, direction: "up" as const };
@@ -411,7 +413,7 @@ useEffect(() => {
     !hasUserBet;
 
   const formatTimeLeft = useCallback((seconds: number | null) => {
-    if (seconds === null || seconds <= 0) return <>{t('locked')}</>;
+    if (seconds === null || seconds <= 0) return <>{t("locked")}</>;
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
@@ -421,7 +423,7 @@ useEffect(() => {
 
   const formattedRoundData = roundData
     ? {
-        lockPrice:lockPrice,
+        lockPrice: lockPrice,
         closePrice:
           roundData.closePrice > 0
             ? roundData.closePrice
@@ -560,7 +562,7 @@ useEffect(() => {
         setIsFlipped(false);
         setMode("");
         setAmount(0.1);
-        setInputValue("0.10");
+        setInputValue(formatNum(0.1));
       }
     }
   };
@@ -639,49 +641,68 @@ useEffect(() => {
             height={142}
           />
           <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
-            <p>{t('prizePool')}</p>
+            <p>{t("prizePool")}</p>
             <p>{formatNum(nextPrizePool)} SOL</p>
           </div>
         </div>
 
-        <>
-          <Button
-            style={{
-              background: buttonDisabled
-                ? "#9CA3AF"
-                : "linear-gradient(90deg, #06C729 0%, #04801B 100%)",
-            }}
-            onClick={() =>
-              buttonDisabled ? undefined : handleEnterPrediction("up")
-            }
-            className={`glass flex flex-col gap-4 md:py-[16px] py-2 ${
-              buttonDisabled
-                ? "opacity-50 cursor-not-allowed"
-                : "cursor-pointer hover:opacity-80"
-            }`}
-            disabled={buttonDisabled}
-          >
-           <>{t('isUp')}</>
-          </Button>
-          <Button
-            style={{
-              background: buttonDisabled
-                ? "#9CA3AF"
-                : "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)",
-            }}
-            onClick={() =>
-              buttonDisabled ? undefined : handleEnterPrediction("down")
-            }
-            className={`glass flex flex-col gap-4  md:py-[16px] py-2 ${
-              buttonDisabled
-                ? "opacity-50 cursor-not-allowed"
-                : "cursor-pointer hover:opacity-80"
-            }`}
-            disabled={buttonDisabled}
-          >
-            <>{t('isDown')}</>
-          </Button>
-        </>
+        {!connected ? (
+          <div className=" mx-auto my-8">
+            <WalletMultiButton
+              style={{
+                background:
+                  "linear-gradient(228.15deg, rgba(255, 255, 255, 0.2) -64.71%, rgba(255, 255, 255, 0.05) 102.6%)",
+                width: "100%",
+                height: "40px",
+                borderRadius: "20px",
+                fontWeight: "600",
+                padding: "20px"
+              }}
+              className="!w-full !h-10  !rounded-full !font-semibold"
+            >
+              {t("closed.title")}
+            </WalletMultiButton>
+          </div>
+        ) : (
+          <>
+            <Button
+              style={{
+                background: buttonDisabled
+                  ? "#9CA3AF"
+                  : "linear-gradient(90deg, #06C729 0%, #04801B 100%)",
+              }}
+              onClick={() =>
+                buttonDisabled ? undefined : handleEnterPrediction("up")
+              }
+              className={`glass flex flex-col gap-4 md:py-[16px] py-2 ${
+                buttonDisabled
+                  ? "opacity-50 cursor-not-allowed"
+                  : "cursor-pointer hover:opacity-80"
+              }`}
+              disabled={buttonDisabled}
+            >
+              <>{t("isUp")}</>
+            </Button>
+            <Button
+              style={{
+                background: buttonDisabled
+                  ? "#9CA3AF"
+                  : "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)",
+              }}
+              onClick={() =>
+                buttonDisabled ? undefined : handleEnterPrediction("down")
+              }
+              className={`glass flex flex-col gap-4  md:py-[16px] py-2 ${
+                buttonDisabled
+                  ? "opacity-50 cursor-not-allowed"
+                  : "cursor-pointer hover:opacity-80"
+              }`}
+              disabled={buttonDisabled}
+            >
+              <>{t("isDown")}</>
+            </Button>
+          </>
+        )}
       </div>
     );
   };
@@ -707,7 +728,9 @@ useEffect(() => {
       <div className="glass h-[300px] rounded-[20px] flex flex-col gap-[12px] items-center justify-center">
         <div className="flex items-center gap-[12px]">
           <SVG iconName="play-fill" />
-          <p className="font-semibold text-[20px]"><>{t('next')}</></p>
+          <p className="font-semibold text-[20px]">
+            <>{t("next")}</>
+          </p>
         </div>
         <p className="font-semibold text-[35px]">{display}</p>
       </div>
@@ -751,7 +774,7 @@ useEffect(() => {
                 data-testid="loader"
               />
               <h2 className="text-lg md:text-2xl font-semibold mt-4 text-center">
-                {t('calculating')}...
+                {t("calculating")}...
               </h2>
             </div>
           </div>
@@ -805,11 +828,11 @@ useEffect(() => {
                 <div
                   className={`flex justify-between items-center ${getLabelTextStyle()}`}
                 >
-                  <p>{t('lockedPrice')}</p>
+                  <p>{t("lockedPrice")}</p>
                   <p>${formatNum(formattedRoundData.lockPrice)}</p>
                 </div>
                 <div className="flex justify-between text-[16px]">
-                  <p>{t('prizePool')}</p>
+                  <p>{t("prizePool")}</p>
                   <p>{formatNum(formattedRoundData.prizePool)} SOL</p>
                 </div>
               </div>
@@ -884,11 +907,11 @@ useEffect(() => {
             <div
               className={`flex justify-between items-center ${getLabelTextStyle()}`}
             >
-              <p>{t('lockedPrice')}</p>
+              <p>{t("lockedPrice")}</p>
               <p>${formatNum(formattedRoundData.lockPrice)}</p>
             </div>
             <div className="flex justify-between text-[16px]">
-              <p>{t('prizePool')}</p>
+              <p>{t("prizePool")}</p>
               <p>{formatNum(formattedRoundData.prizePool)} SOL</p>
             </div>
           </div>
@@ -900,12 +923,27 @@ useEffect(() => {
   if (!roundData && variant !== "later" && variant !== "next")
     return <div>No round data available</div>;
 
-  const didWin =
-    variant === "expired" &&
-    isClaimable &&
-    userBetStatus?.status === "WON" &&
-    !hasLocallyClaimed;
-
+const didWin = useMemo(() => {
+  if (variant !== "expired" || !isClaimable || !userBetStatus || hasLocallyClaimed) {
+    return false;
+  }
+  
+  // Check if user actually won by comparing bet direction with price direction
+  const userWon = userBetStatus.direction === priceDirection && userBetStatus.status === "WON";
+  
+  // Additional validation: ensure there's actually a payout to claim
+  const hasClaimablePayout = claimableBets?.some(bet => bet.roundNumber === roundId && bet.payout > 0);
+  
+  return userWon && hasClaimablePayout;
+}, [
+  variant,
+  isClaimable, 
+  userBetStatus,
+  hasLocallyClaimed,
+  priceDirection,
+  claimableBets,
+  roundId
+]);
   return (
     <div
       className={`
@@ -994,9 +1032,12 @@ useEffect(() => {
                             (config?.lockDuration || 180)) *
                             7
                         )
-                          ? (theme === "dark" ?  "#E5E7EB" : "#6B7280" )
-                          :  (theme === "dark" ?  "#6B7280" : "#E5E7EB" )
-                          ,
+                          ? theme === "dark"
+                            ? "#E5E7EB"
+                            : "#6B7280"
+                          : theme === "dark"
+                          ? "#6B7280"
+                          : "#E5E7EB",
                     }}
                   />
                 ))}
@@ -1018,11 +1059,11 @@ useEffect(() => {
                 window.dispatchEvent(new CustomEvent("claimAll"));
               }}
             >
-              {claimLoading ? (
+              {isClaiming ? (
                 <PuffLoader color="#06C729" size={24} />
               ) : (
                 <span className="animate-bounce uppercase">
-                  🎉 {t('reward')}
+                  🎉 {t("reward")}
                 </span>
               )}
             </div>
@@ -1041,14 +1082,14 @@ useEffect(() => {
               userBetStatus?.direction === "up" &&
               betValue !== null ? (
                 <p className="text-[20px] font-[600] leading-0">
-                  {t('up')}&nbsp;&middot;&nbsp;{formatNum(betValue)}&nbsp;SOL
+                  {t("up")}&nbsp;&middot;&nbsp;{formatNum(betValue)}&nbsp;SOL
                 </p>
               ) : (
-                <p className="text-[20px] font-[600] leading-0">{t('up')}</p>
+                <p className="text-[20px] font-[600] leading-0">{t("up")}</p>
               )}
             </div>
             <p className="text-[10px] font-[600] leading-0">
-              {bullMultiplier}x {t('payout')}
+              {bullMultiplier}x {t("payout")}
             </p>
           </Button>
           {variant === "later"
@@ -1074,14 +1115,14 @@ useEffect(() => {
               userBetStatus?.direction === "down" &&
               betValue !== null ? (
                 <p className="text-[20px] font-[600] leading-0">
-                  {t('down')}&nbsp;&middot;&nbsp;{formatNum(betValue)}&nbsp;SOL
+                  {t("down")}&nbsp;&middot;&nbsp;{formatNum(betValue)}&nbsp;SOL
                 </p>
               ) : (
-                <p className="text-[20px] font-[600] leading-0">{t('down')}</p>
+                <p className="text-[20px] font-[600] leading-0">{t("down")}</p>
               )}
             </div>
             <p className="text-[10px] font-[600] leading-0">
-              {bearMultiplier}x {t('payout')}
+              {bearMultiplier}x {t("payout")}
             </p>
           </Button>
         </div>
@@ -1092,10 +1133,10 @@ useEffect(() => {
               iconName="arrow-left"
               onClick={() => setIsFlipped(false)}
             />
-            <p>{t('placeOrder')}</p>
+            <p>{t("placeOrder")}</p>
           </div>
           <div className="flex justify-between items-center">
-            <p className="font-semibold text-[16px]">{t('amount')}</p>
+            <p className="font-semibold text-[16px]">{t("amount")}</p>
             <div className="flex items-center gap-[1px]">
               <Image
                 className="w-[30px] h-auto object-contain"
@@ -1110,8 +1151,10 @@ useEffect(() => {
           <input
             type="text"
             value={inputValue}
+            disabled={!connected}
             placeholder="Enter Value:"
             onChange={(e) => {
+              if (!connected) return;
               const raw = e.target.value;
               // allow blank or a number with up to 10 decimals
               if (raw === "" || /^(?:0|[1-9]\d*)(?:\.\d{0,10})?$/.test(raw)) {
@@ -1128,6 +1171,7 @@ useEffect(() => {
               }
             }}
             onBlur={() => {
+              if (!connected) return;
               const parsed = parseFloat(inputValue);
               if (isNaN(parsed) || parsed <= 0) {
                 setAmount(0);
@@ -1135,9 +1179,13 @@ useEffect(() => {
               } else {
                 const clamped = Math.min(parsed, maxAmount);
                 setAmount(clamped);
+                // normalize the display so “0.200” → “0.2”
+                setInputValue(formatNum(clamped));
               }
             }}
-            className="glass h-[65px] text-right rounded-[20px] pr-4 font-semibold text-[16px] outline-0"
+            className={`glass h-[65px] text-right rounded-[20px] pr-4 font-semibold text-[16px] outline-0 ${
+              !connected ? "opacity-50 cursor-not-allowed bg-gray-200" : ""
+            }`}
           />
 
           {inputError && (
@@ -1148,48 +1196,72 @@ useEffect(() => {
             min={(config?.minBetAmount || 0.01).toString()}
             max={maxAmount}
             step="0.000000001"
+            style={{
+              cursor: connected ? "pointer" : "not-allowed",
+            }}
+            disabled={!connected}
             value={Math.min(amount, maxAmount)}
             onChange={(e) => {
+              if (!connected) return;
               const value = parseFloat(e.target.value);
               const clampedValue = Math.max(0.01, Math.min(value, maxAmount));
               const rounded = Math.round(clampedValue * 100) / 100;
               setAmount(clampedValue);
               setInputValue(String(clampedValue));
             }}
-            className="w-full h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer my-5 accent-gray-500 custom-slider"
+            className={`w-full h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer my-5 accent-gray-500 custom-slider ${
+              !connected ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           />
           <div className="flex gap-y-[12px] gap-x-[4px] justify-between flex-wrap">
             {CUSTOM_INPUTS.map((el, key) => (
               <div
-                className="glass py-[6px] px-[9px] rounded-[20px] font-semibold text-[10px] cursor-pointer"
+                className={`glass py-[6px] px-[9px] rounded-[20px] font-semibold text-[10px] ${
+                  connected ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+                }`}
                 key={key}
-                onClick={() => handleCustomAmount(el.value)}
+                onClick={() => connected && handleCustomAmount(el.value)}
               >
                 {el.label}
               </div>
             ))}
           </div>
-          <Button
-            disabled={buyDisabled}
-            style={{
-              cursor: buyDisabled ? "not-allowed" : "pointer",
-              background: buyDisabled
-                ? "#9CA3AF" // gray when disabled
-                : mode === "up"
-                ? "linear-gradient(90deg, #06C729 0%, #04801B 100%)"
-                : mode === "down"
-                ? "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)"
-                : "",
-            }}
-            className="cursor-pointer flex items-center justify-center"
-            onClick={handlePlaceBet}
-          >
-            {isSubmitting ? (
-              <PuffLoader color="#ffffff" size={20} />
+          <div className="w-full">
+            {!connected ? (
+              <WalletMultiButton
+                style={{
+                  background: "#9CA3AF",
+                  width: "100%",
+                  height: "48px",
+                  borderRadius: "12px",
+                  fontWeight: "600",
+                }}
+                className="!w-full !h-12 !rounded-xl !font-semibold"
+              />
             ) : (
-              <>{t('buy')} {mode?.toUpperCase() || ""}</>
+              <Button
+                disabled={buyDisabled}
+                style={{
+                  cursor: buyDisabled ? "not-allowed" : "pointer",
+                  background: buyDisabled
+                    ? "#9CA3AF"
+                    : mode === "up"
+                    ? "linear-gradient(90deg, #06C729 0%, #04801B 100%)"
+                    : mode === "down"
+                    ? "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)"
+                    : "",
+                }}
+                className="w-full cursor-pointer flex items-center justify-center"
+                onClick={handlePlaceBet}
+              >
+                {isSubmitting ? (
+                  <PuffLoader color="#ffffff" size={20} />
+                ) : (
+                  <>Confirm</>
+                )}
+              </Button>
             )}
-          </Button>
+          </div>
         </div>
       </div>
     </div>

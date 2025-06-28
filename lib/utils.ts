@@ -10,3 +10,8 @@ export function formatNum(x: number): string {
   return s.replace(/\.?0+$/, '');
 }
 
+
+export function formatNumInput(x: number): string {
+  // round to 3 decimals, then parseFloat will drop trailing zeros
+  return parseFloat(x.toFixed(3)).toString();
+}

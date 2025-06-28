@@ -66,48 +66,60 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
     isClaiming,
     onClaim,
     formatTimeLeft,
-    registerBonusRefresh,   }) => {
+    registerBonusRefresh,
+  }) => {
     const { t } = useTranslation("common");
-
     const { publicKey } = useWallet();
 
     const [bonusAmount, setBonusAmount] = useState<number>(0);
     const [loadingBonus, setLoadingBonus] = useState<boolean>(false);
+    const [lastFetchTime, setLastFetchTime] = useState<number>(0);
 
     const fetchBonus = useCallback(async () => {
       if (!connected || !publicKey) return;
+      
+      // Prevent multiple rapid fetches
+      const now = Date.now();
+      if (now - lastFetchTime < 2000) { // 2 second debounce
+        return;
+      }
+      
       setLoadingBonus(true);
+      setLastFetchTime(now);
+      
       try {
-         const { data } = await axios.get<number>(
-        `https://sol-prediction-backend-6e3r.onrender.com/user/bonus/${publicKey.toBase58()}`
-      );
-      setBonusAmount(data);
+        const { data } = await axios.get<number>(
+          `https://sol-prediction-backend-6e3r.onrender.com/user/bonus/${publicKey.toBase58()}`
+        );
+        setBonusAmount(data);
       } catch (err) {
         console.error("Failed to fetch bonus:", err);
       } finally {
         setLoadingBonus(false);
       }
-    }, [connected, publicKey]);
+    }, [connected, publicKey, lastFetchTime]);
 
-   useEffect(() => {
-    fetchBonus();
-  }, [claimableRewards, fetchBonus]);
+    // Register the refresh function with parent
+    useEffect(() => {
+      registerBonusRefresh(fetchBonus);
+    }, [fetchBonus, registerBonusRefresh]);
 
-  useEffect(() => {
-  registerBonusRefresh(fetchBonus);
-}, [fetchBonus, registerBonusRefresh]);
+    // Fetch bonus only on wallet connection change
+    useEffect(() => {
+      if (connected && publicKey) {
+        fetchBonus();
+      } else {
+        setBonusAmount(0);
+      }
+    }, [connected, publicKey?.toBase58()]); // Use toBase58() to avoid unnecessary re-renders
 
-// Fetch once on mount / wallet change:
-useEffect(() => {
-  if (connected && publicKey) {
-    fetchBonus();
-  }
-}, [connected, publicKey, fetchBonus]);
-   
+    // Remove the claimableRewards dependency that was causing unnecessary refetches
+    
     const displayTime = useMemo(() => {
       if (isLocked) return <>{t("closing")}</>;
       return formatTimeLeft(timeLeft);
-    }, [isLocked, timeLeft, formatTimeLeft]);
+    }, [isLocked, timeLeft, formatTimeLeft, t]);
+
     const lockMinutes = useMemo(() => {
       const safeDuration =
         typeof lockDuration === "number" && !isNaN(lockDuration)
@@ -228,7 +240,7 @@ useEffect(() => {
         {connected ? (
           <div className="glass rounded-xl p-4 flex justify-between items-center flex-wrap gap-4">
             {/* User Balance */}
-            <div className="flex  gap-4">
+            <div className="flex gap-4">
               <div>
                 <p className="text-sm opacity-70">{t("balance")}</p>
                 <div className="flex items-center gap-1 font-semibold">
