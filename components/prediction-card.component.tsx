@@ -653,7 +653,7 @@ export default function PredictionCard({
         </div>
 
         {!connected ? (
-          <div className=" mx-auto">
+          <div className=" mx-auto my-8">
             <WalletMultiButton
               style={{
                 background:
@@ -662,8 +662,9 @@ export default function PredictionCard({
                 height: "40px",
                 borderRadius: "20px",
                 fontWeight: "600",
+                padding: "20px"
               }}
-              className="!w-full !h-10 !rounded-full !font-semibold"
+              className="!w-full !h-10  !rounded-full !font-semibold"
             >
               {t("closed.title")}
             </WalletMultiButton>

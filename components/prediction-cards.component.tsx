@@ -422,32 +422,33 @@ useEffect(() => {
 
       // detect user cancellation
       const isCancelled =
-        err.name === "WalletSendTransactionError" ||
-        err.name === "WalletSignTransactionError" ||
-        err.message.includes("User rejected") ||
-        err.message.includes("Transaction was not signed");
+      err.name === "WalletSendTransactionError" ||
+      err.name === "WalletSignTransactionError" ||
+      err.message.includes("User rejected") ||
+      err.message.includes("Transaction was not signed");
 
-      if (isCancelled) {
-        // notify all claim buttons to stop loading
-        window.dispatchEvent(new CustomEvent("claimFailure"));
-        setIsClaiming(false);
-        return;
-      }
-
-      // handle "market paused"
-      if (err.message.includes("6012")) {
-        toast.custom((t) => <MarketPausedToast theme={theme} />, {
-          position: "top-right",
-        });
-        window.dispatchEvent(new CustomEvent("claimFailure"));
-        return;
-      }
-
-      // any other error
-      window.dispatchEvent(new CustomEvent("claimFailure"));
-      toast.custom((t) => <ClaimFailureToast theme={theme} />, {
+    if (isCancelled) {
+      // Show the cancelled toast
+      toast.custom((t) => <ClaimCancelledToast theme={theme} />, {
         position: "top-right",
       });
+      window.dispatchEvent(new CustomEvent("claimFailure"));
+      setIsClaiming(false);
+      return;
+    }
+
+    if (err.message.includes("6012")) {
+      toast.custom((t) => <MarketPausedToast theme={theme} />, {
+        position: "top-right",
+      });
+      window.dispatchEvent(new CustomEvent("claimFailure"));
+      return;
+    }
+
+    window.dispatchEvent(new CustomEvent("claimFailure"));
+    toast.custom((t) => <ClaimFailureToast theme={theme} />, {
+      position: "top-right",
+    });
     }
   }, [
     connected,
@@ -1008,7 +1009,7 @@ useEffect(() => {
             isClaiming={isClaiming}
             onClaim={() => {
               window.dispatchEvent(new CustomEvent("claimAll"));
-              handleClaimRewards();
+              // handleClaimRewards();
             }}
             formatTimeLeft={formatTimeLeft}
           />
