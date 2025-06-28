@@ -113,12 +113,12 @@ export default function PredictionCard({
       parseFloat(inputValue) <= maxAmount,
     [inputValue, maxAmount]
   );
-  // useEffect(() => {
-  //   if (!isFlipped) return;
-  //   if (!connected || isLocked || (timeLeft !== null && timeLeft <= bufferTimeInSeconds)) {
-  //     setIsFlipped(false);
-  //   }
-  // }, [isFlipped, connected, isLocked, timeLeft, bufferTimeInSeconds]);
+  useEffect(() => {
+    if (!isFlipped) return;
+    if (!connected || isLocked || (timeLeft !== null && timeLeft <= bufferTimeInSeconds)) {
+      setIsFlipped(false);
+    }
+  }, [isFlipped, connected, isLocked, timeLeft, bufferTimeInSeconds]);
 
   const buyDisabled = useMemo(
     () => isSubmitting || !isValidAmount || !connected,
