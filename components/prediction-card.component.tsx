@@ -100,7 +100,7 @@ export default function PredictionCard({
   const [justBet, setJustBet] = useState(false);
   const [inputError, setInputError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { connected, publicKey } = useWallet();
+  const { connected, publicKey, connect } = useWallet();
   const { connection } = useConnection();
   const isValidAmount = useMemo(
     () =>
@@ -115,7 +115,6 @@ export default function PredictionCard({
     () => isSubmitting || !isValidAmount,
     [isSubmitting, isValidAmount]
   );
-
   const [claimLoading, setClaimLoading] = useState(false);
   const [hasLocallyClaimed, setHasLocallyClaimed] = useState(false);
 
@@ -566,7 +565,7 @@ useEffect(() => {
         setIsFlipped(false);
         setMode("");
         setAmount(0.1);
-        setInputValue("0.10");
+        setInputValue(formatNum(0.1));
       }
     }
   };
@@ -650,7 +649,16 @@ useEffect(() => {
           </div>
         </div>
 
-        <>
+        {!connected ? (
+  <button
+    onClick={() => connect()}
+    style={{ }}
+    className="glass flex-1 py-2 my-4   rounded-full shadow-none drop-shadow-none cursor-pointer font-semibold"
+  >
+    {t('closed.title')}
+  </button>
+) : (
+     <>
           <Button
             style={{
               background: buttonDisabled
@@ -688,6 +696,9 @@ useEffect(() => {
             <>{t('isDown')}</>
           </Button>
         </>
+)}
+
+     
       </div>
     );
   };
@@ -1195,7 +1206,7 @@ useEffect(() => {
             {isSubmitting ? (
               <PuffLoader color="#ffffff" size={20} />
             ) : (
-              <>{t('buy')} {mode?.toUpperCase() || ""}</>
+              <>Confirm</>
             )}
           </Button>
         </div>

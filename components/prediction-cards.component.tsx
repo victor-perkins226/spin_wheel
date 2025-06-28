@@ -1066,7 +1066,7 @@ await connectionRef.current.confirmTransaction(signature);
               modules={[Pagination, EffectCoverflow]}
               className="w-full px-4 sm:px-0"
             >
-              {!isDataLoaded
+              {/* {!isDataLoaded
                 ? Array.from({ length: 7 }).map((_, i) => (
                     <SwiperSlide
                       key={`skeleton-${i}`}
@@ -1075,7 +1075,9 @@ await connectionRef.current.confirmTransaction(signature);
                       <SkeletonCard />
                     </SwiperSlide>
                   ))
-                : finalDisplayRoundsForSwiper.map((round, index) => {
+                : */}
+                
+                {finalDisplayRoundsForSwiper.map((round, index) => {
                     if (!round || !round.number) {
                       // Add a check for valid round object
                       console.warn(
