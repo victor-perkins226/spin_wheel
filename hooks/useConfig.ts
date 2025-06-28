@@ -8,9 +8,7 @@ import * as anchor from "@project-serum/anchor";
 import { PROGRAM_ID } from "@/lib/config";
 
 
-
 const programId = new PublicKey(PROGRAM_ID);
-
 
 
 interface PreviousRoundsResponse {
