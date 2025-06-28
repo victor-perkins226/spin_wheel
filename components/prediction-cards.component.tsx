@@ -118,58 +118,78 @@ export default function PredictionCards() {
     setUserBalance(lamports / LAMPORTS_PER_SOL);
   }, [effectivePublicKey]);
 
-  useEffect(() => {
-    if (!connected || !publicKey) {
-      setUserBalance(0);
-      return;
-    }
-
-
-    // 1) initialize a fresh Connection whenever publicKey changes
-    const conn = new Connection(RPC_URL, { commitment: "finalized" });
-    connectionRef.current = conn;
-
-    let active = true;
-
-    // 2) one‐time fetch
-    conn.getBalance(publicKey).then((lamports) => {
-      if (active) setUserBalance(lamports / LAMPORTS_PER_SOL);
-    });
-
-    // 3) subscribe to on‐chain changes
-    const listenerId = conn.onAccountChange(
-      publicKey,
-      (accountInfo) => {
-        if (!active) return;
-        setUserBalance(accountInfo.lamports / LAMPORTS_PER_SOL);
-      },
-      { commitment: "confirmed" }
-    );
-
-    return () => {
-      active = false;
-      conn.removeAccountChangeListener(listenerId);
-    };
-  }, [connected, publicKey]);
-
 useEffect(() => {
-  // whenever we place a bet, re‐fetch on‐chain balance
-  
-  const onBet = () => {
-  fetchBalance();
-  bonusRef.current?.();      
-};
-window.addEventListener("betPlaced", onBet);
-  // after any successful or failed claim, we also want fresh balance
-  window.addEventListener("claimSuccess", fetchBalance);
-  window.addEventListener("claimFailure", fetchBalance);
+  if (!connected || !publicKey) {
+    setUserBalance(0);
+    return;
+  }
+
+  const conn = new Connection(RPC_URL, { commitment: "confirmed" });
+  connectionRef.current = conn;
+
+  let active = true;
+
+  // 1. Initial fetch on connect
+  const initialFetch = async () => {
+    try {
+      const lamports = await conn.getBalance(publicKey);
+      if (active) {
+        setUserBalance(lamports / LAMPORTS_PER_SOL);
+      }
+    } catch (error) {
+      console.error("Failed to fetch initial balance:", error);
+    }
+  };
+
+  initialFetch();
+
+  // 2. Subscribe to live balance changes - this is the key fix
+  const listenerId = conn.onAccountChange(
+    publicKey,
+    (accountInfo) => {
+      if (active) {
+        console.log("Balance updated via subscription:", accountInfo.lamports / LAMPORTS_PER_SOL);
+        setUserBalance(accountInfo.lamports / LAMPORTS_PER_SOL);
+      }
+    },
+    "confirmed"
+  );
 
   return () => {
-    window.removeEventListener("betPlaced", onBet);
-    window.removeEventListener("claimSuccess", fetchBalance);
-    window.removeEventListener("claimFailure", fetchBalance);
+    active = false;
+    conn.removeAccountChangeListener(listenerId);
   };
-}, [fetchBalance]);;
+}, [connected, publicKey]);
+
+
+// useEffect(() => {
+//   // whenever we place a bet, re‐fetch on‐chain balance
+//   const onBet = () => {
+//     // Add a small delay to ensure the transaction is confirmed
+//     setTimeout(() => {
+//       fetchBalance();
+//     }, 1000);
+//     bonusRef.current?.();      
+//   };
+  
+//   window.addEventListener("betPlaced", onBet);
+  
+//   // after any successful or failed claim, we also want fresh balance
+//   const onClaimSuccess = () => {
+//     setTimeout(() => {
+//       fetchBalance();
+//     }, 1000);
+//   };
+  
+//   window.addEventListener("claimSuccess", onClaimSuccess);
+//   window.addEventListener("claimFailure", fetchBalance);
+
+//   return () => {
+//     window.removeEventListener("betPlaced", onBet);
+//     window.removeEventListener("claimSuccess", onClaimSuccess);
+//     window.removeEventListener("claimFailure", fetchBalance);
+//   };
+// }, [fetchBalance]);;
 
   useEffect(() => {
     const updateLivePrice = async () => {
@@ -234,17 +254,14 @@ window.addEventListener("betPlaced", onBet);
     roundId: number
   ) => {
     if (!connected || !publicKey || !connectionRef.current) {
-      // toast.error("Please connect your wallet to place a bet");
-
       return false;
     }
 
     try {
       const ok = await handlePlaceBet(roundId, direction === "up", amount);
       if (ok) {
+        // Don't fetch balance here - let the event handler do it
         bonusRef.current?.();
-        const lamports = await connectionRef.current!.getBalance(publicKey);
-        setUserBalance(lamports / LAMPORTS_PER_SOL);
         await Promise.all([fetchUserBets(), fetchMoreRounds()]);
         // Force a re-render of the cards
         setSwiperReady(false);
@@ -253,7 +270,6 @@ window.addEventListener("betPlaced", onBet);
       return ok || false;
     } catch (error) {
       console.error("Failed to place bet:", error);
-      // toast.error("Failed to place bet");
       return false;
     }
   };
@@ -375,16 +391,16 @@ window.addEventListener("betPlaced", onBet);
         { skipPreflight: false }
       );
 
-await connectionRef.current.confirmTransaction(signature);
+      await connectionRef.current.confirmTransaction(signature);
+      
       // **immediately** grab the fresh balance
-      const lam = await connectionRef.current.getBalance(publicKey);
-      setUserBalance(lam / LAMPORTS_PER_SOL);
+      // const lam = await connectionRef.current.getBalance(publicKey);
+      // setUserBalance(lam / LAMPORTS_PER_SOL);
 
       // then refresh your bets
       await fetchUserBets();
       setJustClaimed(true);
-      bonusRef.current?.();
-
+      
       setClaimableRewards(0);
       setJustClaimed(true);
 
@@ -418,7 +434,7 @@ await connectionRef.current.confirmTransaction(signature);
         return;
       }
 
-      // handle “market paused”
+      // handle "market paused"
       if (err.message.includes("6012")) {
         toast.custom((t) => <MarketPausedToast theme={theme} />, {
           position: "top-right",
@@ -479,12 +495,12 @@ await connectionRef.current.confirmTransaction(signature);
           const sig = await sendTransaction(tx, connectionRef.current!, {
             skipPreflight: false,
           });
-           // confirm on-chain
+           // confirm on‐chain
           await connectionRef.current!.confirmTransaction(sig, "confirmed");
 
           // immediately fetch balance
-          const lam = await connectionRef.current!.getBalance(publicKey!);
-          setUserBalance(lam / LAMPORTS_PER_SOL);
+          // const lam = await connectionRef.current!.getBalance(publicKey!);
+          // setUserBalance(lam / LAMPORTS_PER_SOL);
 
           // then refresh bets
           await fetchUserBets();
@@ -791,48 +807,53 @@ await connectionRef.current.confirmTransaction(signature);
 
     return [];
   }, [computedDisplayRounds]);
-
-  const liveIndex = useMemo(() => {
-    try {
-      // Use finalDisplayRoundsForSwiper for calculating liveIndex
-
-      if (finalDisplayRoundsForSwiper.length > 0) {
-        const firstRound = finalDisplayRoundsForSwiper[0];
-        if (formatCardVariant(firstRound, currentRoundNumber) === "live") {
-          return 0; // Live round is at index 0
-        }
-      }
-
-      const index = finalDisplayRoundsForSwiper.findIndex(
-        (r) => r && formatCardVariant(r, currentRoundNumber) === "live"
-      );
-
-      if (index === -1) {
-        // If no live round, try to find next round
-        const nextIndex = finalDisplayRoundsForSwiper.findIndex(
-          (r) => formatCardVariant(r, currentRoundNumber) === "next"
-        );
-        return nextIndex >= 0 ? nextIndex : 0;
-      }
-
-      return index;
-    } catch (error) {
-      console.error("Error finding live index:", error);
-      return 0; // Return 0 instead of -1 to show first slide
+const liveIndex = useMemo(() => {
+  try {
+    if (finalDisplayRoundsForSwiper.length === 0) return 0;
+    
+    // Always prioritize finding the actual live round first
+    const liveRoundIndex = finalDisplayRoundsForSwiper.findIndex(
+      (r) => r && formatCardVariant(r, currentRoundNumber) === "live"
+    );
+    
+    if (liveRoundIndex !== -1) {
+      return liveRoundIndex;
     }
-  }, [finalDisplayRoundsForSwiper, currentRoundNumber, formatCardVariant]);
+    
+    // If no live round found, look for next round
+    const nextRoundIndex = finalDisplayRoundsForSwiper.findIndex(
+      (r) => r && formatCardVariant(r, currentRoundNumber) === "next"
+    );
+    
+    return nextRoundIndex !== -1 ? nextRoundIndex : 0;
+  } catch (error) {
+    console.error("Error finding live index:", error);
+    return 0;
+  }
+}, [finalDisplayRoundsForSwiper, currentRoundNumber, formatCardVariant]);
+
+// Update the swiper initialization to always use liveIndex on refresh
+const getInitialSlide = useCallback(() => {
+  // On page refresh or initial load, always go to live index
+  if (finalDisplayRoundsForSwiper.length > 0) {
+    return liveIndex;
+  }
+  return 0;
+}, [liveIndex, finalDisplayRoundsForSwiper.length]);
+
 
   const prevLiveRef = useRef<number>(liveIndex);
-  useEffect(() => {
-    const swiper = swiperRef.current;
-    if (!swiper) return;
+useEffect(() => {
+  const swiper = swiperRef.current;
+  if (!swiper || !swiperReady) return;
 
-    // only run when liveIndex actually changes
-    if (prevLiveRef.current !== liveIndex) {
-      swiper.slideTo(liveIndex, /* duration= */ 0);
-      prevLiveRef.current = liveIndex;
-    }
-  }, [liveIndex]);
+  // Always jump to live index when swiper becomes ready or when liveIndex changes
+  swiper.slideTo(liveIndex, initialSlideJumped.current ? 300 : 0);
+  
+  if (!initialSlideJumped.current) {
+    initialSlideJumped.current = true;
+  }
+}, [liveIndex, swiperReady]);
 
   useEffect(() => {
     const swiper = swiperRef.current;
@@ -1022,15 +1043,18 @@ await connectionRef.current.confirmTransaction(signature);
           <div className="relative my-4 px-4 md:px-0">
             <Swiper
               // key={liveIndex}
-              key={`swiper-${initial}`}
-              initialSlide={initial}
-              onBeforeInit={(swiper) => {
-                swiper.params.initialSlide = initial;
-              }}
-              onSwiper={(swiper) => {
-                swiperRef.current = swiper;
-                setSwiperReady(true);
-              }}
+              key={`swiper-${liveIndex}-${finalDisplayRoundsForSwiper.length}`} // Force re-render when live index changes
+  initialSlide={getInitialSlide()}
+  onBeforeInit={(swiper) => {
+    swiper.params.initialSlide = getInitialSlide();
+  }}
+  onSwiper={(swiper) => {
+    swiperRef.current = swiper;
+    setSwiperReady(true);
+    setTimeout(() => {
+      swiper.slideTo(liveIndex, 0);
+    }, 0);
+  }}
               onSlideChange={handleSlideChange}
               effect="coverflow"
               grabCursor={true}
@@ -1066,7 +1090,7 @@ await connectionRef.current.confirmTransaction(signature);
               modules={[Pagination, EffectCoverflow]}
               className="w-full px-4 sm:px-0"
             >
-              {/* {!isDataLoaded
+              {!isDataLoaded
                 ? Array.from({ length: 7 }).map((_, i) => (
                     <SwiperSlide
                       key={`skeleton-${i}`}
@@ -1075,9 +1099,7 @@ await connectionRef.current.confirmTransaction(signature);
                       <SkeletonCard />
                     </SwiperSlide>
                   ))
-                : */}
-                
-                {finalDisplayRoundsForSwiper.map((round, index) => {
+                :(finalDisplayRoundsForSwiper.map((round, index) => {
                     if (!round || !round.number) {
                       // Add a check for valid round object
                       console.warn(
@@ -1177,10 +1199,11 @@ await connectionRef.current.confirmTransaction(signature);
                           isClaiming={
                             isClaiming || claimingRoundId === roundNumber
                           }
+                          claimableBets={claimableBets}
                         />
                       </SwiperSlide>
                     );
-                  })}
+                  }))}
             </Swiper>
           </div>
 
