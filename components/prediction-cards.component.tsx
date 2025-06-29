@@ -160,39 +160,39 @@ export default function PredictionCards() {
   }, [connected, publicKey, fetchBalance]);
 
 
-useEffect(() => {
+  useEffect(() => {
   // whenever we place a bet, re‐fetch on‐chain balance
-  const onBet = () => {
-    // Add a small delay to ensure the transaction is confirmed
-    setTimeout(() => {
-      fetchBalance();
-      fetchUserBets();
-      fetchMoreRounds();
-      
-    }, 1000);
-    bonusRef.current?.();      
-  };
-  
-  window.addEventListener("betPlaced", onBet);
-  
-  // after any successful or failed claim, we also want fresh balance
-  const onClaimSuccess = () => {
-    setTimeout(() => {
-      fetchBalance();
-      fetchUserBets();
-      fetchMoreRounds();
-    }, 1000);
-  };
-  
-  window.addEventListener("claimSuccess", onClaimSuccess);
-  window.addEventListener("claimFailure", fetchBalance);
+    const onBet = () => {
+      // Add a small delay to ensure the transaction is confirmed
+      setTimeout(() => {
+        fetchBalance();
+        fetchUserBets();
+        fetchMoreRounds();
+        
+      }, 1000);
+      bonusRef.current?.();      
+    };
+    
+    window.addEventListener("betPlaced", onBet);
+    
+    // after any successful or failed claim, we also want fresh balance
+    const onClaimSuccess = () => {
+      setTimeout(() => {
+        fetchBalance();
+        fetchUserBets();
+        fetchMoreRounds();
+      }, 1000);
+    };
+    
+    window.addEventListener("claimSuccess", onClaimSuccess);
+    window.addEventListener("claimFailure", fetchBalance);
 
-  return () => {
-    window.removeEventListener("betPlaced", onBet);
-    window.removeEventListener("claimSuccess", onClaimSuccess);
-    window.removeEventListener("claimFailure", fetchBalance);
-  };
-}, [fetchBalance]);
+    return () => {
+      window.removeEventListener("betPlaced", onBet);
+      window.removeEventListener("claimSuccess", onClaimSuccess);
+      window.removeEventListener("claimFailure", fetchBalance);
+    };
+  }, [fetchBalance]);
 
   useEffect(() => {
     const updateLivePrice = async () => {
