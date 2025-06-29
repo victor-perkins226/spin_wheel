@@ -10,7 +10,6 @@ import React, {
   Suspense,
 } from "react";
 import PredictionCard from "./prediction-card.component";
-import Image from "next/image";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { EffectCoverflow, Pagination } from "swiper/modules";
 import "swiper/css";
@@ -29,7 +28,6 @@ import io from "socket.io-client";
 import { useProgram } from "@/hooks/useProgram";
 import toast from "react-hot-toast";
 import { useTheme } from "next-themes";
-import { PuffLoader } from "react-spinners";
 import MarketHeader from "./MarketHeader";
 import {
   ClaimCancelledToast,
@@ -302,6 +300,7 @@ export default function PredictionCards() {
       socket.disconnect();
     };
   }, [safeFetchMoreRounds]);
+
   useEffect(() => {
     const onBetPlaced = (event: Event) => {
       const timer = setTimeout(() => {
@@ -464,6 +463,7 @@ export default function PredictionCards() {
     handleClaimPayout,
     theme,
   ]);
+  
   useEffect(() => {
     const onClaimAll = () => {
       handleClaimRewards();

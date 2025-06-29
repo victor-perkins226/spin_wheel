@@ -1,11 +1,12 @@
 'use client'
 import { useAnchorWallet} from "@solana/wallet-adapter-react"
 import { useEffect, useMemo, useState } from "react";
-import { PublicKey, Connection, } from "@solana/web3.js";
+import { PublicKey, Connection, Keypair, } from "@solana/web3.js";
 import { AnchorProvider, Program, Idl } from "@project-serum/anchor";
 
 import * as idl from "@/lib/idl.json";
 import { PROGRAM_ID, RPC_URL } from "@/lib/config";
+import NodeWallet from "@project-serum/anchor/dist/cjs/nodewallet";
 
 const programId = new PublicKey(PROGRAM_ID)
 
@@ -27,12 +28,26 @@ export const useProgram = () => {
                 // Condition 1: Wallet must be connected
                 // Condition 2: Connection must be established
                 if (!wallet || !connection) {
-                    setProgram(undefined); // Clear program if conditions not met
-                    setError(!wallet ? "Wallet not connected" : "Connection not established");
+                    // For read-only operations, use a dummy wallet
+                    const dummyWallet = {
+                        publicKey: new PublicKey("11111111111111111111111111111111"),
+                        signTransaction: async (tx: any) => tx,
+                        signAllTransactions: async (txs: any[]) => txs,
+                    };
+                    
+                    const provider = new AnchorProvider(connection, dummyWallet, { commitment: "confirmed" });
+                    const program = new Program(idl as Idl, programId, provider);
+
+                    // This check is good, but won't prevent the Program constructor from running
+                    if (!program.account?.config) {
+                        throw new Error("Config account not defined in IDL");
+                    }
+                    setProgram(program);
                     return; // Exit early
                 }
 
                 try {
+                    
                     const provider = new AnchorProvider(connection, wallet, { commitment: "confirmed" });
                     const program = new Program(idl as Idl, programId, provider);
 
