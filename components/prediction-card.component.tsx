@@ -44,7 +44,7 @@ interface IProps {
     treasuryFee: number;
   };
   onPlaceBet?: (
-    direction: "up" | "down",
+    direction: "up" | "down" | "equal",
     amount: number,
     roundId: number
   ) => Promise<boolean>;
@@ -96,7 +96,7 @@ export default function PredictionCard({
   claimableBets,
 }: IProps) {
   const [isFlipped, setIsFlipped] = useState(false);
-  const [mode, setMode] = useState<"up" | "down" | "">("");
+  const [mode, setMode] = useState<"up" | "down" | "equal">("equal");
   const [inputValue, setInputValue] = useState("0.1");
   const [amount, setAmount] = useState(0.1);
   const [maxAmount, setMaxAmount] = useState<number>(10);
@@ -399,7 +399,7 @@ export default function PredictionCard({
         ? roundData.closePrice || lp
         : liveRoundPrice!;
     const diff = Math.abs(cp - lp);
-    return { difference: diff, direction: cp >= lp ? "up" : "down" };
+    return { difference: diff, direction: cp === lp ? "equal" : cp > lp ? "up" : "down" };
   }
 
   const { difference: priceDifference, direction: priceDirection } =
@@ -456,7 +456,7 @@ export default function PredictionCard({
         status: "ENDED" as const,
       };
 
-  const handleEnterPrediction = (mode: "up" | "down") => {
+  const handleEnterPrediction = (mode: "up" | "down" | "equal") => {
     setInputError(null);
     if (!connected) {
       toast.custom(
@@ -561,7 +561,7 @@ export default function PredictionCard({
       } finally {
         setIsSubmitting(false);
         setIsFlipped(false);
-        setMode("");
+        setMode("equal");
         setAmount(0.1);
         setInputValue(formatNum(0.1));
       }
@@ -582,21 +582,27 @@ export default function PredictionCard({
     [maxAmount]
   );
 
-  const getButtonStyle = (direction: "up" | "down") => {
+  const getButtonStyle = (direction: "up" | "down" | "equal") => {
     if (variant === "expired" || variant === "live") {
       if (priceDirection === direction) {
-        return direction === "up"
-          ? "linear-gradient(90deg, #06C729 0%, #04801B 100%)"
-          : "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)";
+        if (direction === "up") {
+          return "linear-gradient(90deg, #06C729 0%, #04801B 100%)"
+        }
+        else if (direction === "down") {
+          return "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)";
+        } 
       } else {
         return "linear-gradient(228.15deg, rgba(255, 255, 255, 0.2) -64.71%, rgba(255, 255, 255, 0.05) 102.6%)";
       }
     }
     if (variant === "next" && hasUserBet && userBetStatus) {
       if (userBetStatus.direction === direction) {
-        return direction === "up"
-          ? "linear-gradient(90deg, #06C729 0%, #04801B 100%)"
-          : "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)";
+        if (direction === "up") {
+          return "linear-gradient(90deg, #06C729 0%, #04801B 100%)"
+        }
+        else if (direction === "down") {
+          return "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)";
+        }
       } else {
         return "#9CA3AF";
       }
@@ -802,9 +808,7 @@ export default function PredictionCard({
                       maximumFractionDigits: 3,
                     }}
                     className={`${getPriceTextStyle()} ${
-                      priceDirection === "up"
-                        ? "text-green-500"
-                        : "text-red-500"
+                      priceDirection === "up" ? "text-green-500" : priceDirection === "down" ? "text-red-500" : "text-gray-500"
                     }`}
                     transformTiming={{
                       duration: 800,
@@ -813,16 +817,10 @@ export default function PredictionCard({
                   />
                   <div
                     className={`${getPriceDirectionBg()} flex items-center gap-[4px] ${
-                      priceDirection === "up"
-                        ? "text-green-500"
-                        : "text-red-500"
+                      priceDirection === "up" ? "text-green-500" : priceDirection === "down" ? "text-red-500" : "text-gray-500"
                     } px-[10px] py-[10px] rounded-[5px]`}
                   >
-                    {priceDirection === "up" ? (
-                      <ArrowUp size={12} />
-                    ) : (
-                      <ArrowDown size={12} />
-                    )}
+                    {priceDirection === "up" ? <ArrowUp size={12} /> : priceDirection === "down" && <ArrowDown size={12} /> }
                     <p className="text-[10px]">${formatNum(priceDifference)}</p>
                   </div>
                 </div>
@@ -897,11 +895,7 @@ export default function PredictionCard({
                   priceDirection === "up" ? "text-green-500" : "text-red-500"
                 } px-[10px] py-[5px] rounded-[5px]`}
               >
-                {priceDirection === "up" ? (
-                  <ArrowUp size={12} />
-                ) : (
-                  <ArrowDown size={12} />
-                )}
+                {priceDirection === "up" ? <ArrowUp size={12} /> : priceDirection === "down" && <ArrowDown size={12} /> }
                 <p className="text-[10px]">${formatNum(priceDifference)}</p>
               </div>
             </div>
