@@ -96,7 +96,7 @@ export default function PredictionCards() {
     if (connected && publicKey) {
       fetchUserBets();
     }
-  }, [connected, publicKey, fetchUserBets]);
+  }, [connected, publicKey, fetchUserBets, config?.currentRound]);
   const {
     price: livePrice,
     isLoading: priceLoading,
@@ -118,48 +118,48 @@ export default function PredictionCards() {
     setUserBalance(lamports / LAMPORTS_PER_SOL);
   }, [effectivePublicKey]);
 
-useEffect(() => {
-  if (!connected || !publicKey) {
-    setUserBalance(0);
-    return;
-  }
-
-  const conn = new Connection(RPC_URL, { commitment: "confirmed" });
-  connectionRef.current = conn;
-
-  let active = true;
-
-  // 1. Initial fetch on connect
-  const initialFetch = async () => {
-    try {
-      const lamports = await conn.getBalance(publicKey);
-      if (active) {
-        setUserBalance(lamports / LAMPORTS_PER_SOL);
-      }
-    } catch (error) {
-      console.error("Failed to fetch initial balance:", error);
+  useEffect(() => {
+    if (!connected || !publicKey) {
+      setUserBalance(0);
+      return;
     }
-  };
 
-  initialFetch();
+    const conn = new Connection(RPC_URL, { commitment: "confirmed" });
+    connectionRef.current = conn;
 
-  // 2. Subscribe to live balance changes - this is the key fix
-  const listenerId = conn.onAccountChange(
-    publicKey,
-    (accountInfo) => {
-      if (active) {
-        console.log("Balance updated via subscription:", accountInfo.lamports / LAMPORTS_PER_SOL);
-        setUserBalance(accountInfo.lamports / LAMPORTS_PER_SOL);
+    let active = true;
+
+    // 1. Initial fetch on connect
+    const initialFetch = async () => {
+      try {
+        const lamports = await conn.getBalance(publicKey);
+        if (active) {
+          setUserBalance(lamports / LAMPORTS_PER_SOL);
+        }
+      } catch (error) {
+        console.error("Failed to fetch initial balance:", error);
       }
-    },
-    "confirmed"
-  );
+    };
 
-  return () => {
-    active = false;
-    conn.removeAccountChangeListener(listenerId);
-  };
-}, [connected, publicKey]);
+    initialFetch();
+
+    // 2. Subscribe to live balance changes - this is the key fix
+    const listenerId = conn.onAccountChange(
+      publicKey,
+      (accountInfo) => {
+        if (active) {
+          console.log("Balance updated via subscription:", accountInfo.lamports / LAMPORTS_PER_SOL);
+          setUserBalance(accountInfo.lamports / LAMPORTS_PER_SOL);
+        }
+      },
+      "confirmed"
+    );
+
+    return () => {
+      active = false;
+      conn.removeAccountChangeListener(listenerId);
+    };
+  }, [connected, publicKey, fetchBalance]);
 
 
 // useEffect(() => {
@@ -315,6 +315,7 @@ useEffect(() => {
       window.removeEventListener("betPlaced", onBetPlaced);
     };
   }, [fetchUserBets, safeFetchMoreRounds]);
+
   function SkeletonCard() {
     return (
       <div className="card_container glass  md:min-w-[240px] min-w-[220px]  rounded-[20px] p-[15px] sm:p-[25px] w-full animate-pulse">
@@ -1000,7 +1001,7 @@ useEffect(() => {
             priceColor={priceColor}
             isLocked={isLocked}
             timeLeft={timeLeft}
-            lockDuration={config?.lockDuration}
+            lockDuration={config?.lockDuration || 180}
             registerBonusRefresh={(fn) => {
               bonusRef.current = fn;
             }}

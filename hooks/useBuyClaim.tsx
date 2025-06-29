@@ -22,6 +22,7 @@ import {
   TransactionFailedToast,
 } from "@/components/toasts";
 import { useTheme } from "next-themes";
+import { useRoundManager } from "./roundManager";
 
 // Define the return type for the hook
 interface SolPredictorHook {
@@ -46,9 +47,8 @@ export const useSolPredictor = (): SolPredictorHook & { userBalance: number } =>
   const [isPlacingBet, setIsPlacingBet] = useState(false);
   const pendingTransactionRef = useRef<string | null>(null);
   const { theme } = useTheme();
-
-       const [userBalance, setUserBalance] = useState<number>(0);
-
+  const [userBalance, setUserBalance] = useState<number>(0);
+  
   const fetchUserBalance = useCallback(async () => {
     if (!publicKey || !program) return;
     const lamports = await program.provider.connection.getBalance(publicKey);
@@ -63,29 +63,29 @@ export const useSolPredictor = (): SolPredictorHook & { userBalance: number } =>
 
   
   const [configPda] = PublicKey.findProgramAddressSync(
-  [Buffer.from("config")],
-  programId
-);
-const [treasuryPda] = PublicKey.findProgramAddressSync(
-  [Buffer.from("treasury")],
-  programId
-);
+    [Buffer.from("config")],
+    programId
+  );
+  const [treasuryPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("treasury")],
+    programId
+  );
 
-const getRoundPda = (roundNumber: number) =>
-  PublicKey.findProgramAddressSync(
-    [Buffer.from("round"), new BN(roundNumber).toArrayLike(Buffer, "le", 8)],
-    program!.programId
-  )[0];
+  const getRoundPda = (roundNumber: number) =>
+    PublicKey.findProgramAddressSync(
+      [Buffer.from("round"), new BN(roundNumber).toArrayLike(Buffer, "le", 8)],
+      program!.programId
+    )[0];
 
 
-const getUserBetPda = (user: PublicKey, roundNumber: number) =>
-  PublicKey.findProgramAddressSync(
-    [
-      Buffer.from("user_bet"),
-      user.toBuffer(),
-      new BN(roundNumber).toArrayLike(Buffer, "le", 8),
-    ],
-    program!.programId
+  const getUserBetPda = (user: PublicKey, roundNumber: number) =>
+    PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("user_bet"),
+        user.toBuffer(),
+        new BN(roundNumber).toArrayLike(Buffer, "le", 8),
+      ],
+      program!.programId
   )[0];
 
   
@@ -179,7 +179,7 @@ const getUserBetPda = (user: PublicKey, roundNumber: number) =>
     setUserBets(bets);
     setClaimableBets(claimable);
     return claimable;
-  }, [publicKey, connected, program]);
+  }, [publicKey, connected, program ]);
 
   const handlePlaceBet = useCallback(
     async (roundId: number, isBull: boolean, amount: number) => {
