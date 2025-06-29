@@ -261,6 +261,7 @@ export default function PredictionCards() {
       const ok = await handlePlaceBet(roundId, direction === "up", amount);
       if (ok) {
         // Don't fetch balance here - let the event handler do it
+        await new Promise(resolve => setTimeout(resolve, 2000));
         bonusRef.current?.();
         await Promise.all([fetchUserBets(), fetchMoreRounds(), fetchBalance]);
         // Force a re-render of the cards
@@ -399,8 +400,8 @@ export default function PredictionCards() {
       // setUserBalance(lam / LAMPORTS_PER_SOL);
 
       // then refresh your bets
-      await fetchUserBets();
-      await fetchBalance();
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      await Promise.all([fetchUserBets(), fetchMoreRounds(), fetchBalance()]);
       setJustClaimed(true);
       
       setClaimableRewards(0);

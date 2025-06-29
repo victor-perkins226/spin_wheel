@@ -162,7 +162,8 @@ export default function PredictionCard({
     if (!roundData) return;
     setUpBetsLocal(roundData.upBets);
     setDownBetsLocal(roundData.downBets);
-  }, [roundData?.upBets, roundData?.downBets]);
+    setPrizePoolLocal(roundData.prizePool);
+  }, [roundData?.upBets, roundData?.downBets, roundData?.prizePool]);
 
   useEffect(() => {
     if (roundData) {
