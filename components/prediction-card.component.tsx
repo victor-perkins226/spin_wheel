@@ -44,7 +44,7 @@ interface IProps {
     treasuryFee: number;
   };
   onPlaceBet?: (
-    direction: "up" | "down" | "equal",
+    direction: "up" | "down",
     amount: number,
     roundId: number
   ) => Promise<boolean>;
@@ -96,7 +96,7 @@ export default function PredictionCard({
   claimableBets,
 }: IProps) {
   const [isFlipped, setIsFlipped] = useState(false);
-  const [mode, setMode] = useState<"up" | "down" | "equal">("equal");
+  const [mode, setMode] = useState<"up" | "down" | "">("");
   const [inputValue, setInputValue] = useState("0.1");
   const [amount, setAmount] = useState(0.1);
   const [maxAmount, setMaxAmount] = useState<number>(10);
@@ -456,7 +456,7 @@ export default function PredictionCard({
         status: "ENDED" as const,
       };
 
-  const handleEnterPrediction = (mode: "up" | "down" | "equal") => {
+  const handleEnterPrediction = (mode: "up" | "down") => {
     setInputError(null);
     if (!connected) {
       toast.custom(
@@ -561,7 +561,7 @@ export default function PredictionCard({
       } finally {
         setIsSubmitting(false);
         setIsFlipped(false);
-        setMode("equal");
+        setMode("");
         setAmount(0.1);
         setInputValue(formatNum(0.1));
       }

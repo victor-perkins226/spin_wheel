@@ -160,34 +160,39 @@ export default function PredictionCards() {
   }, [connected, publicKey, fetchBalance]);
 
 
-// useEffect(() => {
-//   // whenever we place a bet, re‐fetch on‐chain balance
-//   const onBet = () => {
-//     // Add a small delay to ensure the transaction is confirmed
-//     setTimeout(() => {
-//       fetchBalance();
-//     }, 1000);
-//     bonusRef.current?.();      
-//   };
+useEffect(() => {
+  // whenever we place a bet, re‐fetch on‐chain balance
+  const onBet = () => {
+    // Add a small delay to ensure the transaction is confirmed
+    setTimeout(() => {
+      fetchBalance();
+      fetchUserBets();
+      fetchMoreRounds();
+      
+    }, 1000);
+    bonusRef.current?.();      
+  };
   
-//   window.addEventListener("betPlaced", onBet);
+  window.addEventListener("betPlaced", onBet);
   
-//   // after any successful or failed claim, we also want fresh balance
-//   const onClaimSuccess = () => {
-//     setTimeout(() => {
-//       fetchBalance();
-//     }, 1000);
-//   };
+  // after any successful or failed claim, we also want fresh balance
+  const onClaimSuccess = () => {
+    setTimeout(() => {
+      fetchBalance();
+      fetchUserBets();
+      fetchMoreRounds();
+    }, 1000);
+  };
   
-//   window.addEventListener("claimSuccess", onClaimSuccess);
-//   window.addEventListener("claimFailure", fetchBalance);
+  window.addEventListener("claimSuccess", onClaimSuccess);
+  window.addEventListener("claimFailure", fetchBalance);
 
-//   return () => {
-//     window.removeEventListener("betPlaced", onBet);
-//     window.removeEventListener("claimSuccess", onClaimSuccess);
-//     window.removeEventListener("claimFailure", fetchBalance);
-//   };
-// }, [fetchBalance]);;
+  return () => {
+    window.removeEventListener("betPlaced", onBet);
+    window.removeEventListener("claimSuccess", onClaimSuccess);
+    window.removeEventListener("claimFailure", fetchBalance);
+  };
+}, [fetchBalance]);
 
   useEffect(() => {
     const updateLivePrice = async () => {
@@ -202,6 +207,8 @@ export default function PredictionCards() {
     setIsFetchingRounds(true);
     try {
       await fetchMoreRounds?.();
+      await fetchUserBets();
+      await fetchBalance();
     } catch (err) {
       console.error(err);
     } finally {
@@ -261,10 +268,11 @@ export default function PredictionCards() {
         // Don't fetch balance here - let the event handler do it
         await new Promise(resolve => setTimeout(resolve, 2000));
         bonusRef.current?.();
-        await Promise.all([fetchUserBets(), fetchMoreRounds(), fetchBalance]);
+        await Promise.all([fetchUserBets(), fetchMoreRounds(), fetchBalance()]);
         // Force a re-render of the cards
         setSwiperReady(false);
         setTimeout(() => setSwiperReady(true), 100);
+
       }
       return ok || false;
     } catch (error) {
@@ -463,7 +471,7 @@ export default function PredictionCards() {
     handleClaimPayout,
     theme,
   ]);
-  
+
   useEffect(() => {
     const onClaimAll = () => {
       handleClaimRewards();

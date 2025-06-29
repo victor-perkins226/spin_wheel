@@ -6,7 +6,6 @@ import { AnchorProvider, Program, Idl } from "@project-serum/anchor";
 
 import * as idl from "@/lib/idl.json";
 import { PROGRAM_ID, RPC_URL } from "@/lib/config";
-import NodeWallet from "@project-serum/anchor/dist/cjs/nodewallet";
 
 const programId = new PublicKey(PROGRAM_ID)
 
