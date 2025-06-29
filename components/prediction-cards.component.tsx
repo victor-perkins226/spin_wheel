@@ -50,8 +50,8 @@ export default function PredictionCards() {
   const swiperRef = useRef<any>(null);
   const { publicKey, connected, sendTransaction } = useWallet();
   const connectionRef = useRef<Connection | null>(null);
-  const [userBalance, setUserBalance] = useState(0);
-  const [liveRoundPrice, setLiveRoundPrice] = useState(152.5);
+  const [userBalance, setUserBalance] = useState(-1);
+  const [liveRoundPrice, setLiveRoundPrice] = useState(0);
   const [previousPrice, setPreviousPrice] = useState(liveRoundPrice);
   const [priceColor, setPriceColor] = useState("text-gray-900");
   const [claimableRewards, setClaimableRewards] = useState(0);
@@ -112,7 +112,7 @@ export default function PredictionCards() {
     : tempKeypairRef.current.publicKey;
 
 
-    const fetchBalance = useCallback(async () => {
+  const fetchBalance = useCallback(async () => {
     if (!effectivePublicKey || !connectionRef.current) return;
     const lamports = await connectionRef.current.getBalance(effectivePublicKey);
     setUserBalance(lamports / LAMPORTS_PER_SOL);
@@ -262,7 +262,7 @@ useEffect(() => {
       if (ok) {
         // Don't fetch balance here - let the event handler do it
         bonusRef.current?.();
-        await Promise.all([fetchUserBets(), fetchMoreRounds()]);
+        await Promise.all([fetchUserBets(), fetchMoreRounds(), fetchBalance]);
         // Force a re-render of the cards
         setSwiperReady(false);
         setTimeout(() => setSwiperReady(true), 100);
@@ -399,6 +399,7 @@ useEffect(() => {
 
       // then refresh your bets
       await fetchUserBets();
+      await fetchBalance();
       setJustClaimed(true);
       
       setClaimableRewards(0);
@@ -808,53 +809,54 @@ useEffect(() => {
 
     return [];
   }, [computedDisplayRounds]);
-const liveIndex = useMemo(() => {
-  try {
-    if (finalDisplayRoundsForSwiper.length === 0) return 0;
-    
-    // Always prioritize finding the actual live round first
-    const liveRoundIndex = finalDisplayRoundsForSwiper.findIndex(
-      (r) => r && formatCardVariant(r, currentRoundNumber) === "live"
-    );
-    
-    if (liveRoundIndex !== -1) {
-      return liveRoundIndex;
-    }
-    
-    // If no live round found, look for next round
-    const nextRoundIndex = finalDisplayRoundsForSwiper.findIndex(
-      (r) => r && formatCardVariant(r, currentRoundNumber) === "next"
-    );
-    
-    return nextRoundIndex !== -1 ? nextRoundIndex : 0;
-  } catch (error) {
-    console.error("Error finding live index:", error);
-    return 0;
-  }
-}, [finalDisplayRoundsForSwiper, currentRoundNumber, formatCardVariant]);
 
-// Update the swiper initialization to always use liveIndex on refresh
-const getInitialSlide = useCallback(() => {
-  // On page refresh or initial load, always go to live index
-  if (finalDisplayRoundsForSwiper.length > 0) {
-    return liveIndex;
-  }
-  return 0;
-}, [liveIndex, finalDisplayRoundsForSwiper.length]);
+  const liveIndex = useMemo(() => {
+    try {
+      if (finalDisplayRoundsForSwiper.length === 0) return 0;
+      
+      // Always prioritize finding the actual live round first
+      const liveRoundIndex = finalDisplayRoundsForSwiper.findIndex(
+        (r) => r && formatCardVariant(r, currentRoundNumber) === "live"
+      );
+      
+      if (liveRoundIndex !== -1) {
+        return liveRoundIndex;
+      }
+      
+      // If no live round found, look for next round
+      const nextRoundIndex = finalDisplayRoundsForSwiper.findIndex(
+        (r) => r && formatCardVariant(r, currentRoundNumber) === "next"
+      );
+      
+      return nextRoundIndex !== -1 ? nextRoundIndex : 0;
+    } catch (error) {
+      console.error("Error finding live index:", error);
+      return 0;
+    }
+  }, [finalDisplayRoundsForSwiper, currentRoundNumber, formatCardVariant]);
+
+  // Update the swiper initialization to always use liveIndex on refresh
+  const getInitialSlide = useCallback(() => {
+    // On page refresh or initial load, always go to live index
+    if (finalDisplayRoundsForSwiper.length > 0) {
+      return liveIndex;
+    }
+    return 0;
+  }, [liveIndex, finalDisplayRoundsForSwiper.length]);
 
 
   const prevLiveRef = useRef<number>(liveIndex);
-useEffect(() => {
-  const swiper = swiperRef.current;
-  if (!swiper || !swiperReady) return;
+  useEffect(() => {
+    const swiper = swiperRef.current;
+    if (!swiper || !swiperReady) return;
 
-  // Always jump to live index when swiper becomes ready or when liveIndex changes
-  swiper.slideTo(liveIndex, initialSlideJumped.current ? 300 : 0);
-  
-  if (!initialSlideJumped.current) {
-    initialSlideJumped.current = true;
-  }
-}, [liveIndex, swiperReady]);
+    // Always jump to live index when swiper becomes ready or when liveIndex changes
+    swiper.slideTo(liveIndex, initialSlideJumped.current ? 300 : 0);
+    
+    if (!initialSlideJumped.current) {
+      initialSlideJumped.current = true;
+    }
+  }, [liveIndex, swiperReady]);
 
   useEffect(() => {
     const swiper = swiperRef.current;
@@ -1045,17 +1047,17 @@ useEffect(() => {
             <Swiper
               // key={liveIndex}
               key={`swiper-${liveIndex}-${finalDisplayRoundsForSwiper.length}`} // Force re-render when live index changes
-  initialSlide={getInitialSlide()}
-  onBeforeInit={(swiper) => {
-    swiper.params.initialSlide = getInitialSlide();
-  }}
-  onSwiper={(swiper) => {
-    swiperRef.current = swiper;
-    setSwiperReady(true);
-    setTimeout(() => {
-      swiper.slideTo(liveIndex, 0);
-    }, 0);
-  }}
+              initialSlide={getInitialSlide()}
+              onBeforeInit={(swiper) => {
+                swiper.params.initialSlide = getInitialSlide();
+              }}
+              onSwiper={(swiper) => {
+                swiperRef.current = swiper;
+                setSwiperReady(true);
+                setTimeout(() => {
+                  swiper.slideTo(liveIndex, 0);
+                }, 0);
+              }}
               onSlideChange={handleSlideChange}
               effect="coverflow"
               grabCursor={true}
@@ -1216,7 +1218,7 @@ useEffect(() => {
           </div>
 
           <div className="mt-10">
-            <Suspense fallback={<PuffLoader color="#06C729" size={30} />}>
+            <Suspense>
               <LineChart />
             </Suspense>
           </div>

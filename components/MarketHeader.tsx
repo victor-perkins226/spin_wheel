@@ -145,22 +145,29 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
               <p className="text-[10px] pl-4 sm:text-[12px] lg:text-[20px]">
                 SOL/USDT
               </p>
-              <p
-                className={`text-[10px] sm:text-[12px] transition-colors duration-300 ${priceColor}`}
-              >
-                $
-                <NumberFlow
-                  value={liveRoundPrice}
-                  format={{
-                    minimumFractionDigits: 3,
-                    maximumFractionDigits: 3,
-                  }}
-                  transformTiming={{
-                    duration: 750,
-                    easing: "ease-out",
-                  }}
+              {
+                liveRoundPrice > 0  ?   
+                <p
+                  className={`text-[10px] sm:text-[12px] transition-colors duration-300 ${priceColor}`}
+                >
+                  $
+                  <NumberFlow
+                    value={liveRoundPrice}
+                    format={{
+                      minimumFractionDigits: 3,
+                      maximumFractionDigits: 3,
+                    }}
+                    transformTiming={{
+                      duration: 750,
+                      easing: "ease-out",
+                    }}
+                  />
+                </p> : <PuffLoader
+                  size={32}
+                  color={theme === "dark" ? "#fff" : "#000"}
                 />
-              </p>
+              }
+             
             </div>
           </div>
 
@@ -251,7 +258,11 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
                     height={20}
                     className="w-[20px] h-auto object-contain"
                   />
-                  <span>{formatNum(userBalance)} SOL</span>
+                  <span>{userBalance >= 0 ? formatNum(userBalance) : 
+                    <PuffLoader
+                      size={32}
+                      color={theme === "dark" ? "#fff" : "#000"}
+                    />} SOL</span>
                 </div>
               </div>
               <div className="relative border-l-2 pl-4 border-gray-300 group">
