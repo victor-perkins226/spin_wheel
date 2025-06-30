@@ -15,6 +15,7 @@ import { formatNum } from "@/lib/utils";
 import { network } from "./wallet.provider.component";
 import { GiBurningMeteor } from "react-icons/gi";
 import { useTranslation } from "next-i18next";
+import coinIcon from "@/public/assets/solana_logo.png";
 
 // Define the Bet interface
 interface Bet {
@@ -471,7 +472,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
                           >
                             <Image
                               className="w-[20px] h-auto object-contain"
-                              src="/assets/solana_logo.png"
+                              src={coinIcon}
                               alt="Solana"
                               width={20}
                               height={20}
