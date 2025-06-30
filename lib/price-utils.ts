@@ -18,13 +18,25 @@ export const useLivePrice = (): LivePriceData => {
   const [error, setError] = useState<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
 
+  function decodePrice(encodedPrice: string): number {
+    if (!encodedPrice.startsWith('enc_')) {
+      throw new Error('Invalid encoded price format');
+    }
+    
+    const base64Part = encodedPrice.substring(4);
+    const buffer = Buffer.from(base64Part, 'base64');
+    const decoded = buffer.toString('utf8');
+    
+    return parseFloat(decoded);
+  } 
+
   useEffect(() => {
     // 1. Initialize WebSocket connection
-console.log("⏳ connecting to WS at", BACKEND_WS_URL);
-socketRef.current = io(`${BACKEND_WS_URL}/price`, { transports: ["websocket"] });
-socketRef.current.on("connect", () =>
-  console.log("✅ WS connected!")
-);
+    console.log("⏳ connecting to WS at", BACKEND_WS_URL);
+    socketRef.current = io(`${BACKEND_WS_URL}/price`, { transports: ["websocket"] });
+    socketRef.current.on("connect", () =>
+      console.log("✅ WS connected!")
+    );
 
     socketRef.current.on('connect_error', (err) => {
       console.error('WebSocket connection error:', err);
@@ -38,10 +50,10 @@ socketRef.current.on("connect", () =>
     });
 
     // 2. Listen for 'livePriceUpdate' event from the backend
-    socketRef.current.on('livePriceUpdate', (data: { price: number }) => {
-          console.log('Connecting to WebSocket at:', BACKEND_WS_URL);
-      if (typeof data.price === 'number') {
-        setPrice(data.price);
+    socketRef.current.on('livePriceUpdate', (data: { price: string }) => {
+      console.log('Connecting to WebSocket at:', BACKEND_WS_URL);
+      if (typeof data.price === 'string') {
+        setPrice(decodePrice(data.price));
         setIsLoading(false); // Set to false once the first price is received
         setError(null);
       } else {

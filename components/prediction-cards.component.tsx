@@ -1032,26 +1032,6 @@ export default function PredictionCards() {
             </div>
           )}
 
-          {/* // Show wallet connection prompt instead of cards when not connected
-            // <div className="flex flex-col items-center justify-center min-h-[400px] gap-6">
-            //   <div className="glass rounded-xl p-8 flex flex-col items-center gap-4 max-w-md mx-auto text-center">
-            //     <Image
-            //       className="w-16 h-16 object-contain opacity-50"
-            //       src="/assets/solana_logo.png"
-            //       alt="Solana"
-            //       width={64}
-            //       height={64}
-            //     />
-            //     <h3 className="text-xl font-semibold">{t("closed.title")}</h3>
-            //     <p className="text-sm opacity-70">{t("closed.message")}</p>
-            //     <div className="flex flex-col gap-2 text-xs opacity-60">
-            //       <p>• {t("closed.list1")}</p>
-            //       <p>• {t("closed.list2")}</p>
-            //       <p>• {t("closed.list3")}</p>
-            //       <p>• {t("closed.list4")}</p>
-            //     </div>
-            //   </div>
-            // </div> */}
 
           <div className="relative my-4 px-4 md:px-0">
             <Swiper
