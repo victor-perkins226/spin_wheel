@@ -13,6 +13,7 @@ import { formatNum } from "@/lib/utils";
 import { network } from "./wallet.provider.component";
 import { GiBurningMeteor } from "react-icons/gi";
 import { useTranslation } from "react-i18next";
+import coinIcon from "@/public/assets/solana_logo.png";
 interface Bet {
   direction: string;
   user: string;
@@ -468,7 +469,7 @@ function MobileLiveBets({
                           >
                             <Image
                               className="w-[20px] h-auto object-contain"
-                              src="/assets/solana_logo.png"
+                              src={coinIcon}
                               alt="Solana"
                               width={20}
                               height={20}

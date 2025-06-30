@@ -5,6 +5,7 @@ import { PuffLoader } from "react-spinners";
 import { formatNum } from "@/lib/utils";
 import { useTranslation } from "next-i18next";
 import axios from "axios";
+import coinIcon from "@/public/assets/solana_logo.png";
 import { useWallet } from "@solana/wallet-adapter-react";
 
 export interface MarketHeaderProps {
@@ -135,7 +136,7 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
           {/* Price Display */}
           <div className="relative">
             <Image
-              src="/assets/solana_logo.png"
+              src={coinIcon}
               alt="Solana"
               width={64}
               height={64}
@@ -252,7 +253,7 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
                 <p className="text-sm opacity-70">{t("balance")}</p>
                 <div className="flex items-center gap-1 font-semibold">
                   <Image
-                    src="/assets/solana_logo.png"
+                    src={coinIcon}
                     alt="Solana"
                     width={20}
                     height={20}
@@ -297,7 +298,7 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
                   <p className="text-sm opacity-70">{t("unclaimed")}</p>
                   <div className="flex items-center gap-1 font-semibold text-green-500">
                     <Image
-                      src="/assets/solana_logo.png"
+                      src={coinIcon}
                       alt="Solana"
                       width={20}
                       height={20}
