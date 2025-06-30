@@ -142,6 +142,10 @@ body {
   transition: all 0.3s ease !important;
 }
 
+.light .wallet-adapter-button {
+  border: 1px solid #272727 !important;
+}
+
 .wallet-adapter-button:hover {
   opacity: 0.8 !important;
 }
