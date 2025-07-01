@@ -1,6 +1,6 @@
 {
   "version": "0.1.0",
-  "name": "sol_predictor1",
+  "name": "sol_predictor",
   "instructions": [
     {
       "name": "initialize",
@@ -74,7 +74,11 @@
           }
         },
         {
-          "name": "threshold",
+          "name": "adminThreshold",
+          "type": "u8"
+        },
+        {
+          "name": "operatorThreshold",
           "type": "u8"
         }
       ]
@@ -246,7 +250,7 @@
         },
         {
           "name": "round",
-          "isMut": false,
+          "isMut": true,
           "isSigner": false
         },
         {
@@ -353,43 +357,6 @@
       ]
     },
     {
-      "name": "togglePause",
-      "accounts": [
-        {
-          "name": "config",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "operatorMultisig",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "setExecutor",
-      "accounts": [
-        {
-          "name": "config",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "multisig",
-          "isMut": false,
-          "isSigner": false
-        }
-      ],
-      "args": [
-        {
-          "name": "newExecutor",
-          "type": "publicKey"
-        }
-      ]
-    },
-    {
       "name": "updateMultisig",
       "accounts": [
         {
@@ -420,6 +387,32 @@
           "type": "u8"
         }
       ]
+    },
+    {
+      "name": "closeRound",
+      "accounts": [
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "round",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "executor",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -514,26 +507,6 @@
       }
     },
     {
-      "name": "Escrow",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "roundNumber",
-            "type": "u64"
-          },
-          {
-            "name": "amount",
-            "type": "u64"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
       "name": "Treasury",
       "type": {
         "kind": "struct",
@@ -600,6 +573,18 @@
           },
           {
             "name": "rewardAmount",
+            "type": "u64"
+          },
+          {
+            "name": "totalBullCount",
+            "type": "u64"
+          },
+          {
+            "name": "totalBearCount",
+            "type": "u64"
+          },
+          {
+            "name": "claimedCount",
             "type": "u64"
           }
         ]
@@ -692,6 +677,31 @@
     },
     {
       "name": "RewardsClaimed",
+      "fields": [
+        {
+          "name": "user",
+          "type": "publicKey",
+          "index": false
+        },
+        {
+          "name": "roundNumber",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "amount",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "timestamp",
+          "type": "i64",
+          "index": false
+        }
+      ]
+    },
+    {
+      "name": "BetCanceled",
       "fields": [
         {
           "name": "user",
@@ -1046,6 +1056,21 @@
           "index": false
         }
       ]
+    },
+    {
+      "name": "RoundClosed",
+      "fields": [
+        {
+          "name": "roundNumber",
+          "type": "u64",
+          "index": false
+        },
+        {
+          "name": "timestamp",
+          "type": "i64",
+          "index": false
+        }
+      ]
     }
   ],
   "errors": [
@@ -1101,151 +1126,146 @@
     },
     {
       "code": 6010,
-      "name": "InsufficientFunds",
-      "msg": "Insufficient funds in escrow"
-    },
-    {
-      "code": 6011,
-      "name": "InvalidEscrow",
-      "msg": "Invalid escrow account"
-    },
-    {
-      "code": 6012,
       "name": "ContractPaused",
       "msg": "Contract is paused"
     },
     {
-      "code": 6013,
+      "code": 6011,
+      "name": "ContractNotPaused",
+      "msg": "Contract is not paused"
+    },
+    {
+      "code": 6012,
       "name": "BetBelowMinimum",
       "msg": "Bet amount below minimum"
     },
     {
-      "code": 6014,
+      "code": 6013,
       "name": "AlreadyBetInRound",
       "msg": "User already bet in this round"
     },
     {
-      "code": 6015,
+      "code": 6014,
       "name": "NoRewardsAvailable",
       "msg": "No rewards available for this round"
     },
     {
-      "code": 6016,
+      "code": 6015,
       "name": "GenesisRoundNotStarted",
       "msg": "Genesis round not started"
     },
     {
-      "code": 6017,
+      "code": 6016,
       "name": "GenesisRoundAlreadyStarted",
       "msg": "Genesis round already started"
     },
     {
-      "code": 6018,
+      "code": 6017,
       "name": "GenesisRoundAlreadyLocked",
       "msg": "Genesis round already locked"
     },
     {
-      "code": 6019,
+      "code": 6018,
       "name": "GenesisRoundNotLocked",
       "msg": "Genesis round not locked"
     },
     {
-      "code": 6020,
+      "code": 6019,
       "name": "NotCurrentRound",
       "msg": "Not the current round"
     },
     {
-      "code": 6021,
+      "code": 6020,
       "name": "InsufficientTreasuryFunds",
       "msg": "Insufficient funds in treasury"
     },
     {
-      "code": 6022,
+      "code": 6021,
       "name": "RoundLocked",
       "msg": "Round is locked for betting"
     },
     {
-      "code": 6023,
+      "code": 6022,
       "name": "InvalidLockDuration",
       "msg": "Lock duration must be less than round duration"
     },
     {
-      "code": 6024,
+      "code": 6023,
       "name": "InvalidRoundDuration",
       "msg": "Round duration must be greater than 0"
     },
     {
-      "code": 6025,
+      "code": 6024,
       "name": "RoundAlreadyLocked",
       "msg": "Round has already been locked"
     },
     {
-      "code": 6026,
+      "code": 6025,
       "name": "RoundNotLockedYet",
       "msg": "Round not ready to be locked yet"
     },
     {
-      "code": 6027,
+      "code": 6026,
       "name": "RoundNotLocked",
       "msg": "Round not ready to be locked yet"
     },
     {
-      "code": 6028,
+      "code": 6027,
       "name": "BufferWindowExpired",
       "msg": "Buffer window for locking has expired"
     },
     {
-      "code": 6029,
+      "code": 6028,
       "name": "InvalidTreasuryFee",
       "msg": "Invalid treasury fee, must be <= 10000 basis points"
     },
     {
-      "code": 6030,
+      "code": 6029,
       "name": "InvalidMinBetAmount",
       "msg": "Minimum bet amount must be greater than 0"
     },
     {
-      "code": 6031,
+      "code": 6030,
       "name": "InvalidBufferSeconds",
       "msg": "Buffer seconds must be greater than 0"
     },
     {
-      "code": 6032,
+      "code": 6031,
       "name": "UnauthorizedOperator",
       "msg": "Unauthorized operator"
     },
     {
-      "code": 6033,
+      "code": 6032,
       "name": "InvalidAuthority",
       "msg": "Invalid authority key"
     },
     {
-      "code": 6034,
+      "code": 6033,
       "name": "UnauthorizedExecutor",
       "msg": "Unauthorized executor"
     },
     {
-      "code": 6035,
+      "code": 6034,
       "name": "InvalidMultisig",
       "msg": "Invalid multisig"
     },
     {
-      "code": 6036,
+      "code": 6035,
       "name": "NotEnoughSignatures",
       "msg": "Not enough signatures"
     },
     {
-      "code": 6037,
+      "code": 6036,
       "name": "InvalidThreshold",
       "msg": "Invalid threshold"
     },
     {
-      "code": 6038,
+      "code": 6037,
       "name": "InvalidSigners",
       "msg": "Invalid signers"
     }
   ],
   "metadata": {
-    "address": "FKxohzkYZR8wRct6cZGiSdrrhDKtby3m27smuui8xuXK"
+    "address": "GTE7LMtYea46DGd8HRsQJDk7Fk4L9eQhxioMZwEG1a73"
   }
 }

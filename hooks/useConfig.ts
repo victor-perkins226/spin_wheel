@@ -53,7 +53,7 @@ export const useConfig = () => {
         queryFn: () => fetchConfig(program),
         enabled: !!program,
         staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-        refetchInterval: 1000, // Refetch every 5 minutes
+        refetchInterval: 1000, // Refetch every 1 second
         retry: (failureCount, error) => {
             console.error("Error fetching config:", error);
             return failureCount < 3;

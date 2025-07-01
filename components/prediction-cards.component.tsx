@@ -1192,6 +1192,7 @@ export default function PredictionCards() {
                             isClaiming || claimingRoundId === roundNumber
                           }
                           claimableBets={claimableBets}
+                          config={config}
                         />
                       </SwiperSlide>
                     );

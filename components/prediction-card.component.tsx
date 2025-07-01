@@ -8,14 +8,13 @@ import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import SolanaBg from "@/public/assets/solana_bg.png";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import NumberFlow from "@number-flow/react";
-import { UserBet } from "@/types/round";
+import { Config, UserBet } from "@/types/round";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import toast from "react-hot-toast";
 import { DotLoader, PuffLoader } from "react-spinners";
 import { useTheme } from "next-themes";
 import io, { Socket } from "socket.io-client";
 import { API_URL } from "@/lib/config";
-import { useRoundManager } from "@/hooks/roundManager";
 import {
   BetFailedToast,
   BettingNotAvailableToast,
@@ -59,6 +58,7 @@ interface IProps {
   isClaimable?: boolean;
   isClaiming?: boolean;
   claimableBets?: Array<{ roundNumber: number; payout: number; }>;
+  config?: Config;
 }
 
 const CUSTOM_INPUTS = [
@@ -94,6 +94,7 @@ export default function PredictionCard({
   isClaimable,
   isClaiming,
   claimableBets,
+  config,
 }: IProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [mode, setMode] = useState<"up" | "down" | "">("");
@@ -119,11 +120,6 @@ export default function PredictionCard({
       setIsFlipped(false);
     }
   }, [isFlipped, connected, isLocked, timeLeft, bufferTimeInSeconds]);
-
-  const buyDisabled = useMemo(
-    () => isSubmitting || !isValidAmount || !connected,
-    [isSubmitting, isValidAmount, connected]
-  );
 
   const [claimLoading, setClaimLoading] = useState(false);
   const [hasLocallyClaimed, setHasLocallyClaimed] = useState(false);
@@ -176,7 +172,7 @@ export default function PredictionCard({
 
   const { theme } = useTheme();
   const { t } = useTranslation("common");
-  const { config } = useRoundManager(5, 0);
+
 
   const roundIdRef = useRef(roundId);
   const connectedRef = useRef(connected);
@@ -307,6 +303,11 @@ export default function PredictionCard({
   //     socket.off("newBetPlaced", handleNewBet);
   //   };
   // }, [connected, publicKey, roundId, socket]);
+
+  const buyDisabled = useMemo(
+    () => isSubmitting || !isValidAmount || !connected || config?.isPaused,
+    [isSubmitting, isValidAmount, connected, config?.isPaused, config]
+  );
 
   const handlePrizePoolUpdate = useCallback((data: any) => {
     if (data.roundId === roundIdRef.current) {
