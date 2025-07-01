@@ -36,14 +36,21 @@ export interface MarketHeaderProps {
   /** Total unclaimed rewards, in SOL */
   claimableRewards: number;
 
+  /** Total cancelable rewards, in SOL */
+  cancelableRewards: number;
+
   /** Whether a claim call is currently in flight (to disable the button & show a spinner) */
   isClaiming: boolean;
+
+  /** Whether a cancel call is currently in flight (to disable the button & show a spinner) */
+  isCancelling: boolean;
 
   /**
    * Called when the user clicks “Claim”.
    * The parent should wrap this in useCallback so it doesn’t change on every render.
    */
   onClaim: () => void;
+  onCancel: () => void;
   registerBonusRefresh: (refresh: () => void) => void;
   /**
    * Utility function to format a “seconds remaining” into MM:SS.
@@ -64,8 +71,11 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
     connected,
     userBalance,
     claimableRewards,
+    cancelableRewards,
     isClaiming,
+    isCancelling,
     onClaim,
+    onCancel,
     formatTimeLeft,
     registerBonusRefresh,
   }) => {
@@ -319,6 +329,39 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
                     />
                   ) : (
                     <>{t("claim")}</>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* Cancelable Rewards & Button */}
+            {cancelableRewards > 0 && (
+              <div className="flex items-center gap-3">
+                <div>
+                  <p className="text-sm opacity-70">{t("cancelable")}</p>
+                  <div className="flex items-center gap-1 font-semibold text-green-500">
+                    <Image
+                      src={coinIcon}
+                      alt="Solana"
+                      width={20}
+                      height={20}
+                      className="w-[20px] h-auto object-contain"
+                    />
+                    <span>{formatNum(cancelableRewards)} SOL</span>
+                  </div>
+                </div>
+                <button
+                  className="glass bg-green-500 cursor-pointer py-2 px-4 rounded-lg font-semibold flex items-center justify-center disabled:opacity-50"
+                  onClick={onCancel}
+                  disabled={cancelableRewards === 0 || isCancelling}
+                >
+                  {isCancelling ? (
+                    <PuffLoader
+                      size={20}
+                      color={theme === "dark" ? "#fff" : "#000"}
+                    />
+                  ) : (
+                    <>{t("cancel")}</>
                   )}
                 </button>
               </div>

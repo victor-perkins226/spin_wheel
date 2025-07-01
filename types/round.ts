@@ -51,7 +51,6 @@ export interface ClaimableBet {
     amount: number;
     predictBull: boolean;
     payout: number;
-   
 }
 
 export interface UserBetAccount {
@@ -59,4 +58,9 @@ export interface UserBetAccount {
     predictBull: boolean;
     amount: BN; // Anchor BN for u64
     claimed: boolean;
+}
+
+export interface CancelableBet {
+  roundNumber: number;
+  amount: number;
 }

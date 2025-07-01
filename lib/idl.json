@@ -413,6 +413,42 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "cancelBet",
+      "accounts": [
+        {
+          "name": "config",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "round",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userBet",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "user",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "treasury",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "roundNumber",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -1266,6 +1302,6 @@
     }
   ],
   "metadata": {
-    "address": "GTE7LMtYea46DGd8HRsQJDk7Fk4L9eQhxioMZwEG1a73"
+    "address": "GHxMXAX2TPKSYgMTM92NfsJEm2NGpt9j5fWGWypTF34R"
   }
 }

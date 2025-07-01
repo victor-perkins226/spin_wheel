@@ -15,7 +15,7 @@ import { EffectCoverflow, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-coverflow";
 import "swiper/css/pagination";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
 import { Connection, Keypair, LAMPORTS_PER_SOL, Transaction } from "@solana/web3.js";
 import MobileLiveBets from "./MobileBets";
 import LiveBets from "./LiveBets";
@@ -43,6 +43,7 @@ const BetsHistory = React.lazy(() => import("./BetsHistory"));
 
 const LineChart = React.lazy(() => import("./LineChart"));
 export default function PredictionCards() {
+  const anchorWallet = useAnchorWallet();
   const [screenWidth, setScreenWidth] = useState(0);
   const [mounted, setMounted] = useState(false);
   const swiperRef = useRef<any>(null);
@@ -53,13 +54,17 @@ export default function PredictionCards() {
   const [previousPrice, setPreviousPrice] = useState(liveRoundPrice);
   const [priceColor, setPriceColor] = useState("text-gray-900");
   const [claimableRewards, setClaimableRewards] = useState(0);
+  const [cancelableRewards, setCancelableRewards] = useState(0);
   const [isClaiming, setIsClaiming] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [claimingRoundId, setClaimingRoundId] = useState<number | null>(null);
   const [justClaimed, setJustClaimed] = useState(false);
   const {
     handlePlaceBet,
     handleClaimPayout,
+    handleCancelBet,
     claimableBets,
+    cancelableBets,
     userBets,
     fetchUserBets,
   } = useSolPredictor();
@@ -87,6 +92,11 @@ export default function PredictionCards() {
     const sum = claimableBets.reduce((tot, b) => tot + (b.payout || 0), 0);
     setClaimableRewards(sum);
   }, [claimableBets]); // Remove isClaiming dependency
+
+  useEffect(() => {
+    const sum = cancelableBets.reduce((tot, b) => tot + (b.amount || 0), 0);
+    setCancelableRewards(sum);
+  }, [cancelableBets]); // Remove isClaiming dependency
 
   const bonusRef = useRef<(() => void) | undefined>(undefined);
 
@@ -386,6 +396,14 @@ export default function PredictionCards() {
         )
       );
 
+      instructions.forEach((inst, idx) => {
+        if (!inst) {
+          console.error(`Instruction at index ${idx} is invalid:`, inst);
+        } else {
+          console.log(`Instruction ${idx}:`, inst);
+        }
+      });
+
       const transaction = new Transaction();
       instructions.forEach((instruction) => transaction.add(instruction));
 
@@ -470,6 +488,55 @@ export default function PredictionCards() {
     handleClaimPayout,
     theme,
   ]);
+
+  const handleCancelAll = useCallback(async () => {
+    if (!connected || !publicKey || !connectionRef.current || !program) {
+      return;
+    }
+
+    setIsCancelling(true);
+    
+    try {
+      const instructions = await Promise.all(
+        cancelableBets.map((bet: { roundNumber: number }) =>
+          handleCancelBet(bet.roundNumber)
+        )
+      );
+
+      console.log("instructions", instructions);
+      if (!instructions.length || instructions.some(i => !i)) {
+        setIsCancelling(false);
+        toast.error("No cancelable bets or invalid instructions.");
+        return;
+      }
+
+      const transaction = new Transaction();
+      instructions.forEach((instruction) => transaction.add(instruction));
+
+      
+      const { blockhash } = await connectionRef.current.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = publicKey;
+      
+      const signedTransaction = await anchorWallet?.signTransaction(transaction);
+      if (!signedTransaction) {
+        throw new Error("Failed to sign transaction");
+      }
+      const signature = await connectionRef.current.sendRawTransaction(signedTransaction.serialize());
+      await connectionRef.current.confirmTransaction(signature);
+
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      await Promise.all([fetchUserBets(), fetchMoreRounds(), fetchBalance()]);
+      toast.success("Bet cancelled successfully");
+      setIsCancelling(false);
+    } catch (err) {
+      console.error("Failed to cancel bets:", err);
+      toast.error("Failed to cancel bets");
+    } finally {
+      setIsCancelling(false);
+    }
+    
+  }, [connected, publicKey, connectionRef, program, handleCancelBet, cancelableBets]);
 
   useEffect(() => {
     const onClaimAll = () => {
@@ -720,7 +787,7 @@ export default function PredictionCards() {
         totalBullAmount: 0,
         totalBearAmount: 0,
         isActive: false,
-        status: "locked", // or “expired”/“live” – but it just reserves a placeholder slot.
+        status: "locked", // or "expired"/"live" – but it just reserves a placeholder slot.
       } as unknown as Round;
     }
 
@@ -963,7 +1030,7 @@ export default function PredictionCards() {
     return numPrice > 1000000 ? numPrice / 1e8 : numPrice;
   };
 
-  const isDataLoaded = finalDisplayRoundsForSwiper.length > 4;
+  const isDataLoaded = finalDisplayRoundsForSwiper.length > 0;
   const skeletonInitial = Math.floor(7 / 2);
   const initial = isDataLoaded ? liveIndex : skeletonInitial;
 
@@ -1017,10 +1084,15 @@ export default function PredictionCards() {
             connected={connected}
             userBalance={userBalance}
             claimableRewards={justClaimed ? 0 : claimableRewards}
+            cancelableRewards={cancelableRewards}
             isClaiming={isClaiming}
+            isCancelling={isCancelling}
             onClaim={() => {
               window.dispatchEvent(new CustomEvent("claimAll"));
               // handleClaimRewards();
+            }}
+            onCancel={() => {
+              handleCancelAll();
             }}
             formatTimeLeft={formatTimeLeft}
           />

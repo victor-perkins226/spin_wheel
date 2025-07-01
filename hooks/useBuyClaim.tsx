@@ -11,7 +11,7 @@ import {
 import { BN, ProgramError } from "@project-serum/anchor";
 import { useProgram } from "./useProgram";
 import { useCallback, useEffect, useState, useRef } from "react";
-import { UserBet, ClaimableBet, UserBetAccount } from "@/types/round";
+import { UserBet, ClaimableBet, UserBetAccount, CancelableBet } from "@/types/round";
 import Success from "@/public/assets/success-bet.png";
 import toast from "react-hot-toast";
 import { PROGRAM_ID } from "@/lib/config";
@@ -23,6 +23,7 @@ import {
 } from "@/components/toasts";
 import { useTheme } from "next-themes";
 import { useRoundManager } from "./roundManager";
+import { useConfig } from "./useConfig";
 
 // Define the return type for the hook
 interface SolPredictorHook {
@@ -32,8 +33,10 @@ interface SolPredictorHook {
     amount: number
   ) => Promise<boolean>;
   handleClaimPayout: (roundId: number) => Promise<any>;
+  handleCancelBet: (roundId: number) => Promise<any>;
   fetchUserBets: () => Promise<ClaimableBet[]>;
   claimableBets: ClaimableBet[];
+  cancelableBets: CancelableBet[];
   userBets: UserBet[];
   isPlacingBet: boolean;
 }
@@ -43,12 +46,14 @@ export const useSolPredictor = (): SolPredictorHook & { userBalance: number } =>
   const { publicKey, connected } = useWallet();
   const { program } = useProgram();
   const [claimableBets, setClaimableBets] = useState<ClaimableBet[]>([]);
+  const [cancelableBets, setCancelableBets] = useState<CancelableBet[]>([]);
   const [userBets, setUserBets] = useState<UserBet[]>([]);
   const [isPlacingBet, setIsPlacingBet] = useState(false);
   const pendingTransactionRef = useRef<string | null>(null);
   const { theme } = useTheme();
   const [userBalance, setUserBalance] = useState<number>(0);
-  
+  const { data: config } = useConfig();
+
   const fetchUserBalance = useCallback(async () => {
     if (!publicKey || !program) return;
     const lamports = await program.provider.connection.getBalance(publicKey);
@@ -89,10 +94,10 @@ export const useSolPredictor = (): SolPredictorHook & { userBalance: number } =>
   )[0];
 
   
-
   const fetchUserBets = useCallback(async (): Promise<ClaimableBet[]> => {
     if (!publicKey || !connected || !program) {
       setClaimableBets([]);
+      setCancelableBets([]);
       setUserBets([]);
       return [];
     }
@@ -105,6 +110,7 @@ export const useSolPredictor = (): SolPredictorHook & { userBalance: number } =>
     if (userBetAccounts.length === 0) {
       setUserBets([]);
       setClaimableBets([]);
+      setCancelableBets([]);
       return [];
     }
 
@@ -137,7 +143,15 @@ export const useSolPredictor = (): SolPredictorHook & { userBalance: number } =>
 
     const bets: UserBet[] = [];
     const claimable: ClaimableBet[] = [];
-
+    const cancelable: CancelableBet[] = [];
+    console.log("userBetAccounts", userBetAccounts, {config});
+    let isPaused = false;
+    if (!config) {
+      const configAccount = await program.account.config.fetch(configPda);
+      isPaused = configAccount.isPaused;
+    } else {
+      isPaused = config.isPaused;
+    }
     for (const { account } of userBetAccounts) {
       const roundNumber = account.roundNumber.toNumber();
       const predictBull = account.predictBull;
@@ -148,6 +162,10 @@ export const useSolPredictor = (): SolPredictorHook & { userBalance: number } =>
       let payout = 0;
 
       const roundData = roundsByNumber.get(roundNumber);
+      if (!account.claimed && isPaused) {
+        cancelable.push({ roundNumber, amount: amountSol });
+      }
+
       if (roundData && !roundData.isActive) {
         const lockPrice = Number(roundData.lockPrice);
         const endPrice = Number(roundData.endPrice);
@@ -175,9 +193,13 @@ export const useSolPredictor = (): SolPredictorHook & { userBalance: number } =>
       if (status === "WON") {
         claimable.push({ roundNumber, amount: amountSol, predictBull, payout });
       }
+
     }
+
+    console.log("cancelable", cancelable);
     setUserBets(bets);
     setClaimableBets(claimable);
+    setCancelableBets(cancelable);
     return claimable;
   }, [publicKey, connected, program ]);
 
@@ -384,12 +406,42 @@ export const useSolPredictor = (): SolPredictorHook & { userBalance: number } =>
     ]
   );
 
+  const handleCancelBet = useCallback(async (roundId: number) => {
+    console.log("handleCancelBet", roundId);
+    if (!publicKey || !connected || !program) {
+      throw new Error("Wallet not connected or program not initialized");
+    }
+
+    try {
+      const roundPda = getRoundPda(roundId);
+      const userBetPda = getUserBetPda(publicKey, roundId); 
+
+      const instruction = await program!.methods
+        .cancelBet(new BN(roundId))
+        .accounts({
+          config: configPda,
+          round: roundPda,
+          userBet: userBetPda,
+          user: publicKey,
+          treasury: treasuryPda,
+        })
+        .signers([])
+        .instruction();
+
+        return instruction;
+     } catch (error: any) {
+      console.error(`Failed to build cancel instruction for round ${roundId}:`, error);
+      throw error;
+    }
+  }, [publicKey, connected, program, getRoundPda, getUserBetPda, configPda, treasuryPda]);
+
   useEffect(() => {
     if (publicKey && connected && program) {
       fetchUserBets();
     } else {
      
       setClaimableBets([]);
+      setCancelableBets([]);
       setUserBets([]);
     }
   }, [publicKey, connected, program, fetchUserBets]);
@@ -398,9 +450,11 @@ export const useSolPredictor = (): SolPredictorHook & { userBalance: number } =>
     handlePlaceBet,
     handleClaimPayout,
     claimableBets,
+    cancelableBets,
     userBets,
     fetchUserBets,
     userBalance,
     isPlacingBet,
+    handleCancelBet,
   };
 };
