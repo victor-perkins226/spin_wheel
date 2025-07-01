@@ -146,7 +146,6 @@ export default function PredictionCards() {
       publicKey,
       (accountInfo) => {
         if (active) {
-          console.log("Balance updated via subscription:", accountInfo.lamports / LAMPORTS_PER_SOL);
           setUserBalance(accountInfo.lamports / LAMPORTS_PER_SOL);
         }
       },

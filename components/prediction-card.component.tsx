@@ -201,7 +201,6 @@ export default function PredictionCard({
 
     const handleNewBet = (evt: any) => {
       const { round_number, amount, prediction, user } = evt.data;
-      console.log("event", evt.data);
       if (round_number !== roundIdRef.current) return;
       const solAmt = amount / LAMPORTS_PER_SOL;
       if (prediction) setUpBetsLocal((prev) => prev + solAmt);
@@ -230,9 +229,6 @@ export default function PredictionCard({
     totalBear: number,
     totalFeeBps: number
   ) {
-    console.log("totalBull", totalBull);
-    console.log("totalBear", totalBear);
-    console.log("totalFeeBps", totalFeeBps);
     const totalPool = totalBull + totalBear;
 
     const feeAmount = (totalPool * totalFeeBps) / 10000;

@@ -126,11 +126,9 @@ function MobileLiveBets({
     if (currentRound === null) return;
 
     const onConnect = () => {
-      console.log("Connected to WebSocket");
     };
 
     const onDisconnect = () => {
-      console.log("Disconnected from WebSocket");
     };
 
     const onError = (error: any) => {
@@ -138,7 +136,6 @@ function MobileLiveBets({
     };
 
     const onReconnectAttempt = (attempt: number) => {
-      console.log(`Reconnecting to WebSocket, attempt ${attempt}`);
     };
 
     const onNewBet = (newBet: any) => {

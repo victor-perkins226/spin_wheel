@@ -32,11 +32,8 @@ export const useLivePrice = (): LivePriceData => {
 
   useEffect(() => {
     // 1. Initialize WebSocket connection
-    console.log("⏳ connecting to WS at", BACKEND_WS_URL);
     socketRef.current = io(`${BACKEND_WS_URL}/price`, { transports: ["websocket"] });
-    socketRef.current.on("connect", () =>
-      console.log("✅ WS connected!")
-    );
+    socketRef.current.on("connect", () => {});
 
     socketRef.current.on('connect_error', (err) => {
       console.error('WebSocket connection error:', err);
@@ -51,7 +48,6 @@ export const useLivePrice = (): LivePriceData => {
 
     // 2. Listen for 'livePriceUpdate' event from the backend
     socketRef.current.on('dataUpdate', (data: { data: string }) => {
-      console.log('Connecting to WebSocket at:', BACKEND_WS_URL);
       if (typeof data.data === 'string') {
         setPrice(decodePrice(data.data));
         setIsLoading(false); // Set to false once the first price is received
