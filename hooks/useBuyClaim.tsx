@@ -144,7 +144,6 @@ export const useSolPredictor = (): SolPredictorHook & { userBalance: number } =>
     const bets: UserBet[] = [];
     const claimable: ClaimableBet[] = [];
     const cancelable: CancelableBet[] = [];
-    console.log("userBetAccounts", userBetAccounts, {config});
     let isPaused = false;
     if (!config) {
       const configAccount = await program.account.config.fetch(configPda);
@@ -196,7 +195,6 @@ export const useSolPredictor = (): SolPredictorHook & { userBalance: number } =>
 
     }
 
-    console.log("cancelable", cancelable);
     setUserBets(bets);
     setClaimableBets(claimable);
     setCancelableBets(cancelable);
@@ -407,7 +405,6 @@ export const useSolPredictor = (): SolPredictorHook & { userBalance: number } =>
   );
 
   const handleCancelBet = useCallback(async (roundId: number) => {
-    console.log("handleCancelBet", roundId);
     if (!publicKey || !connected || !program) {
       throw new Error("Wallet not connected or program not initialized");
     }

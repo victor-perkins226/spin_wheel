@@ -396,14 +396,6 @@ export default function PredictionCards() {
         )
       );
 
-      instructions.forEach((inst, idx) => {
-        if (!inst) {
-          console.error(`Instruction at index ${idx} is invalid:`, inst);
-        } else {
-          console.log(`Instruction ${idx}:`, inst);
-        }
-      });
-
       const transaction = new Transaction();
       instructions.forEach((instruction) => transaction.add(instruction));
 
@@ -503,7 +495,6 @@ export default function PredictionCards() {
         )
       );
 
-      console.log("instructions", instructions);
       if (!instructions.length || instructions.some(i => !i)) {
         setIsCancelling(false);
         toast.error("No cancelable bets or invalid instructions.");

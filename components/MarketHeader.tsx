@@ -301,71 +301,74 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
               </div>
             </div>
 
-            {/* Claimable Rewards & Button */}
-            {claimableRewards > 0 && (
-              <div className="flex items-center gap-3">
-                <div>
-                  <p className="text-sm opacity-70">{t("unclaimed")}</p>
-                  <div className="flex items-center gap-1 font-semibold text-green-500">
-                    <Image
-                      src={coinIcon}
-                      alt="Solana"
-                      width={20}
-                      height={20}
-                      className="w-[20px] h-auto object-contain"
-                    />
-                    <span>{formatNum(claimableRewards)} SOL</span>
+            <div className="flex justify-end gap-3">
+              {/* Cancelable Rewards & Button */}
+              {cancelableRewards > 0 && (
+                <div className="flex items-center gap-3">
+                  <div>
+                    <p className="text-sm opacity-70">{t("cancelable")}</p>
+                    <div className="flex items-center gap-1 font-semibold text-green-500">
+                      <Image
+                        src={coinIcon}
+                        alt="Solana"
+                        width={20}
+                        height={20}
+                        className="w-[20px] h-auto object-contain"
+                      />
+                      <span>{formatNum(cancelableRewards)} SOL</span>
+                    </div>
                   </div>
+                  <button
+                    className="glass bg-green-500 cursor-pointer py-2 px-4 rounded-lg font-semibold flex items-center justify-center disabled:opacity-50"
+                    onClick={onCancel}
+                    disabled={cancelableRewards === 0 || isCancelling}
+                  >
+                    {isCancelling ? (
+                      <PuffLoader
+                        size={20}
+                        color={theme === "dark" ? "#fff" : "#000"}
+                      />
+                    ) : (
+                      <>{t("cancel")}</>
+                    )}
+                  </button>
                 </div>
-                <button
-                  className="glass bg-green-500 cursor-pointer py-2 px-4 rounded-lg font-semibold flex items-center justify-center disabled:opacity-50"
-                  onClick={onClaim}
-                  disabled={claimableRewards === 0 || isClaiming}
-                >
-                  {isClaiming ? (
-                    <PuffLoader
-                      size={20}
-                      color={theme === "dark" ? "#fff" : "#000"}
-                    />
-                  ) : (
-                    <>{t("claim")}</>
-                  )}
-                </button>
-              </div>
-            )}
+              )}
+              
+              {/* Claimable Rewards & Button */}
+              {claimableRewards > 0 && (
+                <div className="flex items-center gap-3">
+                  <div>
+                    <p className="text-sm opacity-70">{t("unclaimed")}</p>
+                    <div className="flex items-center gap-1 font-semibold text-green-500">
+                      <Image
+                        src={coinIcon}
+                        alt="Solana"
+                        width={20}
+                        height={20}
+                        className="w-[20px] h-auto object-contain"
+                      />
+                      <span>{formatNum(claimableRewards)} SOL</span>
+                    </div>
+                  </div>
+                  <button
+                    className="glass bg-green-500 cursor-pointer py-2 px-4 rounded-lg font-semibold flex items-center justify-center disabled:opacity-50"
+                    onClick={onClaim}
+                    disabled={claimableRewards === 0 || isClaiming}
+                  >
+                    {isClaiming ? (
+                      <PuffLoader
+                        size={20}
+                        color={theme === "dark" ? "#fff" : "#000"}
+                      />
+                    ) : (
+                      <>{t("claim")}</>
+                    )}
+                  </button>
+                </div>
+              )}
 
-            {/* Cancelable Rewards & Button */}
-            {cancelableRewards > 0 && (
-              <div className="flex items-center gap-3">
-                <div>
-                  <p className="text-sm opacity-70">{t("cancelable")}</p>
-                  <div className="flex items-center gap-1 font-semibold text-green-500">
-                    <Image
-                      src={coinIcon}
-                      alt="Solana"
-                      width={20}
-                      height={20}
-                      className="w-[20px] h-auto object-contain"
-                    />
-                    <span>{formatNum(cancelableRewards)} SOL</span>
-                  </div>
-                </div>
-                <button
-                  className="glass bg-green-500 cursor-pointer py-2 px-4 rounded-lg font-semibold flex items-center justify-center disabled:opacity-50"
-                  onClick={onCancel}
-                  disabled={cancelableRewards === 0 || isCancelling}
-                >
-                  {isCancelling ? (
-                    <PuffLoader
-                      size={20}
-                      color={theme === "dark" ? "#fff" : "#000"}
-                    />
-                  ) : (
-                    <>{t("cancel")}</>
-                  )}
-                </button>
-              </div>
-            )}
+            </div>
           </div>
         ) : (
           <div className="glass rounded-xl p-4 flex justify-center items-center">
