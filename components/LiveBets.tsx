@@ -399,7 +399,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
             </div>
           ) : (
             <>
-              <div className="overflow-y-auto max-h-[600px]">
+              <div className=" overflow-y-auto max-h-[600px]">
                 <table className="w-full text-left">
                   <tbody>
                     {sortedLiveBets.map((bet, index) => (
