@@ -2,7 +2,7 @@
 "use client";
 
 import Image from "next/image";
-import React, { useState, useEffect, use, useMemo } from "react";
+import React, { useState, useEffect,  useMemo } from "react";
 import SVG from "./svg.component";
 import io from "socket.io-client";
 import axios from "axios";
@@ -108,7 +108,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
           .filter((bet: Bet): bet is Bet => bet !== null)
           .filter((bet: Bet) => bet.round_number === currentRound) // Filter by current round
           .sort((a: Bet, b: Bet) => b.amount - a.amount) // Sort by amount descending
-          .slice(0, 1000); // Limit to 10 bets
+          .slice(0, 10000); // Limit to 10 bets
         setLiveBets(bets);
       } catch (error) {
         console.error("Error fetching bets:", error);
@@ -268,9 +268,9 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
     return null;
   }
 
-    const sortedLiveBets = useMemo(() => {
-    return [...liveBets].sort((a, b) => b.amount - a.amount);
-  }, [liveBets]);
+  //   const sortedLiveBets = useMemo(() => {
+  //   return [...liveBets].sort((a, b) => b.amount - a.amount);
+  // }, [liveBets]);
 
 
   const getStateMessageStyle = () => {
@@ -399,10 +399,10 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
             </div>
           ) : (
             <>
-              <div className=" overflow-y-auto max-h-[600px]">
+              <div className="overflow-y-auto max-h-[600px]">
                 <table className="w-full text-left">
                   <tbody>
-                    {sortedLiveBets.map((bet, index) => (
+                    {liveBets.map((bet, index) => (
                       <tr
                         key={bet.signature}
                         className={`${getTableRowStyle()} ${
@@ -485,6 +485,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
                 </table>
               </div>
               {/* Show total stats */}
+              <>
               {liveBets.length > 0 && (
                 <div
                   className={`mt-4 pt-3 border-t ${
@@ -522,6 +523,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
                   </div>
                 </div>
               )}
+              </>
             </>
           )}
         </div>
