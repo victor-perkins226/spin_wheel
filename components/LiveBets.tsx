@@ -340,7 +340,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
         </div>
 
         {/* Live Bets Container */}
-        <div className="glass px-[30px] h-full max-h-[700px] py-[16px] rounded-[20px] w-full">
+        <div className="glass px-[30px] h-full max-h-[750px] py-[16px] rounded-[20px] w-full">
           <div className="mb-4">
             <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <div
