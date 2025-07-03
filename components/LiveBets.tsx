@@ -399,7 +399,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
             </div>
           ) : (
             <>
-              <div className="overflow-y-auto max-h-[600px]">
+              <div className="overflow-y-auto relative max-h-[600px]">
                 <table className="w-full text-left">
                   <tbody>
                     {liveBets.map((bet, index) => (
@@ -485,7 +485,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
                 </table>
               </div>
               {/* Show total stats */}
-              <>
+              <div className="absolute bottom-4 left-0 right-0 p-4">
               {liveBets.length > 0 && (
                 <div
                   className={`mt-4 pt-3 border-t ${
@@ -523,7 +523,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
                   </div>
                 </div>
               )}
-              </>
+              </div>
             </>
           )}
         </div>
