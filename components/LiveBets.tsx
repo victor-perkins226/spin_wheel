@@ -2,7 +2,7 @@
 "use client";
 
 import Image from "next/image";
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect,  useMemo } from "react";
 import SVG from "./svg.component";
 import io from "socket.io-client";
 import axios from "axios";
@@ -54,7 +54,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
   const [newBetSignatures, setNewBetSignatures] = useState<Set<string>>(
     new Set()
   );
-      const {t} = useTranslation("common");
+  const { t } = useTranslation("common");
   // Animation styles
   const animationStyles = `
     @keyframes slideDownFade {
@@ -108,9 +108,8 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
           .filter((bet: Bet): bet is Bet => bet !== null)
           .filter((bet: Bet) => bet.round_number === currentRound) // Filter by current round
           .sort((a: Bet, b: Bet) => b.amount - a.amount) // Sort by amount descending
-          .slice(0, 10); // Limit to 10 bets
+          .slice(0, 10000); // Limit to 10 bets
         setLiveBets(bets);
-
       } catch (error) {
         console.error("Error fetching bets:", error);
         setError("Failed to load bets");
@@ -158,8 +157,6 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
 
       // Show big bet toast ONLY ONCE
       if (formattedBet.amount > BIG_BET_THRESHOLD) {
-        
-
         // Add a unique ID to prevent duplicates
         const toastId = `big-bet-${formattedBet.signature}`;
 
@@ -222,7 +219,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
 
         const updatedBets = [formattedBet, ...prevBets]
           .sort((a, b) => b.amount - a.amount)
-          .slice(0, 10);
+          .slice(0, 1000);
 
         return updatedBets;
       });
@@ -270,6 +267,11 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
   if (!mounted) {
     return null;
   }
+
+  //   const sortedLiveBets = useMemo(() => {
+  //   return [...liveBets].sort((a, b) => b.amount - a.amount);
+  // }, [liveBets]);
+
 
   const getStateMessageStyle = () => {
     return `flex items-center justify-center h-32 text-center ${
@@ -319,8 +321,6 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
     }`;
   };
 
-
-
   return (
     <>
       <style jsx>{animationStyles}</style>
@@ -340,7 +340,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
         </div>
 
         {/* Live Bets Container */}
-        <div className="glass px-[30px] h-full max-h-[700px] py-[16px] rounded-[20px] w-full">
+        <div className="glass px-[30px] h-full max-h-[750px] py-[16px] rounded-[20px] w-full">
           <div className="mb-4">
             <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <div
@@ -348,14 +348,14 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
                   theme === "dark" ? "bg-green-400" : "bg-green-500"
                 } animate-pulse`}
               ></div>
-              {t('liveBets')}
+              {t("liveBets")}
               {currentRound ? (
                 <span
                   className={`text-sm font-normal ${
                     theme === "dark" ? "text-gray-400" : "text-gray-500"
                   }`}
                 >
-                  {t('round')} #{currentRound}
+                  {t("round")} #{currentRound}
                 </span>
               ) : (
                 ""
@@ -372,7 +372,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
                   onClick={() => window.location.reload()}
                   className="mt-2 text-sm underline hover:no-underline"
                 >
-                  {t('retry')}
+                  {t("retry")}
                 </button>
               </div>
             </div>
@@ -380,112 +380,112 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
             <div className={`${getStateMessageStyle()} ${getLoadingStyle()}`}>
               <div className="flex flex-col items-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3"></div>
-                <div>{t('loading')}...</div>
+                <div>{t("loading")}...</div>
               </div>
             </div>
           ) : currentRound === null ? (
             <div className={getStateMessageStyle()}>
               <div>
                 <SVG iconName="clock" width={24} height={24} />
-                <div className="mt-2">{t('noRound')}</div>
+                <div className="mt-2">{t("noRound")}</div>
               </div>
             </div>
           ) : liveBets.length === 0 ? (
             <div className={getStateMessageStyle()}>
               <div>
-                <div className="mt-2">{t('none')}</div>
-                <div className="text-xs mt-1 opacity-60">
-                  {t('first')}
-                </div>
+                <div className="mt-2">{t("none")}</div>
+                <div className="text-xs mt-1 opacity-60">{t("first")}</div>
               </div>
             </div>
           ) : (
-            <div className="overflow-y-auto max-h-[600px]">
-              <table className="w-full text-left">
-                <tbody>
-                  {liveBets.map((bet, index) => (
-                    <tr
-                      key={bet.signature}
-                      className={`${getTableRowStyle()} ${
-                        index !== liveBets.length - 1
-                          ? theme === "dark"
-                            ? "border-b border-gray-700/50"
-                            : "border-b border-gray-200/50"
-                          : ""
-                      } transition-all duration-400 ease-out ${
-                        newBetSignatures.has(bet.signature)
-                          ? "opacity-0 -translate-y-2"
-                          : "opacity-100 translate-y-0"
-                      }`}
-                      style={{
-                        animation: newBetSignatures.has(bet.signature)
-                          ? "slideDownFade 0.4s ease-out forwards"
-                          : undefined,
-                      }}
-                    >
-                      <td className="py-3">
-                        <div className="flex gap-[8px] items-center">
-                          <div
-                            className={`rounded-full p-1 ${
-                              theme === "dark"
-                                ? "bg-gray-700/50"
-                                : "bg-gray-200/50"
-                            }`}
-                          >
-                            <SVG width={24} height={24} iconName="avatar" />
-                          </div>
-                          <a
-                            href={`https://solscan.io/tx/${bet.signature}?cluster=${network}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={getUserTextStyle()}
-                          >
-                            <span>{bet.user}</span>
-                            <span
-                              className={`font-semibold text-xs flex ${
-                               bet.direction === "UP"
-                                  ? theme === "dark"
-                                    ? "text-green-400"
-                                    : "text-green-600"
-                                  : theme === "dark"
-                                  ? "text-red-400"
-                                  : "text-red-600"
+            <>
+              <div className="overflow-y-auto relative max-h-[600px]">
+                <table className="w-full text-left">
+                  <tbody>
+                    {liveBets.map((bet, index) => (
+                      <tr
+                        key={bet.signature}
+                        className={`${getTableRowStyle()} ${
+                          index !== liveBets.length - 1
+                            ? theme === "dark"
+                              ? "border-b border-gray-700/50"
+                              : "border-b border-gray-200/50"
+                            : ""
+                        } transition-all duration-400 ease-out ${
+                          newBetSignatures.has(bet.signature)
+                            ? "opacity-0 -translate-y-2"
+                            : "opacity-100 translate-y-0"
+                        }`}
+                        style={{
+                          animation: newBetSignatures.has(bet.signature)
+                            ? "slideDownFade 0.4s ease-out forwards"
+                            : undefined,
+                        }}
+                      >
+                        <td className="py-3">
+                          <div className="flex gap-[8px] items-center">
+                            <div
+                              className={`rounded-full p-1 ${
+                                theme === "dark"
+                                  ? "bg-gray-700/50"
+                                  : "bg-gray-200/50"
                               }`}
                             >
-                              {bet.direction === "UP" ? "↑ UP" : "↓ DOWN"}
-                            </span>
-                          </a>
-                        </div>
-                      </td>
-                      <td className="py-3"></td>
-                      <td className="py-3">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`rounded-full p-1 ${
-                              theme === "dark"
-                                ? "bg-gray-700/30"
-                                : "bg-gray-100"
-                            }`}
-                          >
-                            <Image
-                              className="w-[20px] h-auto object-contain"
-                              src={coinIcon}
-                              alt="Solana"
-                              width={20}
-                              height={20}
-                            />
+                              <SVG width={24} height={24} iconName="avatar" />
+                            </div>
+                            <a
+                              href={`https://solscan.io/tx/${bet.signature}?cluster=${network}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={getUserTextStyle()}
+                            >
+                              <span>{bet.user}</span>
+                              <span
+                                className={`font-semibold text-xs flex ${
+                                  bet.direction === "UP"
+                                    ? theme === "dark"
+                                      ? "text-green-400"
+                                      : "text-green-600"
+                                    : theme === "dark"
+                                    ? "text-red-400"
+                                    : "text-red-600"
+                                }`}
+                              >
+                                {bet.direction === "UP" ? "↑ UP" : "↓ DOWN"}
+                              </span>
+                            </a>
                           </div>
-                          <span className={getAmountTextStyle()}>
-                            {formatNum(bet.amount)} SOL
-                          </span>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
+                        </td>
+                        <td className="py-3"></td>
+                        <td className="py-3">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`rounded-full p-1 ${
+                                theme === "dark"
+                                  ? "bg-gray-700/30"
+                                  : "bg-gray-100"
+                              }`}
+                            >
+                              <Image
+                                className="w-[20px] h-auto object-contain"
+                                src={coinIcon}
+                                alt="Solana"
+                                width={20}
+                                height={20}
+                              />
+                            </div>
+                            <span className={getAmountTextStyle()}>
+                              {formatNum(bet.amount)} SOL
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               {/* Show total stats */}
+              <div className="absolute bottom-4 left-0 right-0 p-4">
               {liveBets.length > 0 && (
                 <div
                   className={`mt-4 pt-3 border-t ${
@@ -500,7 +500,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
                         theme === "dark" ? "text-gray-400" : "text-gray-500"
                       }
                     >
-                      {t('totalVol')}
+                      {t("totalVol")}
                     </span>
                     <span className={`font-semibold ${getAmountTextStyle()}`}>
                       {formatNum(
@@ -509,9 +509,22 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
                       SOL
                     </span>
                   </div>
+                  <div className="flex justify-between text-xs">
+                    <span
+                      className={
+                        theme === "dark" ? "text-gray-400" : "text-gray-500"
+                      }
+                    >
+                      Total Bets
+                    </span>
+                    <span className={`font-semibold ${getAmountTextStyle()}`}>
+                      {formatNum(liveBets.length)}{" "}
+                    </span>
+                  </div>
                 </div>
               )}
-            </div>
+              </div>
+            </>
           )}
         </div>
       </div>
