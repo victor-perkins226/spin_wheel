@@ -108,7 +108,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
           .filter((bet: Bet): bet is Bet => bet !== null)
           .filter((bet: Bet) => bet.round_number === currentRound) // Filter by current round
           .sort((a: Bet, b: Bet) => b.amount - a.amount) // Sort by amount descending
-          .slice(0, 10000); // Limit to 10 bets
+          .slice(0, 1000); // Limit to 10 bets
         setLiveBets(bets);
       } catch (error) {
         console.error("Error fetching bets:", error);
@@ -219,7 +219,7 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
 
         const updatedBets = [formattedBet, ...prevBets]
           .sort((a, b) => b.amount - a.amount)
-          .slice(0, 10);
+          .slice(0, 1000);
 
         return updatedBets;
       });
