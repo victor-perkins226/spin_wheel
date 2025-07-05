@@ -1290,10 +1290,10 @@ export default function PredictionCards() {
             </Suspense>
           </div>
 
-          {connected && userBets.length > 0 && (
+          {connected && (
             <BetsHistory
+              walletAddress={effectivePublicKey.toBase58()}
               currentRound={currentRoundNumber!}
-              userBets={userBets}
             />
           )}
         </div>
