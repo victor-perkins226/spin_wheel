@@ -1093,9 +1093,11 @@ export default function PredictionCards() {
             formatTimeLeft={formatTimeLeft}
           />
 
-            <div className="relative my-4 px-4 md:px-0">
- <PredictionCardWrapper isPaused={config?.isPaused ?? false} theme={theme === "dark" ? "dark" : "light"}>
-         
+          <div className="relative my-4 px-4 md:px-0">
+            <PredictionCardWrapper
+              isPaused={config?.isPaused ?? false}
+              theme={theme === "dark" ? "dark" : "light"}
+            >
               <Swiper
                 // key={liveIndex}
                 key={`swiper-${liveIndex}-${finalDisplayRoundsForSwiper.length}`} // Force re-render when live index changes
@@ -1261,9 +1263,8 @@ export default function PredictionCards() {
                       );
                     })}
               </Swiper>
-              
-          </PredictionCardWrapper>
-            </div>
+            </PredictionCardWrapper>
+          </div>
           {/* {config?.isPaused && (
              <>
           <div className="absolute inset-0 bg-black/50 z-10" />

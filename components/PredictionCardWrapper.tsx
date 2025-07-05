@@ -15,7 +15,7 @@ export default function PredictionCardWrapper({
 
       {isPaused && (
         <>
-          <div className="absolute inset-0 bg-black/50 z-10" />
+          <div className="absolute inset-0 z-10" />
           <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
             <div className="pointer-events-auto">
               <MarketPausedToast theme={theme} />
