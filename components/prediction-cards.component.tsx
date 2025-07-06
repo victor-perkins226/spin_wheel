@@ -93,7 +93,7 @@ export default function PredictionCards() {
   const [isFetchingRounds, setIsFetchingRounds] = useState(false);
   const previousComputedRoundsRef = useRef<Round[]>([]); // Ref to store last valid computed rounds
   const [liveTotal, setLiveTotal] = useState<number>(0);
-
+  
   useEffect(() => {
     const sum = claimableBets.reduce((tot, b) => tot + (b.payout || 0), 0);
     setClaimableRewards(sum);
@@ -309,12 +309,18 @@ export default function PredictionCards() {
       safeFetchMoreRounds();
     };
 
+    const handleBetCanceled = (data: any) => {
+      console.log("bet canceled")
+      safeFetchMoreRounds();
+    }
+
     socket.on("roundUpdate", handleRoundUpdate);
     socket.on("newBetPlaced", handleNewBetPlaced);
-
+    socket.on("betCanceled", handleBetCanceled)
     return () => {
       socket.off("roundUpdate", handleRoundUpdate);
       socket.off("newBetPlaced", handleNewBetPlaced);
+      socket.off("betCanceled", handleBetCanceled)
       socket.disconnect();
     };
   }, [safeFetchMoreRounds]);
@@ -517,8 +523,10 @@ export default function PredictionCards() {
       await connectionRef.current.confirmTransaction(signature);
 
       await new Promise((resolve) => setTimeout(resolve, 2000));
+      bonusRef.current?.();
       await Promise.all([fetchUserBets(), fetchMoreRounds(), fetchBalance()]);
-      toast.success("Bet cancelled successfully");
+      setCancelableRewards(0);
+      toast.success("Bets cancelled successfully");
       setIsCancelling(false);
     } catch (err) {
       console.error("Failed to cancel bets:", err);

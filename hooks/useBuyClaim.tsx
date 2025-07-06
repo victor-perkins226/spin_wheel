@@ -197,6 +197,7 @@ export const useSolPredictor = (): SolPredictorHook & { userBalance: number } =>
 
     setUserBets(bets);
     setClaimableBets(claimable);
+    console.log({cancelable})
     setCancelableBets(cancelable);
     return claimable;
   }, [publicKey, connected, program ]);
