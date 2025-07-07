@@ -8,7 +8,6 @@ import { useTranslation } from "next-i18next";
 import { API_URL } from "@/lib/config";
 import { UserBet } from "@/types/round";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-import PuffLoader from "react-spinners/PuffLoader";
 
 interface BetsHistoryProps {
   walletAddress: string;

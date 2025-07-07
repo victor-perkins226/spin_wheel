@@ -65,7 +65,7 @@ export default function Referral({ onCancel }: ReferralProps) {
     }
 
     const referralFrom = selected === "others" ? otherSource.trim() : selected;
- setIsSubmitting(true);
+    setIsSubmitting(true);
     try {
       await axios.post(
         "https://sol-prediction-backend-6e3r.onrender.com/user/referral",
@@ -108,15 +108,17 @@ export default function Referral({ onCancel }: ReferralProps) {
         <p className="mt-2 text-sm">{t("referral.curious")}</p>
 
         <div className="mt-6 space-y-4">
-          {options.map(({ label, value, Icon }) => (
-            <label
+          {options.map(({ label, value, Icon }) => {
+               const isSelected = selected === value
+    const base = "flex items-center p-2 rounded-lg border transition-colors cursor-pointer"
+    const selectedClasses = theme === "dark" ? "border-white shadow-sm ring-1 ring-transparent bg-white/10" : "border-blue-500 ring-1 ring-blue-500 bg-black text-white"
+    const unselectedClasses = theme === "dark"
+      ? "border-transparent hover:bg-gray-200/20 hover:border-gray-600"
+      : "border-transparent hover:bg-gray-500/20 hover:border-gray-400"
+return (
+           <label
               key={value}
-              className={`flex items-center p-2 rounded-lg border transition-colors cursor-pointer
-                ${
-                  selected === value
-                    ? "border-blue-500 ring-1 ring-blue-500 bg-gray-200/10"
-                    : "border-transparent hover:border-gray-600 hover:bg-gray-100/10"
-                }`}
+                 className={`${base} ${isSelected ? selectedClasses : unselectedClasses}`}
             >
               <input
                 type="radio"
@@ -129,13 +131,13 @@ export default function Referral({ onCancel }: ReferralProps) {
               {Icon ? (
                 <Icon className="text-xl mr-3" />
               ) : (
-                <span className="w-6 h-6 mr-3 flex items-center justify-center text-sm rounded-full">
-                  ?
+                <span className="text-sm rounded-full">
+                  
                 </span>
               )}
               <span className="text-sm md:text-lg">{label}</span>
             </label>
-          ))}
+          )})}
         </div>
 
         <div className="mt-4">
@@ -145,11 +147,11 @@ export default function Referral({ onCancel }: ReferralProps) {
             value={otherSource}
             onChange={(e) => setOtherSource(e.target.value)}
             disabled={selected !== "others"}
-            className={`w-full p-3 rounded-2xl placeholder-gray-400 border-transparent
+            className={`w-full p-3 rounded-2xl placeholder-gray-400 border
               focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all
               ${
                 selected !== "others"
-                  ? "opacity-50 cursor-not-allowed"
+                  ? "cursor-not-allowed"
                   : theme === "dark"
                   ? "bg-gray-200/10"
                   : "bg-gray-500/10"
@@ -161,7 +163,9 @@ export default function Referral({ onCancel }: ReferralProps) {
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={selected === "others" && !otherSource.trim() || isSubmitting}
+            disabled={
+              (selected === "others" && !otherSource.trim()) || isSubmitting
+            }
             className={`px-6 py-3 glass rounded-2xl cursor-pointer font-semibold transition-colors
               ${
                 selected === "others" && !otherSource.trim()
@@ -169,8 +173,11 @@ export default function Referral({ onCancel }: ReferralProps) {
                   : "hover:!bg-gray-100/40 "
               }`}
           >
-               {isSubmitting ? (
-              <div className="flex items-center gap-2"><PuffLoader size={16} className="animate-spin" />Submitting...</div>
+            {isSubmitting ? (
+              <div className="flex items-center gap-2">
+                <PuffLoader size={16} className="animate-spin" />
+                Submitting...
+              </div>
             ) : (
               <>Submit</>
             )}
@@ -178,7 +185,6 @@ export default function Referral({ onCancel }: ReferralProps) {
           <button
             type="button"
             onClick={onCancel}
-
             disabled={isSubmitting}
             className="px-6 py-3 glass cursor-pointer !bg-red-600/70 hover:!bg-red-700/40 text-white rounded-2xl font-semibold transition-colors"
           >
