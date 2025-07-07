@@ -77,7 +77,6 @@ export default function BetsHistory({
 
   // re-fetch on betPlaced or claimSuccess
   useEffect(() => {
-    console.log("Setting up event listeners for bet updates");
     const handler = () => {
       setOffset(0);
       fetchPage();

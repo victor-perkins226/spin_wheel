@@ -252,7 +252,7 @@ export const usePreviousRoundsByIds = (currentRound?: number, count: number = 5,
             const roundsData = query?.state?.data?.rounds;
             const isEndPriceSatisfied = roundsData?.[1]?.endPrice && Number(roundsData[1].endPrice) > 0;
 
-            return isEndPriceSatisfied ? false : 1000; // Retry every 5 seconds until endPrice is valid
+            return isEndPriceSatisfied ? 30000 : 1000; // Retry every 5 seconds until endPrice is valid
         },
         retry: (failureCount, error: any) => {
             if (error?.message?.includes("Account does not exist")) return false;

@@ -163,12 +163,6 @@ export const useSolPredictor = (): SolPredictorHook & { userBalance: number } =>
       setClaimableBets(claimableBets);
       setCancelableBets(cancelableBets);
 
-      console.log('Fetched user data:', {
-        userBets: userBets.length,
-        claimableBets: claimableBets.length,
-        cancelableBets: cancelableBets.length
-      });
-
       return claimableBets;
     } catch (error) {
       console.error('Failed to fetch user bets:', error);

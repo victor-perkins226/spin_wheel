@@ -311,7 +311,6 @@ export default function PredictionCards() {
     };
 
     const handleBetCanceled = (data: any) => {
-      console.log("bet canceled")
       safeFetchMoreRounds();
     }
 
@@ -408,7 +407,6 @@ export default function PredictionCards() {
         instructionChunks.push(instructions.slice(i, i + INSTRUCTIONS_PER_TRANSACTION));
       }
 
-      console.log(`Splitting ${instructions.length} instructions into ${instructionChunks.length} transactions`);
 
       // Get a single blockhash for all transactions
       const { blockhash } = await connectionRef.current.getLatestBlockhash();
@@ -423,7 +421,6 @@ export default function PredictionCards() {
       });
 
       // Sign all transactions at once using signAllTransactions
-      console.log(`Signing ${transactions.length} transactions with single wallet interaction...`);
       const signedTransactions = await anchorWallet?.signAllTransactions(transactions);
 
       if (!signedTransactions || signedTransactions.length !== transactions.length) {
@@ -431,7 +428,6 @@ export default function PredictionCards() {
       }
 
       // Send all transactions in parallel
-      console.log(`Sending ${signedTransactions.length} transactions in parallel...`);
       const signatures = await Promise.all(
         signedTransactions.map((signedTx) =>
           connectionRef.current!.sendRawTransaction(signedTx.serialize(), {
@@ -441,14 +437,12 @@ export default function PredictionCards() {
       );
 
       // Wait for all transactions to be confirmed
-      console.log(`Waiting for ${signatures.length} transactions to confirm...`);
       await Promise.all(
         signatures.map((signature) =>
           connectionRef.current!.confirmTransaction(signature, "confirmed")
         )
       );
 
-      console.log(`Successfully processed ${signatures.length} transactions`);
 
       // **immediately** grab the fresh balance
       // const lam = await connectionRef.current.getBalance(publicKey);
@@ -546,7 +540,6 @@ export default function PredictionCards() {
         instructionChunks.push(instructions.slice(i, i + INSTRUCTIONS_PER_TRANSACTION));
       }
 
-      console.log(`Splitting ${instructions.length} cancel instructions into ${instructionChunks.length} transactions`);
 
       // Get a single blockhash for all transactions
       const { blockhash } = await connectionRef.current.getLatestBlockhash();
@@ -560,7 +553,6 @@ export default function PredictionCards() {
       });
 
       // Sign all transactions at once using signAllTransactions
-      console.log(`Signing ${transactions.length} transactions with single wallet interaction...`);
       const signedTransactions = await anchorWallet?.signAllTransactions(transactions);
 
       if (!signedTransactions || signedTransactions.length !== transactions.length) {
@@ -568,7 +560,6 @@ export default function PredictionCards() {
       }
 
       // Send all transactions in parallel
-      console.log(`Sending ${signedTransactions.length} transactions in parallel...`);
       const signatures = await Promise.all(
         signedTransactions.map((signedTx) =>
           connectionRef.current!.sendRawTransaction(signedTx.serialize(), {
@@ -578,7 +569,6 @@ export default function PredictionCards() {
       );
 
       // Wait for all transactions to be confirmed
-      console.log(`Waiting for ${signatures.length} transactions to confirm...`);
       await Promise.all(
         signatures.map((signature) =>
           connectionRef.current!.confirmTransaction(signature, "confirmed")
@@ -910,6 +900,7 @@ export default function PredictionCards() {
     createDummyLaterRound,
     formatCardVariant,
   ]);
+
   useEffect(() => {
     if (computedDisplayRounds.length > 0) {
       previousComputedRoundsRef.current = computedDisplayRounds.filter(
