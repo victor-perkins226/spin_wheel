@@ -213,8 +213,16 @@ export default function PredictionCard({
       }
     };
 
+    const handleCancelBet = (evt: any) => {
+      const { round_number, amount, prediction } = evt.data;
+      if (round_number !== roundIdRef.current) return;
+      const solAmt = amount / LAMPORTS_PER_SOL;
+      if (prediction) setUpBetsLocal((prev) => (prev - solAmt) || 0);
+      else setDownBetsLocal((prev) => (prev - solAmt) || 0);
+      setPrizePoolLocal((prev) => (prev - solAmt) || 0);
+    }
     socket.on("newBetPlaced", handleNewBet);
-
+    socket.on("betCanceled", handleCancelBet);
     return () => {
       socket.off("newBetPlaced", handleNewBet);
     };
@@ -226,7 +234,6 @@ export default function PredictionCard({
     totalFeeBps: number
   ) {
     const totalPool = totalBull + totalBear;
-
     const feeAmount = (totalPool * totalFeeBps) / 10000;
     const netPool = totalPool - feeAmount;
 
@@ -240,7 +247,7 @@ export default function PredictionCard({
 
   const { bullMultiplier, bearMultiplier } = useMemo(
     () => calculateMultipliers(upBetsLocal, downBetsLocal, feeBps),
-    [upBetsLocal, downBetsLocal, feeBps]
+    [upBetsLocal, downBetsLocal, feeBps, lockedPriceLocal]
   );
 
   // Update refs when values change
@@ -611,7 +618,7 @@ export default function PredictionCard({
   const renderNextRoundContent = () => {
     if (variant !== "next") return null;
 
-    let buttonDisabled = isLocked || hasUserBet;
+    let buttonDisabled = isLocked || hasUserBet || config?.isPaused;
     if (!roundData) {
       return (
         <div className="flex-1 glass h-[300px] flex flex-col items-center justify-center rounded-[20px] px-[19px] py-[8.5px]">

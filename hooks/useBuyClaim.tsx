@@ -24,6 +24,8 @@ import {
 import { useTheme } from "next-themes";
 import { useRoundManager } from "./roundManager";
 import { useConfig } from "./useConfig";
+import axios from "axios";
+import { API_URL } from "@/lib/config";
 
 // Define the return type for the hook
 interface SolPredictorHook {
@@ -38,6 +40,8 @@ interface SolPredictorHook {
   claimableBets: ClaimableBet[];
   cancelableBets: CancelableBet[];
   userBets: UserBet[];
+  claimableRewards: number,
+  cancelableRewards: number,
   isPlacingBet: boolean;
 }
 
@@ -46,13 +50,14 @@ export const useSolPredictor = (): SolPredictorHook & { userBalance: number } =>
   const { publicKey, connected } = useWallet();
   const { program } = useProgram();
   const [claimableBets, setClaimableBets] = useState<ClaimableBet[]>([]);
+  const [claimableRewards, setClaimableRewards] = useState<number>(0);
   const [cancelableBets, setCancelableBets] = useState<CancelableBet[]>([]);
   const [userBets, setUserBets] = useState<UserBet[]>([]);
+  const [cancelableRewards, setCancelableRewards] = useState<number>(0);
   const [isPlacingBet, setIsPlacingBet] = useState(false);
   const pendingTransactionRef = useRef<string | null>(null);
   const { theme } = useTheme();
   const [userBalance, setUserBalance] = useState<number>(0);
-  const { data: config } = useConfig();
 
   const fetchUserBalance = useCallback(async () => {
     if (!publicKey || !program) return;
@@ -95,111 +100,81 @@ export const useSolPredictor = (): SolPredictorHook & { userBalance: number } =>
 
   
   const fetchUserBets = useCallback(async (): Promise<ClaimableBet[]> => {
-    if (!publicKey || !connected || !program) {
+    if (!publicKey || !connected) {
       setClaimableBets([]);
       setCancelableBets([]);
       setUserBets([]);
       return [];
     }
 
-    // 1) fetch userBet accounts
-    const userBetAccounts = (await program.account.userBet.all([
-      { memcmp: { offset: 8, bytes: publicKey.toBase58() } },
-    ])) as { publicKey: PublicKey; account: UserBetAccount }[];
+    const walletAddress = publicKey.toBase58();
 
-    if (userBetAccounts.length === 0) {
+    try {
+      // Fetch all data in parallel for better performance
+      const [betHistoryResponse, claimableResponse, cancelableResponse] = await Promise.all([
+        // Fetch bet history (paginated)
+        axios.get(`${API_URL}/user/bet-history/${walletAddress}`, {
+          params: { limit: 10, offset: 0 } // Get first 100 bets
+        }),
+        // Fetch claimable bets
+        axios.get(`${API_URL}/user/claimable-bets/${walletAddress}`),
+        // Fetch cancelable bets
+        axios.get(`${API_URL}/user/cancelable-bets/${walletAddress}`)
+      ]);
+
+      // Process bet history data
+      const betHistoryData = betHistoryResponse.data.data || [];
+      const userBets: UserBet[] = betHistoryData.map((bet: any) => ({
+        id: bet.id,
+        roundId: bet.epoch,
+        direction: bet.direction === 'up' ? 'up' : 'down',
+        status: bet.status.toUpperCase() as UserBet['status'],
+        amount: parseFloat(bet.amount) / LAMPORTS_PER_SOL,
+        payout: parseFloat(bet.payout || '0') / LAMPORTS_PER_SOL,
+        walletAddress: bet.walletAddress,
+        betTime: bet.betTime,
+        createdAt: bet.createdAt,
+      }));
+
+      // Process claimable bets data
+      const claimableData = claimableResponse.data.data || [];
+      const claimableBets: ClaimableBet[] = claimableData.map((bet: any) => ({
+        roundNumber: bet.epoch,
+        amount: parseFloat(bet.amount) / LAMPORTS_PER_SOL,
+        predictBull: bet.direction === 'up',
+        payout: parseFloat(bet.payout || '0') / LAMPORTS_PER_SOL,
+      }));
+
+      // Process cancelable bets data
+      const cancelableData = cancelableResponse.data.data || [];
+      const cancelableBets: CancelableBet[] = cancelableData.map((bet: any) => ({
+        roundNumber: bet.epoch,
+        amount: parseFloat(bet.amount) / LAMPORTS_PER_SOL,
+      }));
+
+      // Update state
+      const claimableRewards = claimableBets.reduce((tot, b) => tot + (b.payout || 0), 0);
+      setClaimableRewards(claimableRewards);
+
+      const cancelableRewards = cancelableBets.reduce((tot, b) => tot + (b.amount || 0), 0);
+      setCancelableRewards(cancelableRewards);
+
+      setUserBets(userBets);
+      setClaimableBets(claimableBets);
+      setCancelableBets(cancelableBets);
+
+      return claimableBets;
+    } catch (error) {
+      console.error('Failed to fetch user bets:', error);
+      
+      // Set empty arrays on error
       setUserBets([]);
       setClaimableBets([]);
       setCancelableBets([]);
+      
       return [];
     }
-
-    const uniqueRoundNumbers = Array.from(
-      new Set(userBetAccounts.map((acc) => acc.account.roundNumber.toNumber()))
-    );
-    const roundPdas = uniqueRoundNumbers.map((rn) => getRoundPda(rn));
-
-    const chunkSize = 100;
-    const allAccountInfos: (AccountInfo<Buffer> | null)[] = [];
-    for (let i = 0; i < roundPdas.length; i += chunkSize) {
-      const slice = roundPdas.slice(i, i + chunkSize);
-      const infos = await program.provider.connection.getMultipleAccountsInfo(
-        slice
-      );
-      allAccountInfos.push(...infos);
-    }
-
-    const roundsByNumber = new Map<number, any>();
-    uniqueRoundNumbers.forEach((rn, idx) => {
-      const info = allAccountInfos[idx];
-      if (info?.data) {
-        const decoded = program.account.round.coder.accounts.decode(
-          "Round",
-          info.data
-        );
-        roundsByNumber.set(rn, decoded);
-      }
-    });
-
-    const bets: UserBet[] = [];
-    const claimable: ClaimableBet[] = [];
-    const cancelable: CancelableBet[] = [];
-    let isPaused = false;
-    if (!config) {
-      const configAccount = await program.account.config.fetch(configPda);
-      isPaused = configAccount.isPaused;
-    } else {
-      isPaused = config.isPaused;
-    }
-    for (const { account } of userBetAccounts) {
-      const roundNumber = account.roundNumber.toNumber();
-      const predictBull = account.predictBull;
-      const amountSol = account.amount.toNumber() / LAMPORTS_PER_SOL;
-      const claimed = account.claimed;
-
-      let status: UserBet["status"] = "PENDING";
-      let payout = 0;
-
-      const roundData = roundsByNumber.get(roundNumber);
-      if (!account.claimed && isPaused) {
-        cancelable.push({ roundNumber, amount: amountSol });
-      }
-
-      if (roundData && !roundData.isActive) {
-        const lockPrice = Number(roundData.lockPrice);
-        const endPrice = Number(roundData.endPrice);
-        const isCorrect = predictBull
-          ? endPrice > lockPrice
-          : endPrice < lockPrice;
-        status = isCorrect ? (claimed ? "CLAIMED" : "WON") : "LOST";
-        if (isCorrect && Number(roundData.rewardBaseCalAmount) > 0) {
-          payout =
-            (amountSol * Number(roundData.rewardAmount)) /
-            Number(roundData.rewardBaseCalAmount);
-        }
-      }
-
-      const userBetPda = getUserBetPda(publicKey, roundNumber).toBase58();
-      bets.push({
-        id: userBetPda,
-        roundId: roundNumber,
-        direction: predictBull ? "up" : "down",
-        status,
-        amount: amountSol,
-        payout,
-      });
-
-      if (status === "WON") {
-        claimable.push({ roundNumber, amount: amountSol, predictBull, payout });
-      }
-
-    }
-
-    setUserBets(bets);
-    setClaimableBets(claimable);
-    setCancelableBets(cancelable);
-    return claimable;
-  }, [publicKey, connected, program ]);
+  }, [publicKey, connected]);
 
   const handlePlaceBet = useCallback(
     async (roundId: number, isBull: boolean, amount: number) => {
@@ -447,7 +422,9 @@ export const useSolPredictor = (): SolPredictorHook & { userBalance: number } =>
     handlePlaceBet,
     handleClaimPayout,
     claimableBets,
+    claimableRewards,
     cancelableBets,
+    cancelableRewards,
     userBets,
     fetchUserBets,
     userBalance,
