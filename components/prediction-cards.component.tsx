@@ -1227,7 +1227,7 @@ export default function PredictionCards() {
                         <SkeletonCard />
                       </SwiperSlide>
                     ))
-                  : finalDisplayRoundsForSwiper.map((round, index) => {
+                  : finalDisplayRoundsForSwiper.filter(round => round.number).map((round, index) => {
                       if (!round || !round.number) {
                         // Add a check for valid round object
                         console.warn(
