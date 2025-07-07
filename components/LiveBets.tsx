@@ -75,6 +75,37 @@ function LiveBets({ currentRound, needRefresh, onLiveTotalChange }: LiveBetsProp
     setMounted(true);
   }, []);
 
+  const fetch = async () => {
+    try {
+      const response = await axios.get(API_URL_BET);
+
+      const bets: Bet[] = response.data
+        .map((bet: any) => {
+          if (!bet.data.round_number) {
+            return null;
+          }
+          const directionStr = bet.data.prediction ? "UP" : "DOWN";
+
+          return {
+            user: bet.data.user.slice(0, 8) + "...",
+            amount: bet.data.amount / 1e9, // Convert lamports to SOL
+            signature: bet.signature,
+            direction: directionStr,
+            timestamp: new Date(bet.timestamp).getTime(),
+            round_number: bet.data.round_number,
+          };
+        })
+        .filter((bet: Bet): bet is Bet => bet !== null)
+        .filter((bet: Bet) => bet.round_number === currentRound) // Filter by current round
+        .sort((a: Bet, b: Bet) => b.amount - a.amount) // Sort by amount descending
+        .slice(0, 10000); // Limit to 10 bets
+      setLiveBets(bets);
+    } catch (error) {
+      console.error("Error fetching bets:", error);
+    } finally {
+    }
+  };
+
   // Fetch bets when currentRound changes
   useEffect(() => {
     if (currentRound === null) {
@@ -88,29 +119,7 @@ function LiveBets({ currentRound, needRefresh, onLiveTotalChange }: LiveBetsProp
         setIsLoading(true);
         setError(null);
         setLiveBets([]); // Clear bets on round change
-        const response = await axios.get(API_URL_BET);
-
-        const bets: Bet[] = response.data
-          .map((bet: any) => {
-            if (!bet.data.round_number) {
-              return null;
-            }
-            const directionStr = bet.data.prediction ? "UP" : "DOWN";
-
-            return {
-              user: bet.data.user.slice(0, 8) + "...",
-              amount: bet.data.amount / 1e9, // Convert lamports to SOL
-              signature: bet.signature,
-              direction: directionStr,
-              timestamp: new Date(bet.timestamp).getTime(),
-              round_number: bet.data.round_number,
-            };
-          })
-          .filter((bet: Bet): bet is Bet => bet !== null)
-          .filter((bet: Bet) => bet.round_number === currentRound) // Filter by current round
-          .sort((a: Bet, b: Bet) => b.amount - a.amount) // Sort by amount descending
-          .slice(0, 10000); // Limit to 10 bets
-        setLiveBets(bets);
+        fetch()
       } catch (error) {
         console.error("Error fetching bets:", error);
         setError("Failed to load bets");
@@ -121,6 +130,17 @@ function LiveBets({ currentRound, needRefresh, onLiveTotalChange }: LiveBetsProp
    
     fetchBets();
   }, [currentRound, needRefresh]);
+
+  // Add this useEffect to call fetch intervally
+  useEffect(() => {
+    if (currentRound === null) return;
+
+    const interval = setInterval(() => {
+      fetch();
+    }, 5000); // fetch every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [currentRound]);
 
   useEffect(() => {
     if (currentRound === null) return;

@@ -1125,6 +1125,15 @@ export default function PredictionCards() {
     };
   }, []);
 
+  useEffect(() => {
+    // Call safeFetchMoreRounds every 30 seconds (adjust as needed)
+    const intervalId = setInterval(() => {
+      safeFetchMoreRounds();
+    }, 30_000); // 30,000 ms = 30 seconds
+
+    return () => clearInterval(intervalId);
+  }, [safeFetchMoreRounds]);
+
   if (mounted && isOffline) {
     return (
       <div className="w-full p-4 text-center text-red-500">
