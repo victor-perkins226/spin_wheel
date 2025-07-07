@@ -38,11 +38,13 @@ const socket = io(WS_URL, {
 
 interface MobileLiveBetsProps {
   currentRound: number | null; // Allow null for loading/undefined states
+  needRefresh: boolean;
   onLiveTotalChange: (total: number) => void; // Optional callback for total change
 }
 
 function MobileLiveBets({
   currentRound,
+  needRefresh,
   onLiveTotalChange,
 }: MobileLiveBetsProps) {
   const { theme } = useTheme();
@@ -120,7 +122,7 @@ function MobileLiveBets({
     };
 
     fetchBets();
-  }, [currentRound]);
+  }, [currentRound, needRefresh]);
 
   useEffect(() => {
     if (currentRound === null) return;

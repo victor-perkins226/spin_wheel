@@ -213,8 +213,16 @@ export default function PredictionCard({
       }
     };
 
+    const handleCancelBet = (evt: any) => {
+      const { round_number, amount, prediction } = evt.data;
+      if (round_number !== roundIdRef.current) return;
+      const solAmt = amount / LAMPORTS_PER_SOL;
+      if (prediction) setUpBetsLocal((prev) => (prev - solAmt) || 0);
+      else setDownBetsLocal((prev) => (prev - solAmt) || 0);
+      setPrizePoolLocal((prev) => (prev - solAmt) || 0);
+    }
     socket.on("newBetPlaced", handleNewBet);
-
+    socket.on("betCanceled", handleCancelBet);
     return () => {
       socket.off("newBetPlaced", handleNewBet);
     };

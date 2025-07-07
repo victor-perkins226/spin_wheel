@@ -12,11 +12,13 @@ import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 interface BetsHistoryProps {
   walletAddress: string;
   currentRound: number;
+  needRefresh: boolean;
 }
 
 export default function BetsHistory({
   walletAddress,
   currentRound,
+  needRefresh
 }: BetsHistoryProps) {
   const { theme } = useTheme();
   const { t } = useTranslation("common");
@@ -71,7 +73,7 @@ export default function BetsHistory({
   // initial + offset changes
   useEffect(() => {
     fetchPage();
-  }, [fetchPage]);
+  }, [fetchPage, needRefresh, currentRound]);
 
   // re-fetch on betPlaced or claimSuccess
   useEffect(() => {
@@ -82,11 +84,13 @@ export default function BetsHistory({
     };
     window.addEventListener("betPlaced", handler);
     window.addEventListener("claimSuccess", handler);
+    window.addEventListener("newRound", handler);
     return () => {
       window.removeEventListener("betPlaced", handler);
       window.removeEventListener("claimSuccess", handler);
+      window.removeEventListener("newRound", handler);
     };
-  }, []);
+  }, [currentRound]);
 
   const handlePrevPage = () => {
     if (hasPrevious) setOffset((prev) => Math.max(prev - limit, 0));
@@ -155,14 +159,6 @@ export default function BetsHistory({
       <h2 className="text-lg font-semibold mb-4 text-foreground">
         {t("betsHistory.title")}
       </h2>
-
-      {loading ? (
-        <div className="text-center py-8">{t("betsHistory.loading")}</div>
-      ) : bets.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground text-sm">
-          {t("betsHistory.none")}
-        </div>
-      ) : (
         <>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -281,7 +277,7 @@ export default function BetsHistory({
             </div>
           </div>
         </>
-      )}
+      
     </div>
   );
 }

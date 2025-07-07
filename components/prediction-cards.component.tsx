@@ -59,18 +59,20 @@ export default function PredictionCards() {
   const [liveRoundPrice, setLiveRoundPrice] = useState(0);
   const [previousPrice, setPreviousPrice] = useState(liveRoundPrice);
   const [priceColor, setPriceColor] = useState("text-gray-900");
-  const [claimableRewards, setClaimableRewards] = useState(0);
-  const [cancelableRewards, setCancelableRewards] = useState(0);
   const [isClaiming, setIsClaiming] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [claimingRoundId, setClaimingRoundId] = useState<number | null>(null);
   const [justClaimed, setJustClaimed] = useState(false);
+  const [justCanceled, setJustCanceled] = useState(false);
+
   const {
     handlePlaceBet,
     handleClaimPayout,
     handleCancelBet,
     claimableBets,
     cancelableBets,
+    claimableRewards,
+    cancelableRewards,
     userBets,
     fetchUserBets,
   } = useSolPredictor();
@@ -93,22 +95,13 @@ export default function PredictionCards() {
   const [isFetchingRounds, setIsFetchingRounds] = useState(false);
   const previousComputedRoundsRef = useRef<Round[]>([]); // Ref to store last valid computed rounds
   const [liveTotal, setLiveTotal] = useState<number>(0);
-  
-  useEffect(() => {
-    const sum = claimableBets.reduce((tot, b) => tot + (b.payout || 0), 0);
-    setClaimableRewards(sum);
-  }, [claimableBets]); // Remove isClaiming dependency
-
-  useEffect(() => {
-    const sum = cancelableBets.reduce((tot, b) => tot + (b.amount || 0), 0);
-    setCancelableRewards(sum);
-  }, [cancelableBets]); // Remove isClaiming dependency
 
   const bonusRef = useRef<(() => void) | undefined>(undefined);
 
   useEffect(() => {
     if (connected && publicKey) {
       fetchUserBets();
+      window.dispatchEvent(new CustomEvent("newRound"))
     }
   }, [connected, publicKey, fetchUserBets, config?.currentRound]);
   const {
@@ -292,6 +285,14 @@ export default function PredictionCards() {
   };
 
   useEffect(() => {
+    const fetch = async () => {
+      await Promise.all([fetchUserBets(), fetchMoreRounds(), fetchBalance()]);
+    }
+
+    fetch();
+  }, [config?.isPaused])
+
+  useEffect(() => {
     const socket = io(API_URL, {
       transports: ["websocket"],
       reconnection: true,
@@ -399,20 +400,55 @@ export default function PredictionCards() {
         )
       );
 
-      const transaction = new Transaction();
-      instructions.forEach((instruction) => transaction.add(instruction));
+      // Split instructions into chunks to avoid transaction size limits
+      const INSTRUCTIONS_PER_TRANSACTION = 1;
+      const instructionChunks = [];
+      
+      for (let i = 0; i < instructions.length; i += INSTRUCTIONS_PER_TRANSACTION) {
+        instructionChunks.push(instructions.slice(i, i + INSTRUCTIONS_PER_TRANSACTION));
+      }
 
+      console.log(`Splitting ${instructions.length} instructions into ${instructionChunks.length} transactions`);
+
+      // Get a single blockhash for all transactions
       const { blockhash } = await connectionRef.current.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = publicKey;
 
-      const signature = await sendTransaction(
-        transaction,
-        connectionRef.current,
-        { skipPreflight: false }
+      // Build all transactions first
+      const transactions = instructionChunks.map((chunk) => {
+        const transaction = new Transaction();
+        chunk.forEach((instruction) => transaction.add(instruction));
+        transaction.recentBlockhash = blockhash;
+        transaction.feePayer = publicKey;
+        return transaction;
+      });
+
+      // Sign all transactions at once using signAllTransactions
+      console.log(`Signing ${transactions.length} transactions with single wallet interaction...`);
+      const signedTransactions = await anchorWallet?.signAllTransactions(transactions);
+
+      if (!signedTransactions || signedTransactions.length !== transactions.length) {
+        throw new Error("Failed to sign all transactions");
+      }
+
+      // Send all transactions in parallel
+      console.log(`Sending ${signedTransactions.length} transactions in parallel...`);
+      const signatures = await Promise.all(
+        signedTransactions.map((signedTx) =>
+          connectionRef.current!.sendRawTransaction(signedTx.serialize(), {
+            skipPreflight: false,
+          })
+        )
       );
 
-      await connectionRef.current.confirmTransaction(signature);
+      // Wait for all transactions to be confirmed
+      console.log(`Waiting for ${signatures.length} transactions to confirm...`);
+      await Promise.all(
+        signatures.map((signature) =>
+          connectionRef.current!.confirmTransaction(signature, "confirmed")
+        )
+      );
+
+      console.log(`Successfully processed ${signatures.length} transactions`);
 
       // **immediately** grab the fresh balance
       // const lam = await connectionRef.current.getBalance(publicKey);
@@ -421,9 +457,6 @@ export default function PredictionCards() {
       // then refresh your bets
       await new Promise((resolve) => setTimeout(resolve, 2000));
       await Promise.all([fetchUserBets(), fetchMoreRounds(), fetchBalance()]);
-      setJustClaimed(true);
-
-      setClaimableRewards(0);
       setJustClaimed(true);
 
       // Force a complete re-render by updating swiper
@@ -482,6 +515,7 @@ export default function PredictionCards() {
     fetchUserBets,
     handleClaimPayout,
     theme,
+    anchorWallet,
   ]);
 
   const handleCancelAll = useCallback(async () => {
@@ -504,28 +538,57 @@ export default function PredictionCards() {
         return;
       }
 
-      const transaction = new Transaction();
-      instructions.forEach((instruction) => transaction.add(instruction));
-
-      const { blockhash } = await connectionRef.current.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = publicKey;
-
-      const signedTransaction = await anchorWallet?.signTransaction(
-        transaction
-      );
-      if (!signedTransaction) {
-        throw new Error("Failed to sign transaction");
+      // Split instructions into chunks to avoid transaction size limits
+      const INSTRUCTIONS_PER_TRANSACTION = 1;
+      const instructionChunks = [];
+      
+      for (let i = 0; i < instructions.length; i += INSTRUCTIONS_PER_TRANSACTION) {
+        instructionChunks.push(instructions.slice(i, i + INSTRUCTIONS_PER_TRANSACTION));
       }
-      const signature = await connectionRef.current.sendRawTransaction(
-        signedTransaction.serialize()
+
+      console.log(`Splitting ${instructions.length} cancel instructions into ${instructionChunks.length} transactions`);
+
+      // Get a single blockhash for all transactions
+      const { blockhash } = await connectionRef.current.getLatestBlockhash();
+
+      const transactions = instructionChunks.map((chunk) => {
+        const transaction = new Transaction();
+        chunk.forEach((instruction) => transaction.add(instruction));
+        transaction.recentBlockhash = blockhash;
+        transaction.feePayer = publicKey;
+        return transaction;
+      });
+
+      // Sign all transactions at once using signAllTransactions
+      console.log(`Signing ${transactions.length} transactions with single wallet interaction...`);
+      const signedTransactions = await anchorWallet?.signAllTransactions(transactions);
+
+      if (!signedTransactions || signedTransactions.length !== transactions.length) {
+        throw new Error("Failed to sign all transactions");
+      }
+
+      // Send all transactions in parallel
+      console.log(`Sending ${signedTransactions.length} transactions in parallel...`);
+      const signatures = await Promise.all(
+        signedTransactions.map((signedTx) =>
+          connectionRef.current!.sendRawTransaction(signedTx.serialize(), {
+            skipPreflight: false,
+          })
+        )
       );
-      await connectionRef.current.confirmTransaction(signature);
+
+      // Wait for all transactions to be confirmed
+      console.log(`Waiting for ${signatures.length} transactions to confirm...`);
+      await Promise.all(
+        signatures.map((signature) =>
+          connectionRef.current!.confirmTransaction(signature, "confirmed")
+        )
+      );
 
       await new Promise((resolve) => setTimeout(resolve, 2000));
       bonusRef.current?.();
+      setJustCanceled(prev => !prev)
       await Promise.all([fetchUserBets(), fetchMoreRounds(), fetchBalance()]);
-      setCancelableRewards(0);
       toast.success("Bets cancelled successfully");
       setIsCancelling(false);
     } catch (err) {
@@ -1288,6 +1351,7 @@ export default function PredictionCards() {
           <div className="xl:hidden">
             <MobileLiveBets
               onLiveTotalChange={handleLiveTotalChange}
+              needRefresh={justCanceled}
               currentRound={Number(currentRound?.number) ?? null}
             />
           </div>
@@ -1302,12 +1366,14 @@ export default function PredictionCards() {
             <BetsHistory
               walletAddress={effectivePublicKey.toBase58()}
               currentRound={currentRoundNumber!}
+              needRefresh = {justCanceled}
             />
           )}
         </div>
         <LiveBets
           onLiveTotalChange={handleLiveTotalChange}
           currentRound={Number(currentRound?.number) ?? null}
+          needRefresh = {justCanceled}
           key={currentRound?.number}
         />
       </div>

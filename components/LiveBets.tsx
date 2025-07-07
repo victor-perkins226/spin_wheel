@@ -42,10 +42,11 @@ const socket = io(WS_URL, {
 
 interface LiveBetsProps {
   currentRound: number | null; // Allow null for loading/undefined states
+  needRefresh: boolean;
   onLiveTotalChange: (total: number) => void; // Optional callback for total change
 }
 
-function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
+function LiveBets({ currentRound, needRefresh, onLiveTotalChange }: LiveBetsProps) {
   const { theme } = useTheme();
   const [liveBets, setLiveBets] = useState<Bet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -117,9 +118,9 @@ function LiveBets({ currentRound, onLiveTotalChange }: LiveBetsProps) {
         setIsLoading(false);
       }
     };
-
+   
     fetchBets();
-  }, [currentRound]);
+  }, [currentRound, needRefresh]);
 
   useEffect(() => {
     if (currentRound === null) return;
