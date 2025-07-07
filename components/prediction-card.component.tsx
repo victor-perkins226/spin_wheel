@@ -1179,7 +1179,7 @@ const didWin = useMemo(() => {
                 const clamped = Math.min(parsed, maxAmount);
                 setAmount(clamped);
                 // normalize the display so “0.200” → “0.2”
-                setInputValue(formatNum(clamped));
+                setInputValue(clamped.toString());
               }
             }}
             className={`glass h-[65px] text-right rounded-[20px] pr-4 font-semibold text-[16px] outline-0 ${

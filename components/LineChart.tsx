@@ -166,7 +166,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         {payload.map((entry: any, index: number) => (
           <p key={index} style={{ color: entry.color }} className="text-sm">
             {entry.dataKey === "pythPrice" ? "Pyth Oracle" : "CoinGecko"}: $
-            {entry.value?.toFixed(2)}
+            {parseFloat(entry.value?.toFixed(4))}
           </p>
         ))}
       </div>

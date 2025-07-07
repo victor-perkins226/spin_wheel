@@ -39,7 +39,6 @@ export default function BetsHistory({
   const currentPage = Math.floor(offset / limit) + 1;
   const totalPages = Math.ceil(total / limit);
 
-  // fetch logic extracted
   const fetchPage = useCallback(async () => {
     setLoading(true);
     try {
@@ -68,14 +67,13 @@ export default function BetsHistory({
     } finally {
       setLoading(false);
     }
-  }, [walletAddress, limit, offset]);
+  }, [walletAddress, limit, offset, currentRound]);
 
   // initial + offset changes
   useEffect(() => {
     fetchPage();
   }, [fetchPage, needRefresh, currentRound]);
 
-  // re-fetch on betPlaced or claimSuccess
   useEffect(() => {
     const handler = () => {
       setOffset(0);
@@ -98,9 +96,10 @@ export default function BetsHistory({
     if (hasNext) setOffset((prev) => prev + limit);
   };
 
-  // helpers as before...
+  // helpers
   const displayStatus = (bet: UserBet) =>
     bet.roundId >= currentRound - 1 ? "PENDING" : bet.status;
+
   const getStatusColor = (status: string) => {
     const base = "px-2 py-1 rounded-full text-xs font-medium";
     switch (status) {
@@ -136,6 +135,7 @@ export default function BetsHistory({
         }`;
     }
   };
+
   const getDirectionColor = (dir: string) =>
     dir === "up"
       ? theme === "dark"
@@ -144,6 +144,7 @@ export default function BetsHistory({
       : theme === "dark"
       ? "text-red-400"
       : "text-red-600";
+
   const getBorderColor = () =>
     theme === "dark" ? "border-gray-700" : "border-gray-200";
   const getTextColor = () =>
@@ -207,7 +208,9 @@ export default function BetsHistory({
                         {formatNum(bet.amount)} SOL
                       </td>
                       <td className="py-3">
-                        <span className={getStatusColor(status)}>{status}</span>
+                        <span className={getStatusColor(status)}>
+                          {status}
+                        </span>
                       </td>
                       <td className="py-3 font-mono text-xs md:text-sm text-foreground">
                         {["WON", "CLAIMED"].includes(status) ? (
@@ -223,7 +226,9 @@ export default function BetsHistory({
                         ) : status === "LOST" ? (
                           <span
                             className={
-                              theme === "dark" ? "text-red-400" : "text-red-600"
+                              theme === "dark"
+                                ? "text-red-400"
+                                : "text-red-600"
                             }
                           >
                             -{formatNum(bet.amount)} SOL
