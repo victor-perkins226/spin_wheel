@@ -920,12 +920,18 @@ export default function PredictionCards() {
 
   // Determine the final set of rounds to display in the Swiper
   const finalDisplayRoundsForSwiper = useMemo(() => {
+    const isValidRoundNumber = (round: Round) =>
+      round &&
+      round.number !== undefined &&
+      !isNaN(Number(round.number)) &&
+      isFinite(Number(round.number));
+
     if (computedDisplayRounds.length > 0) {
-      return computedDisplayRounds;
+      return computedDisplayRounds.filter(isValidRoundNumber);
     }
 
     if (previousComputedRoundsRef.current.length > 0) {
-      return previousComputedRoundsRef.current;
+      return previousComputedRoundsRef.current.filter(isValidRoundNumber);
     }
 
     if (typeof currentRoundNumber === "number") {
@@ -949,6 +955,7 @@ export default function PredictionCards() {
           status: i === 0 ? "expired" : i === 1 ? "next" : "later",
         } as unknown as Round);
       }
+      return fallbackRounds.filter(isValidRoundNumber);
     }
 
     return [];
