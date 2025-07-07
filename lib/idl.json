@@ -353,6 +353,10 @@
         {
           "name": "bufferSeconds",
           "type": "u64"
+        },
+        {
+          "name": "executor",
+          "type": "publicKey"
         }
       ]
     },
@@ -755,6 +759,11 @@
           "index": false
         },
         {
+          "name": "prediction",
+          "type": "bool",
+          "index": false
+        },
+        {
           "name": "timestamp",
           "type": "i64",
           "index": false
@@ -960,6 +969,11 @@
           "index": false
         },
         {
+          "name": "executor",
+          "type": "publicKey",
+          "index": false
+        },
+        {
           "name": "timestamp",
           "type": "i64",
           "index": false
@@ -1032,31 +1046,6 @@
         {
           "name": "bufferSeconds",
           "type": "u64",
-          "index": false
-        },
-        {
-          "name": "timestamp",
-          "type": "i64",
-          "index": false
-        }
-      ]
-    },
-    {
-      "name": "ExecutorUpdated",
-      "fields": [
-        {
-          "name": "multisig",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "oldExecutor",
-          "type": "publicKey",
-          "index": false
-        },
-        {
-          "name": "newExecutor",
-          "type": "publicKey",
           "index": false
         },
         {
@@ -1302,6 +1291,6 @@
     }
   ],
   "metadata": {
-    "address": "GHxMXAX2TPKSYgMTM92NfsJEm2NGpt9j5fWGWypTF34R"
+    "address": "2Lcsj4s1MM4B4mdAc9ii46JNB8BaQZwq87SnuT7YP4Qc"
   }
 }
