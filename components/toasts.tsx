@@ -6,6 +6,7 @@ import Success from "@/public/assets/success-bet.png";
 import BetFailed from "@/public/assets/BetFailure.png";
 import Cheers from "@/public/assets/cheers.png";
 import Withdraw from "@/public/assets/Withdrawal.png";
+import NoInternet from "@/public/assets/no-internet.png";
 import { formatNum } from "@/lib/utils";
 import { useTranslation } from "next-i18next";
 import Paused from "@/public/assets/paused.png";
@@ -535,3 +536,36 @@ export function MarketPausedToast({ theme }: { theme: string | undefined }) {
     </div>
   );
 }
+
+export function NoInternetToast({ theme }: { theme: string | undefined }) {
+  return (
+    <div
+      className={`
+        
+        mx-auto animate-toast-bounce-in w-full text-center h-[400px] max-w-[600px]
+        rounded-2xl overflow-hidden
+        flex flex-col items-center p-4 pb-12 mt-16
+      `}
+      style={{
+        animation: "fadeInDown 200ms ease-out forwards",
+      }}
+    >
+      <div className="animate-vibrate w-full h-[280px] relative mb-4">
+        <Image
+          src={NoInternet}
+          alt="No Internet"
+          fill
+          className="object-contain rounded-xl"
+        />
+      </div>
+      <h3 className="font-bold text-2xl mb-2 animate-toast-pulse">
+        Oops! You have no Internet Connection
+      </h3>
+      <p className="max-w-lg mt-3 mx-auto text-sm">
+        Hang tight! Reconnect to get back to what you were doing.
+      </p>
+    </div>
+  );
+}
+
+

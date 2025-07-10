@@ -15,8 +15,12 @@ import Hero from "@/components/hero.component";
 import PredictionCards from "@/components/prediction-cards.component";
 import Referral from "@/components/referral";
 import Lock from "@/public/assets/lock.png";
+import { NoInternetToast } from "@/components/toasts";
 
-export const getServerSideProps: GetServerSideProps = async ({ req, locale }) => {
+export const getServerSideProps: GetServerSideProps = async ({
+  req,
+  locale,
+}) => {
   const rawCountry = req.headers["x-vercel-ip-country"] as string | undefined;
   const country = rawCountry ? rawCountry.toUpperCase() : "";
   const isBanned = BANNED_COUNTRY_CODES.includes(country);
@@ -36,6 +40,40 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
 
   const [showReferralModal, setShowReferralModal] = useState(false);
   const [checkedReferral, setCheckedReferral] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+
+    const ping = async () => {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+
+        await fetch("https://api.ipify.org?format=json", {
+          method: "GET",
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (alive) {
+          setIsOnline(true);
+        }
+      } catch (err) {
+        if (alive) {
+          setIsOnline(false);
+        }
+      }
+    };
+
+    ping();
+    const intervalId = setInterval(ping, 10_000);
+
+    return () => {
+      alive = false;
+      clearInterval(intervalId);
+    };
+  }, []);
 
   useEffect(() => {
     if (!connected || !publicKey) return;
@@ -84,6 +122,16 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
     );
   }
 
+  if (!isOnline) {
+    return (
+      <>
+        <Head>
+          <title>No Internet Connection | FORTUVA</title>
+        </Head>
+        <NoInternetToast theme={theme} />
+      </>
+    );
+  }
   return (
     <>
       <Head>
