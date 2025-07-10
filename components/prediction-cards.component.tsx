@@ -42,7 +42,7 @@ import {
   MarketPausedToast,
   NoClaimableBetsToast,
 } from "./toasts";
-import { API_URL, RPC_URL } from "@/lib/config";
+import { API_URL } from "@/lib/config";
 import { useTranslation } from "next-i18next";
 import PredictionCardWrapper from "./PredictionCardWrapper";
 const BetsHistory = React.lazy(() => import("./BetsHistory"));
