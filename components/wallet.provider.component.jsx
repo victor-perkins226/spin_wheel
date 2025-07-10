@@ -18,12 +18,12 @@ import {
   TrustWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
-import { clusterApiUrl } from "@solana/web3.js";
 
 // Default styles that can be overridden by your app
 import "@solana/wallet-adapter-react-ui/styles.css";
 
 import { RPC_URL } from "@/lib/config";
+import { useConnection } from "@/hooks/useConnection";
 
 export const network = WalletAdapterNetwork.Devnet;
 
@@ -37,7 +37,8 @@ export const WalletContextProvider = ({
     setMounted(true);
   }, []);
 
-  const endpoint = useMemo(() => RPC_URL, []);
+  const { connection } = useConnection();
+  const endpoint = useMemo(() => connection?.rpcEndpoint || RPC_URL, [connection]);
 
   const wallets = useMemo(() => {
     // only construct adapters in the browser

@@ -135,7 +135,7 @@ export default function Leaderboard({
               className={`absolute inset-0 flex items-center justify-center 
                 ${theme === "dark" ? "bg-black/20" : "bg-white/20"} z-10`}
             >
-<PuffLoader
+            <PuffLoader
                 size={30}
                 color={theme === "dark" ? "#ffffff" : "#000000"}
                 loading={loading}
