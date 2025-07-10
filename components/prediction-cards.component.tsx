@@ -15,7 +15,7 @@ import { EffectCoverflow, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-coverflow";
 import "swiper/css/pagination";
-import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
+import { useAnchorWallet, useConnection, useWallet } from "@solana/wallet-adapter-react";
 import {
   Connection,
   Keypair,
@@ -54,6 +54,7 @@ export default function PredictionCards() {
   const [mounted, setMounted] = useState(false);
   const swiperRef = useRef<any>(null);
   const { publicKey, connected, sendTransaction } = useWallet();
+  const { connection } = useConnection();
   const connectionRef = useRef<Connection | null>(null);
   const [userBalance, setUserBalance] = useState(-1);
   const [liveRoundPrice, setLiveRoundPrice] = useState(0);
@@ -125,20 +126,19 @@ export default function PredictionCards() {
   }, [effectivePublicKey]);
 
   useEffect(() => {
-    if (!connected || !publicKey) {
+    if (!connected || !publicKey || !connection) {
       setUserBalance(0);
       return;
     }
 
-    const conn = new Connection(RPC_URL, { commitment: "confirmed" });
-    connectionRef.current = conn;
+    connectionRef.current = connection;
 
     let active = true;
 
     // 1. Initial fetch on connect
     const initialFetch = async () => {
       try {
-        const lamports = await conn.getBalance(publicKey);
+        const lamports = await connection.getBalance(publicKey);
         if (active) {
           setUserBalance(lamports / LAMPORTS_PER_SOL);
         }
@@ -150,7 +150,7 @@ export default function PredictionCards() {
     initialFetch();
 
     // 2. Subscribe to live balance changes - this is the key fix
-    const listenerId = conn.onAccountChange(
+    const listenerId = connection.onAccountChange(
       publicKey,
       (accountInfo) => {
         if (active) {
@@ -162,7 +162,7 @@ export default function PredictionCards() {
 
     return () => {
       active = false;
-      conn.removeAccountChangeListener(listenerId);
+      connection.removeAccountChangeListener(listenerId);
     };
   }, [connected, publicKey, fetchBalance]);
 
