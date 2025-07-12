@@ -277,7 +277,7 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
                 </div>
               </div>
               <div className="relative border-l-2 pl-4 border-gray-300 group">
-                <p className="text-sm opacity-70 cursor-help">Your Bonus</p>
+                <p className="text-sm opacity-70 cursor-help">{t("bonus")}</p>
 
                 {/* tooltip panel */}
                 <div className="pointer-events-none absolute left-0 bottom-full mt-2 w-full md:w-64 !bg-gray-500 glass rounded-md z-[100] p-3 text-xs opacity-0 transition-opacity group-hover:opacity-100">

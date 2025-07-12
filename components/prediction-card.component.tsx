@@ -664,10 +664,11 @@ export default function PredictionCard({
                 background:
                   "linear-gradient(228.15deg, rgba(255, 255, 255, 0.2) -64.71%, rgba(255, 255, 255, 0.05) 102.6%)",
                 width: "100%",
-                height: "40px",
+                height: "auto",
                 borderRadius: "20px",
                 fontWeight: "600",
-                padding: "20px"
+                fontSize: "12px",
+                padding: "0px 10px"
               }}
               className="!w-full !h-10  !rounded-full !font-semibold"
             >

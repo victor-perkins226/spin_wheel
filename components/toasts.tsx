@@ -335,6 +335,60 @@ export function TransactionFailedToast({
   );
 }
 
+export function ConnectionFailedToast({
+  theme,
+}: {
+  theme: string | undefined;
+}) {
+  const { t } = useTranslation("common");
+
+  return (
+    <div
+      className={`
+        glass text-left animate-toast-bounce rounded-2xl
+        shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
+        flex flex-col items-start p-4 mt-8
+        ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
+      `}
+      style={{
+        animation: "fadeInDown 200ms ease-out forwards",
+      }}
+    >
+      <h3 className="font-bold text-sm text-center animate-toast-pulse mb">
+        Connection Failed
+      </h3>
+
+    </div>
+  );
+}
+
+export function WalletFailedToast({
+  theme,
+}: {
+  theme: string | undefined;
+}) {
+  const { t } = useTranslation("common");
+
+  return (
+    <div
+      className={`
+        glass text-left animate-toast-bounce rounded-2xl
+        shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
+        flex flex-col items-start p-4 mt-8
+        ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
+      `}
+      style={{
+        animation: "fadeInDown 200ms ease-out forwards",
+      }}
+    >
+      <h3 className="font-bold text-sm text-center animate-toast-pulse mb">
+        Wallet Not Installed
+      </h3>
+
+    </div>
+  );
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // 7) AlreadyPlacedBetToast
 ////////////////////////////////////////////////////////////////////////////////

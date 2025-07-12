@@ -10,6 +10,8 @@ import { useTheme } from "next-themes";
 import { ThemeToggle } from "./Themetoggle";
 import LanguageDropdown from "./LanguageDropdown";
 import ProfileWallet from "./ProfileWallet";
+import CustomWalletButton from "./CustomWalletButton";
+import EnhancedWalletButton from "./CustomWalletButton";
 
 export default function Header() {
   const { theme } = useTheme();
@@ -49,8 +51,8 @@ export default function Header() {
           <LanguageDropdown />
           <ThemeToggle />
           {/* {renderWalletButton()} */}
-
-          <WalletMultiButton />
+          <EnhancedWalletButton/>
+          {/* <WalletMultiButton /> */}
         </div>
         {/* <WalletDisconnectButton/> */}
       </header>
