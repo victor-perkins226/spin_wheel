@@ -292,14 +292,7 @@ input[type="number"] {
   animation: toast-spin 2s linear infinite;
 }
 
-/* 1. The “card” itself only needs a solid fill (or transparent),
-      and a fixed border‐radius. */
-      .gradient-border {
-                     /* put this above the ::before layer */
-      }
-      
-      /* 2. Use a ::before that is slightly larger (by 3px on each side)
-            to draw the animated gradient around all four edges. */
+
       .gradient-border::before {
         content: "";
         position: absolute;
@@ -326,15 +319,14 @@ input[type="number"] {
         100% { background-position: 0% 50%; }
       }
       
-      /* 4. Finally, if you want to parameterize the 3px value instead of hard-coding, */
       :root {
         --borderWidth: 3px;
       }
       
       .gradient-border {
         position: relative;
-        background: #1d1f20;        /* or whatever solid color you want inside */
-        border-radius: 22px;         /* matches the border thickness below */
+        background: #1d1f20;      
+        border-radius: 22px;       
         z-index: 0;  
         height: 99%;
         border: var(--borderWidth) solid transparent; /* this is the border thickness */
@@ -343,21 +335,32 @@ input[type="number"] {
       
    .gradient-border:before {
     width: calc(100% + 10.5px);
-    height: calc(100% + var(--borderWidth) * 3);
+    height: calc(100% + var(--borderWidth) * 3.25);
     border-radius: 22px;
     padding-top: .25rem;
-    top: -4.5px;
+    top: -5px;
     left: -5px;
 }
 
-@media (max-width:400px){
+@media (max-width:500px){
  .gradient-border:before {
-    width: calc(100% + 20px);
-    height: calc(100% + var(--borderWidth) * 2.5);
+    width: calc(100% + 12px);
+    height: calc(100% + var(--borderWidth) * 3.5);
+    border-radius: 22px;
+    padding-top: .25rem;
+    top: -6px;
+    left: -6.5px;
+}
+}
+
+@media (max-width:390px){
+ .gradient-border:before {
+    width: calc(100% + 10px);
+    height: calc(100% + var(--borderWidth) * 2.75);
     border-radius: 22px;
     padding-top: .25rem;
     top: -4px;
-    left: -6px;
+    left: -5.5px;
 }
 }
       

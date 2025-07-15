@@ -971,7 +971,7 @@ const didWin = useMemo(() => {
       <div
         className={` ${
           theme === "light" ? "bg-[#fffffff1]" : "bg-[#2a2a4c]"
-        }  rounded-[20px] min-w-[220px] sm:min-w-[273px] w-full p-4`}
+        }  rounded-[20px] min-w-[220px] sm:min-w-[223px] w-full p-4`}
       >
         <div
           className={`${
