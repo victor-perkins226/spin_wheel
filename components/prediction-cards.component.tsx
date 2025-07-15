@@ -1229,11 +1229,15 @@ export default function PredictionCards() {
                 breakpoints={{
                   // when window width is >= 0px
                   0: {
-                    slidesPerView: 1.35,
+                    slidesPerView: 1.1,
                     spaceBetween: 0,
                   },
                   375: {
-                    slidesPerView: 1.3,
+                    slidesPerView: 1.2,
+                    spaceBetween: 0,
+                  },
+                   700: {
+                    slidesPerView: 2,
                     spaceBetween: 0,
                   },
                   800: {

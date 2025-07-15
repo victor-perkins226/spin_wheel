@@ -57,7 +57,7 @@ export default function Header() {
         {/* <WalletDisconnectButton/> */}
       </header>
 
-      <header className="flex flex-col md:hidden text-xs gap-10 justify-between pb-10 mt-[58px]">
+      <header className="flex flex-col md:hidden text-xs gap-10 justify-between pb-3 mt-[58px]">
                   <div className="flex justify-between items-center w-full ">
           <Link href={routes.home()}>
           {mounted && (
@@ -72,7 +72,7 @@ export default function Header() {
         
         <LanguageDropdown />
         </div>
-        <div className="flex justify-between items-end w-full ">
+        <div className="flex justify-between items-center w-full ">
             
         <ProfileWallet />
         <ThemeToggle />
