@@ -15,7 +15,11 @@ import { EffectCoverflow, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/effect-coverflow";
 import "swiper/css/pagination";
-import { useAnchorWallet, useConnection, useWallet } from "@solana/wallet-adapter-react";
+import {
+  useAnchorWallet,
+  useConnection,
+  useWallet,
+} from "@solana/wallet-adapter-react";
 import {
   Connection,
   Keypair,
@@ -102,7 +106,7 @@ export default function PredictionCards() {
   useEffect(() => {
     if (connected && publicKey) {
       fetchUserBets();
-      window.dispatchEvent(new CustomEvent("newRound"))
+      window.dispatchEvent(new CustomEvent("newRound"));
     }
   }, [connected, publicKey, fetchUserBets, config?.currentRound]);
   const {
@@ -287,10 +291,10 @@ export default function PredictionCards() {
   useEffect(() => {
     const fetch = async () => {
       await Promise.all([fetchUserBets(), fetchMoreRounds(), fetchBalance()]);
-    }
+    };
 
     fetch();
-  }, [config?.isPaused])
+  }, [config?.isPaused]);
 
   useEffect(() => {
     const socket = io(API_URL, {
@@ -312,15 +316,15 @@ export default function PredictionCards() {
 
     const handleBetCanceled = (data: any) => {
       safeFetchMoreRounds();
-    }
+    };
 
     socket.on("roundUpdate", handleRoundUpdate);
     socket.on("newBetPlaced", handleNewBetPlaced);
-    socket.on("betCanceled", handleBetCanceled)
+    socket.on("betCanceled", handleBetCanceled);
     return () => {
       socket.off("roundUpdate", handleRoundUpdate);
       socket.off("newBetPlaced", handleNewBetPlaced);
-      socket.off("betCanceled", handleBetCanceled)
+      socket.off("betCanceled", handleBetCanceled);
       socket.disconnect();
     };
   }, [safeFetchMoreRounds]);
@@ -402,11 +406,16 @@ export default function PredictionCards() {
       // Split instructions into chunks to avoid transaction size limits
       const INSTRUCTIONS_PER_TRANSACTION = 1;
       const instructionChunks = [];
-      
-      for (let i = 0; i < instructions.length; i += INSTRUCTIONS_PER_TRANSACTION) {
-        instructionChunks.push(instructions.slice(i, i + INSTRUCTIONS_PER_TRANSACTION));
-      }
 
+      for (
+        let i = 0;
+        i < instructions.length;
+        i += INSTRUCTIONS_PER_TRANSACTION
+      ) {
+        instructionChunks.push(
+          instructions.slice(i, i + INSTRUCTIONS_PER_TRANSACTION)
+        );
+      }
 
       // Get a single blockhash for all transactions
       const { blockhash } = await connectionRef.current.getLatestBlockhash();
@@ -421,9 +430,14 @@ export default function PredictionCards() {
       });
 
       // Sign all transactions at once using signAllTransactions
-      const signedTransactions = await anchorWallet?.signAllTransactions(transactions);
+      const signedTransactions = await anchorWallet?.signAllTransactions(
+        transactions
+      );
 
-      if (!signedTransactions || signedTransactions.length !== transactions.length) {
+      if (
+        !signedTransactions ||
+        signedTransactions.length !== transactions.length
+      ) {
         throw new Error("Failed to sign all transactions");
       }
 
@@ -442,7 +456,6 @@ export default function PredictionCards() {
           connectionRef.current!.confirmTransaction(signature, "confirmed")
         )
       );
-
 
       // **immediately** grab the fresh balance
       // const lam = await connectionRef.current.getBalance(publicKey);
@@ -535,11 +548,16 @@ export default function PredictionCards() {
       // Split instructions into chunks to avoid transaction size limits
       const INSTRUCTIONS_PER_TRANSACTION = 1;
       const instructionChunks = [];
-      
-      for (let i = 0; i < instructions.length; i += INSTRUCTIONS_PER_TRANSACTION) {
-        instructionChunks.push(instructions.slice(i, i + INSTRUCTIONS_PER_TRANSACTION));
-      }
 
+      for (
+        let i = 0;
+        i < instructions.length;
+        i += INSTRUCTIONS_PER_TRANSACTION
+      ) {
+        instructionChunks.push(
+          instructions.slice(i, i + INSTRUCTIONS_PER_TRANSACTION)
+        );
+      }
 
       // Get a single blockhash for all transactions
       const { blockhash } = await connectionRef.current.getLatestBlockhash();
@@ -553,9 +571,14 @@ export default function PredictionCards() {
       });
 
       // Sign all transactions at once using signAllTransactions
-      const signedTransactions = await anchorWallet?.signAllTransactions(transactions);
+      const signedTransactions = await anchorWallet?.signAllTransactions(
+        transactions
+      );
 
-      if (!signedTransactions || signedTransactions.length !== transactions.length) {
+      if (
+        !signedTransactions ||
+        signedTransactions.length !== transactions.length
+      ) {
         throw new Error("Failed to sign all transactions");
       }
 
@@ -577,7 +600,7 @@ export default function PredictionCards() {
 
       await new Promise((resolve) => setTimeout(resolve, 2000));
       bonusRef.current?.();
-      setJustCanceled(prev => !prev)
+      setJustCanceled((prev) => !prev);
       await Promise.all([fetchUserBets(), fetchMoreRounds(), fetchBalance()]);
       toast.success("Bets cancelled successfully");
       setIsCancelling(false);
@@ -1141,7 +1164,7 @@ export default function PredictionCards() {
   //   );
   // }
   return (
-    <div className="container px-3 sm:px-4 md:px-6 lg:px-8 mt-5 md:mt-6 lg:mt-[70px] flex flex-col gap-4 md:gap-6 lg:gap-[40px]">
+    <div className="container px-3 sm:px-4 md:px-6 lg:px-8 mt-5 md:mt-6 mb-8 lg:mt-[70px] flex flex-col gap-4 md:gap-6 lg:gap-[40px]">
       <div className="grid grid-cols-12 gap-4 lg:gap-6 xl:gap-[40px]">
         <div className=" gap-6 md:gap-8 lg:gap-[40px] col-span-12 xl:col-span-9">
           <MarketHeader
@@ -1171,7 +1194,7 @@ export default function PredictionCards() {
             formatTimeLeft={formatTimeLeft}
           />
 
-          <div className="relative my-4 px-4 md:px-0">
+          <div className="relative my-4  md:px-0">
             <PredictionCardWrapper
               isPaused={config?.isPaused ?? false}
               theme={theme === "dark" ? "dark" : "light"}
@@ -1206,8 +1229,22 @@ export default function PredictionCards() {
                 breakpoints={{
                   // when window width is >= 0px
                   0: {
-                    slidesPerView: 1.45,
+                    slidesPerView: 1.35,
                     spaceBetween: 0,
+                  },
+                  375: {
+                    slidesPerView: 1.3,
+                    spaceBetween: 0,
+                  },
+                  800: {
+                    slidesPerView: 2.5,
+                    spaceBetween: 20,
+                    coverflowEffect: {
+                      rotate: 50,
+                      depth: 100,
+                      modifier: 1,
+                      slideShadows: false,
+                    },
                   },
 
                   // when window width is >= 1024px
@@ -1234,112 +1271,117 @@ export default function PredictionCards() {
                         <SkeletonCard />
                       </SwiperSlide>
                     ))
-                  : finalDisplayRoundsForSwiper.filter(round => round.number).map((round, index) => {
-                      if (!round || !round.number) {
-                        // Add a check for valid round object
-                        console.warn(
-                          "Skipping invalid round object in Swiper map:",
-                          round
+                  : finalDisplayRoundsForSwiper
+                      .filter((round) => round.number)
+                      .map((round, index) => {
+                        if (!round || !round.number) {
+                          // Add a check for valid round object
+                          console.warn(
+                            "Skipping invalid round object in Swiper map:",
+                            round
+                          );
+                          return null;
+                        }
+                        const roundNumber = Number(round.number);
+                        const isClaimableForThisRound = claimableBets.some(
+                          (b) => b.roundNumber === roundNumber
                         );
-                        return null;
-                      }
-                      const roundNumber = Number(round.number);
-                      const isClaimableForThisRound = claimableBets.some(
-                        (b) => b.roundNumber === roundNumber
-                      );
-                      const startTimeMs =
-                        typeof round.startTime === "number" &&
-                        !isNaN(round.startTime)
-                          ? round.startTime * 1000
-                          : round.startTime instanceof Date
-                          ? round.startTime.getTime()
-                          : 0;
-                      const lockTime =
-                        round.lockTime instanceof Date
-                          ? round.lockTime.getTime() / 1000
-                          : typeof round.lockTime === "string" &&
-                            !isNaN(Number(round.lockTime))
-                          ? Number(round.lockTime)
-                          : startTimeMs / 1000 + (config?.lockDuration || 180);
-                      const closeTime =
-                        round.closeTime instanceof Date
-                          ? round.closeTime.getTime() / 1000
-                          : typeof round.closeTime === "string" &&
-                            !isNaN(Number(round.closeTime))
-                          ? Number(round.closeTime)
-                          : lockTime + (config?.lockDuration || 180);
+                        const startTimeMs =
+                          typeof round.startTime === "number" &&
+                          !isNaN(round.startTime)
+                            ? round.startTime * 1000
+                            : round.startTime instanceof Date
+                            ? round.startTime.getTime()
+                            : 0;
+                        const lockTime =
+                          round.lockTime instanceof Date
+                            ? round.lockTime.getTime() / 1000
+                            : typeof round.lockTime === "string" &&
+                              !isNaN(Number(round.lockTime))
+                            ? Number(round.lockTime)
+                            : startTimeMs / 1000 +
+                              (config?.lockDuration || 180);
+                        const closeTime =
+                          round.closeTime instanceof Date
+                            ? round.closeTime.getTime() / 1000
+                            : typeof round.closeTime === "string" &&
+                              !isNaN(Number(round.closeTime))
+                            ? Number(round.closeTime)
+                            : lockTime + (config?.lockDuration || 180);
 
-                      // Get the variant for this card
-                      const cardVariant = formatCardVariant(
-                        round,
-                        currentRoundNumber
-                      );
+                        // Get the variant for this card
+                        const cardVariant = formatCardVariant(
+                          round,
+                          currentRoundNumber
+                        );
 
-                      return (
-                        <SwiperSlide
-                          key={round.number} // Ensure key is stable and unique
-                          className="flex justify-center items-center"
-                        >
-                          <PredictionCard
-                            variant={cardVariant}
-                            roundId={Number(round.number)}
-                            roundData={{
-                              lockPrice: formatPrice(round.lockPrice),
-                              closePrice: formatPrice(round.endPrice),
-                              currentPrice: (() => {
-                                // For expired rounds, use the close price as current price
-                                if (cardVariant === "expired") {
-                                  return (
-                                    formatPrice(round.endPrice) ||
-                                    formatPrice(round.lockPrice) ||
-                                    liveRoundPrice
-                                  );
-                                }
-                                // For live/calculating rounds, use live price
-                                return liveRoundPrice;
-                              })(),
-                              prizePool:
-                                (round.totalAmount || 0) / LAMPORTS_PER_SOL,
-                              upBets:
-                                (round.totalBullAmount || 0) / LAMPORTS_PER_SOL,
-                              downBets:
-                                (round.totalBearAmount || 0) / LAMPORTS_PER_SOL,
-                              timeRemaining: Math.max(
-                                0,
-                                closeTime - Date.now() / 1000
-                              ),
-                              lockTimeRemaining:
-                                timeLeft !== null &&
-                                roundNumber === Number(config?.currentRound)
-                                  ? timeLeft
-                                  : Math.max(0, lockTime - Date.now() / 1000),
-                              lockTime:
-                                timeLeft !== null &&
-                                roundNumber === Number(config?.currentRound)
-                                  ? Date.now() / 1000 + timeLeft
-                                  : lockTime,
-                              closeTime,
-                              isActive: round.isActive ? true : false,
-                              treasuryFee: config ? treasuryFee! : 5,
-                            }}
-                            onPlaceBet={handleBet}
-                            currentRoundId={Number(config?.currentRound)}
-                            bufferTimeInSeconds={0}
-                            liveRoundPrice={liveRoundPrice}
-                            userBets={userBets} // Only show user bets if connected
-                            isLocked={isLocked}
-                            timeLeft={timeLeft}
-                            liveTotalForThisRound={liveTotal}
-                            isClaimable={isClaimableForThisRound}
-                            isClaiming={
-                              isClaiming || claimingRoundId === roundNumber
-                            }
-                            claimableBets={claimableBets}
-                            config={config}
-                          />
-                        </SwiperSlide>
-                      );
-                    })}
+                        return (
+                          <SwiperSlide
+                            key={round.number} // Ensure key is stable and unique
+                            className="flex justify-center items-center"
+                          >
+                            <PredictionCard
+                              variant={cardVariant}
+                              roundId={Number(round.number)}
+                              roundData={{
+                                lockPrice: formatPrice(round.lockPrice),
+                                closePrice: formatPrice(round.endPrice),
+                                currentPrice: (() => {
+                                  // For expired rounds, use the close price as current price
+                                  if (cardVariant === "expired") {
+                                    return (
+                                      formatPrice(round.endPrice) ||
+                                      formatPrice(round.lockPrice) ||
+                                      liveRoundPrice
+                                    );
+                                  }
+                                  // For live/calculating rounds, use live price
+                                  return liveRoundPrice;
+                                })(),
+                                prizePool:
+                                  (round.totalAmount || 0) / LAMPORTS_PER_SOL,
+                                upBets:
+                                  (round.totalBullAmount || 0) /
+                                  LAMPORTS_PER_SOL,
+                                downBets:
+                                  (round.totalBearAmount || 0) /
+                                  LAMPORTS_PER_SOL,
+                                timeRemaining: Math.max(
+                                  0,
+                                  closeTime - Date.now() / 1000
+                                ),
+                                lockTimeRemaining:
+                                  timeLeft !== null &&
+                                  roundNumber === Number(config?.currentRound)
+                                    ? timeLeft
+                                    : Math.max(0, lockTime - Date.now() / 1000),
+                                lockTime:
+                                  timeLeft !== null &&
+                                  roundNumber === Number(config?.currentRound)
+                                    ? Date.now() / 1000 + timeLeft
+                                    : lockTime,
+                                closeTime,
+                                isActive: round.isActive ? true : false,
+                                treasuryFee: config ? treasuryFee! : 5,
+                              }}
+                              onPlaceBet={handleBet}
+                              currentRoundId={Number(config?.currentRound)}
+                              bufferTimeInSeconds={0}
+                              liveRoundPrice={liveRoundPrice}
+                              userBets={userBets} // Only show user bets if connected
+                              isLocked={isLocked}
+                              timeLeft={timeLeft}
+                              liveTotalForThisRound={liveTotal}
+                              isClaimable={isClaimableForThisRound}
+                              isClaiming={
+                                isClaiming || claimingRoundId === roundNumber
+                              }
+                              claimableBets={claimableBets}
+                              config={config}
+                            />
+                          </SwiperSlide>
+                        );
+                      })}
               </Swiper>
             </PredictionCardWrapper>
           </div>
@@ -1373,14 +1415,14 @@ export default function PredictionCards() {
             <BetsHistory
               walletAddress={effectivePublicKey.toBase58()}
               currentRound={currentRoundNumber!}
-              needRefresh = {justCanceled}
+              needRefresh={justCanceled}
             />
           )}
         </div>
         <LiveBets
           onLiveTotalChange={handleLiveTotalChange}
           currentRound={Number(currentRound?.number) ?? null}
-          needRefresh = {justCanceled}
+          needRefresh={justCanceled}
           key={currentRound?.number}
         />
       </div>

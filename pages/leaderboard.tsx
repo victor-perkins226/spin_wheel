@@ -127,7 +127,7 @@ export default function Leaderboard({
       <Head>
         <title>{t("leaderboard.title")} | FORTUVA</title>
       </Head>
-      <div className="container mt-[67px]">
+      <div className="container md:mt-[67px] mb-8">
         <div className="glass px-[30px] py-[16px] rounded-[20px] w-full overflow-auto relative">
           {/* Loader Overlay */}
           {loading && (
