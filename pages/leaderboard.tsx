@@ -71,11 +71,9 @@ const _Leaderboard: React.FC = () => {
   const currentPage = Math.floor(offset / limit) + 1;
   const totalPages = Math.ceil(total / limit);
   const goTo = (newOffset: number) =>
-    router.push(
-      `/leaderboard?limit=${limit}&offset=${newOffset}`,
-      undefined,
-      { shallow: true }
-    );
+    router.push(`/leaderboard?limit=${limit}&offset=${newOffset}`, undefined, {
+      shallow: true,
+    });
 
   return (
     <>
@@ -87,10 +85,14 @@ const _Leaderboard: React.FC = () => {
           {loading && (
             <div
               className={`absolute inset-0 flex items-center justify-center ${
-theme === 'dark' ? 'bg-black/20' : 'bg-white/20'
-} z-10`}
+                theme === "dark" ? "bg-black/20" : "bg-white/20"
+              } z-10`}
             >
-              <PuffLoader size={30} color={theme === 'dark' ? '#fff' : '#000'} loading />
+              <PuffLoader
+                size={30}
+                color={theme === "dark" ? "#fff" : "#000"}
+                loading
+              />
             </div>
           )}
 
@@ -101,31 +103,54 @@ theme === 'dark' ? 'bg-black/20' : 'bg-white/20'
                 <th className="pb-[24px] pr-12">{t("leaderboard.winnings")}</th>
                 <th className="pb-[24px] pr-12">{t("leaderboard.winRate")}</th>
                 <th className="pb-[24px] pr-12">{t("leaderboard.trades")}</th>
-                <th className="pb>[24px]">{t("leaderboard.tradesWon")}</th>
+                <th className="pb-[24px] pr-12">{t("leaderboard.tradesWon")}</th>
               </tr>
             </thead>
             <tbody>
               {leaders.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-6 text-center text-sm text-gray-500">
+                  <td
+                    colSpan={5}
+                    className="py-6 text-center text-sm text-gray-500"
+                  >
                     No Data found.
                   </td>
                 </tr>
               ) : (
                 leaders.map((L) => {
-                  const shortAddr = `${L.userWalletAddress.slice(0, 6)}…${L.userWalletAddress.slice(-4)}`;
+                  const shortAddr = `${L.userWalletAddress.slice(
+                    0,
+                    6
+                  )}…${L.userWalletAddress.slice(-4)}`;
                   return (
-                    <tr key={L.userWalletAddress} className="font-semibold text-[10px] lg:text-[15px]">
+                    <tr
+                      key={L.userWalletAddress}
+                      className="font-semibold text-[10px] lg:text-[15px]"
+                    >
                       <td className="py-3 pr-4">
                         <div className="flex items-center gap-[6px]">
-                          <SVG iconName="avatar" width={29} height={29} className="hidden lg:block" />
-                          <SVG iconName="avatar" width={16} height={16} className="block lg:hidden" />
+                          <SVG
+                            iconName="avatar"
+                            width={29}
+                            height={29}
+                            className="hidden lg:block"
+                          />
+                          <SVG
+                            iconName="avatar"
+                            width={16}
+                            height={16}
+                            className="block lg:hidden"
+                          />
                           {shortAddr}
                         </div>
                       </td>
                       <td className="py-3 pr-4">
                         <div className="flex items-center gap-1">
-                          <Image src={SolanaLogo} alt="SOL" className="w-[17px] lg:w-[26px] h-auto object-contain" />
+                          <Image
+                            src={SolanaLogo}
+                            alt="SOL"
+                            className="w-[17px] lg:w-[26px] h-auto object-contain"
+                          />
                           {formatNum(L.netWinning)} SOL
                         </div>
                       </td>
@@ -143,37 +168,42 @@ theme === 'dark' ? 'bg-black/20' : 'bg-white/20'
           {!loading && (
             <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
               <div className="text-sm">
-                {t("leaderboard.showing")} {offset + 1}-{offset + leaders.length}{" "}
-                {t("leaderboard.of")} {total}
+                {t("leaderboard.showing")} {offset + 1}-
+                {offset + leaders.length} {t("leaderboard.of")} {total}
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => goTo(Math.max(offset - limit, 0))}
                   disabled={!hasPrevious}
-                  className={`p-2 rounded-md cursor-pointer ${!hasPrevious
-                    ? theme === 'dark'
-                      ? 'text-gray-600 cursor-not-allowed'
-                      : 'text-gray-400 cursor-not-allowed'
-                    : theme === 'dark'
-                      ? 'text-gray-200 hover:bg-gray-900'
-                      : 'text-gray-700 hover:bg-gray-100'}
+                  className={`p-2 rounded-md cursor-pointer ${
+                    !hasPrevious
+                      ? theme === "dark"
+                        ? "text-gray-600 cursor-not-allowed"
+                        : "text-gray-400 cursor-not-allowed"
+                      : theme === "dark"
+                      ? "text-gray-200 hover:bg-gray-900"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }
                   `}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
                 <div className="text-sm">
-                  {t("leaderboard.page")} {currentPage} {t("leaderboard.of")} {totalPages}
+                  {t("leaderboard.page")} {currentPage} {t("leaderboard.of")}{" "}
+                  {totalPages}
                 </div>
                 <button
                   onClick={() => goTo(offset + limit)}
                   disabled={!hasNext}
-                  className={`p-2 rounded-md cursor-pointer ${!hasNext
-                    ? theme === 'dark'
-                      ? 'text-gray-600 cursor-not-allowed'
-                      : 'text-gray-400 cursor-not-allowed'
-                    : theme === 'dark'
-                      ? 'text-gray-200 hover:bg-gray-900'
-                      : 'text-gray-700 hover:bg-gray-100'}
+                  className={`p-2 rounded-md cursor-pointer ${
+                    !hasNext
+                      ? theme === "dark"
+                        ? "text-gray-600 cursor-not-allowed"
+                        : "text-gray-400 cursor-not-allowed"
+                      : theme === "dark"
+                      ? "text-gray-200 hover:bg-gray-900"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }
                   `}
                 >
                   <ChevronRight className="h-4 w-4" />

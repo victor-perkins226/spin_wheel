@@ -41,7 +41,7 @@
   "overview": "Marktüberblick",
   "bonus": "Ihr Bonus",
   "betsHistory": {
-    "title": "Ihre Vorhersagen",
+    "title": "Ihre Vorhersagen in einer Woche",
     "round": "Runde",
     "prediction": "Vorhersage",
     "amount": "Betrag",
@@ -92,7 +92,7 @@
     "notAvailable": "Wetten sind für diese Runde nicht verfügbar",
     "connectWallet": "Bitte verbinden Sie Ihre Wallet, um Wetten zu platzieren"
   },
-    "referral": {
+  "referral": {
     "others": "Andere",
     "curious": "Wir sind neugierig, was Sie hierher geführt hat?",
     "discover": "Wie haben Sie diese Website entdeckt?"
