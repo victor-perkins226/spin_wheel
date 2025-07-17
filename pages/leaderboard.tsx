@@ -108,7 +108,7 @@ theme === 'dark' ? 'bg-black/20' : 'bg-white/20'
               {leaders.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-6 text-center text-sm text-gray-500">
-                    {t("leaderboard.noData", "No leaders found.")}
+                    No Data found.
                   </td>
                 </tr>
               ) : (
@@ -187,5 +187,4 @@ theme === 'dark' ? 'bg-black/20' : 'bg-white/20'
   );
 };
 
-// this ensures the page component only ever runs in the browser
 export default dynamic(() => Promise.resolve(_Leaderboard), { ssr: false });
