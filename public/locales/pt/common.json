@@ -41,7 +41,7 @@
   "overview": "Visão geral do mercado",
   "bonus": "Seu bônus",
   "betsHistory": {
-    "title": "Suas previsões",
+    "title": "Suas previsões em uma semana",
     "round": "Rodada",
     "prediction": "Previsão",
     "amount": "Valor",
@@ -92,7 +92,7 @@
     "notAvailable": "Apostas não disponíveis nesta rodada",
     "connectWallet": "Conecte sua carteira para apostar"
   },
-    "referral": {
+  "referral": {
     "others": "Outros",
     "curious": "Estamos curiosos, o que te trouxe até aqui?",
     "discover": "Como você descobriu este site?"

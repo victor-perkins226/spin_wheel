@@ -39,9 +39,9 @@
   "buy": "Acheter",
   "amount": "Entrez le montant",
   "overview": "Aperçu du marché",
-    "bonus": "Votre bonus",
+  "bonus": "Votre bonus",
   "betsHistory": {
-    "title": "Vos prédictions",
+    "title": "Vos prédictions en une semaine",
     "round": "Round",
     "prediction": "Prédiction",
     "amount": "Montant",
@@ -92,10 +92,9 @@
     "notAvailable": "Les paris ne sont pas disponibles pour ce round",
     "connectWallet": "Veuillez connecter votre portefeuille pour parier"
   },
-    "referral": {
+  "referral": {
     "others": "Autres",
     "curious": "Nous sommes curieux, qu'est-ce qui vous a amené jusqu'ici ?",
     "discover": "Comment avez-vous découvert ce site ?"
   }
-
 }
