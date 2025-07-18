@@ -141,7 +141,7 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
       <Hero />
       <PredictionCards />
 
-      {checkedReferral && showReferralModal && (
+      {checkedReferral && !showReferralModal && (
         <div
           onClick={() => setShowReferralModal(false)}
           className="fixed inset-0 top-[-3rem] z-50 flex items-center justify-center bg-black/60"
@@ -152,7 +152,7 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
           >
             <button
               onClick={() => setShowReferralModal(false)}
-              className="absolute top-[1rem] md:top-[-2.5rem] right-5 md:right-10 cursor-pointer z-[100] text-4xl"
+              className="absolute top-[1rem] md:top-[3rem] right-5 md:right-10 cursor-pointer z-[100] text-4xl"
             >
               &times;
             </button>
