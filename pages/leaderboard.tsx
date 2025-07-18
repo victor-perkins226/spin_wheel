@@ -113,7 +113,7 @@ const _Leaderboard: React.FC = () => {
                     colSpan={5}
                     className="py-6 text-center text-sm text-gray-500"
                   >
-                    No Data found.
+                    No Data.
                   </td>
                 </tr>
               ) : (
