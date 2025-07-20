@@ -244,11 +244,6 @@
       "name": "claimPayout",
       "accounts": [
         {
-          "name": "config",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
           "name": "round",
           "isMut": true,
           "isSigner": false
@@ -291,7 +286,7 @@
         },
         {
           "name": "adminMultisig",
-          "isMut": false,
+          "isMut": true,
           "isSigner": false
         },
         {
@@ -1288,9 +1283,19 @@
       "code": 6037,
       "name": "InvalidSigners",
       "msg": "Invalid signers"
+    },
+    {
+      "code": 6038,
+      "name": "TooManySigners",
+      "msg": "Too many signers"
+    },
+    {
+      "code": 6039,
+      "name": "RoundNotStarted",
+      "msg": "Round not started"
     }
   ],
   "metadata": {
-    "address": "7C7BJLymw4LkiLQJzyCUn2DX2b8VP3C2xuMWzKYJny7x"
+    "address": "9KRUQZLn9KTq9JKkep2R2TTe61RBeRMqbHHvzV1XTiEm"
   }
 }
