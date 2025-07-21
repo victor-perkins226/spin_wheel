@@ -15,7 +15,7 @@ import Hero from "@/components/hero.component";
 import PredictionCards from "@/components/prediction-cards.component";
 import Referral from "@/components/referral";
 import Lock from "@/public/assets/lock.png";
-import { NoInternetToast } from "@/components/toasts";
+import NoInternet from "@/public/assets/no-internet.png";
 
 export const getServerSideProps: GetServerSideProps = async ({
   req,
@@ -122,43 +122,72 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
     );
   }
 
-  if (!isOnline) {
-    return (
-      <>
-        <Head>
-          <title>No Internet Connection | FORTUVA</title>
-        </Head>
-        <NoInternetToast theme={theme} />
-      </>
-    );
-  }
   return (
     <>
       <Head>
-        <title>Prediction | FORTUVA</title>
+        <link rel="preload" as="image" href={NoInternet.src} />
+        <title>
+          {!isOnline
+            ? "No Internet Connection | FORTUVA"
+            : "Prediction | FORTUVA"}
+        </title>
       </Head>
 
-      <Hero />
-      <PredictionCards />
-
-      {checkedReferral && showReferralModal && (
-        <div
-          onClick={() => setShowReferralModal(false)}
-          className="fixed inset-0 top-[-3rem] z-50 flex items-center justify-center bg-black/60"
-        >
+      {!isOnline ? (
+        <>
           <div
-            onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-[1000px] mx-4"
+            className={`
+                
+                mx-auto animate-toast-bounce-in w-full text-center h-[400px] max-w-[600px]
+                rounded-2xl overflow-hidden
+                flex flex-col items-center p-4 pb-12 mt-16
+              `}
+            style={{
+              animation: "fadeInDown 200ms ease-out forwards",
+            }}
           >
-            <button
-              onClick={() => setShowReferralModal(false)}
-              className="absolute top-[1rem] md:top-[3rem] right-5 md:right-10 cursor-pointer z-[100] text-4xl"
-            >
-              &times;
-            </button>
-            <Referral onCancel={() => setShowReferralModal(false)} />
+            <div className="animate-vibrate w-full h-[280px] relative mb-4">
+              <Image
+                src={NoInternet}
+                alt="No Internet"
+                fill
+                priority
+                className="object-contain rounded-xl"
+              />
+            </div>
+            <h3 className="font-bold text-2xl mb-2 animate-toast-pulse">
+              Oops! You have no Internet Connection
+            </h3>
+            <p className="max-w-lg mt-3 mx-auto text-sm">
+              Hang tight! Reconnect to get back to what you were doing.
+            </p>
           </div>
-        </div>
+        </>
+      ) : (
+        <>
+          <Hero />
+          <PredictionCards />
+
+          {checkedReferral && showReferralModal && (
+            <div
+              onClick={() => setShowReferralModal(false)}
+              className="fixed inset-0 top-[-3rem] z-50 flex items-center justify-center bg-black/60"
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="relative w-full max-w-[1000px] mx-4"
+              >
+                <button
+                  onClick={() => setShowReferralModal(false)}
+                  className="absolute top-[1rem] md:top-[3rem] right-5 md:right-10 cursor-pointer z-[100] text-4xl"
+                >
+                  &times;
+                </button>
+                <Referral onCancel={() => setShowReferralModal(false)} />
+              </div>
+            </div>
+          )}
+        </>
       )}
     </>
   );
