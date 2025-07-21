@@ -205,7 +205,7 @@ export default function PredictionCards() {
 
   useEffect(() => {
     const updateLivePrice = async () => {
-      if (livePrice !== undefined) {
+      if (livePrice !== undefined && !isLocked) {
         setLiveRoundPrice(livePrice!);
       }
     };
