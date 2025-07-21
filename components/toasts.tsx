@@ -592,4 +592,33 @@ export function MarketPausedToast({ theme }: { theme: string | undefined }) {
 }
 
 
-
+export function NoInternetToast({ theme }: { theme: string | undefined }) {
+  return (
+    <div
+      className={`
+        
+        mx-auto animate-toast-bounce-in w-full text-center h-[400px] max-w-[600px]
+        rounded-2xl overflow-hidden
+        flex flex-col items-center p-4 pb-12 mt-16
+      `}
+      style={{
+        animation: "fadeInDown 200ms ease-out forwards",
+      }}
+    >
+      <div className="animate-vibrate w-full h-[280px] relative mb-4">
+        <Image
+          src={NoInternet}
+          alt="No Internet"
+          fill
+          className="object-contain rounded-xl"
+        />
+      </div>
+      <h3 className="font-bold text-2xl mb-2 animate-toast-pulse">
+        Oops! You have no Internet Connection
+      </h3>
+      <p className="max-w-lg mt-3 mx-auto text-sm">
+        Hang tight! Reconnect to get back to what you were doing.
+      </p>
+    </div>
+  );
+}
