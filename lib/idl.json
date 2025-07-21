@@ -338,10 +338,6 @@
           "type": "u64"
         },
         {
-          "name": "currentRound",
-          "type": "u64"
-        },
-        {
           "name": "isPaused",
           "type": "bool"
         },
@@ -949,11 +945,6 @@
           "index": false
         },
         {
-          "name": "currentRound",
-          "type": "u64",
-          "index": false
-        },
-        {
           "name": "isPaused",
           "type": "bool",
           "index": false
@@ -1296,6 +1287,6 @@
     }
   ],
   "metadata": {
-    "address": "9KRUQZLn9KTq9JKkep2R2TTe61RBeRMqbHHvzV1XTiEm"
+    "address": "G67dyHXsKEZmJv7vTqii3puJoowZ33Kq4bjXeBwJPr8H"
   }
 }
