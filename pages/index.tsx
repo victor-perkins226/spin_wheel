@@ -127,11 +127,11 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
       <Head>
         <title>Prediction | FORTUVA</title>
       </Head>
+      <NoInternetToast theme={theme} hidden={isOnline}/>
 
       <Hero />
       <PredictionCards />
-      <NoInternetToast theme={theme} hidden={isOnline}/>
-      
+
       {checkedReferral && !showReferralModal && (
         <div
           onClick={() => setShowReferralModal(false)}
