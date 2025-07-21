@@ -127,7 +127,7 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
       <Head>
         <title>Prediction | FORTUVA</title>
       </Head>
-      <div style={isOnline ? {display: 'none'}: {}}>
+      <div /*style={isOnline ? {display: 'none'}: {}}*/>
         <NoInternetToast theme={theme}/>
       </div>
       <div style={!isOnline ? {display: 'none'}: {}}>
