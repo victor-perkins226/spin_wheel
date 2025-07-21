@@ -1148,21 +1148,6 @@ export default function PredictionCards() {
     return () => clearInterval(intervalId);
   }, [safeFetchMoreRounds]);
 
-  if (mounted && isOffline) {
-    return (
-      <div className="w-full p-4 text-center text-red-500">
-        Unable to load data. Check your internet connection.
-      </div>
-    );
-  }
-
-  // if (priceError) {
-  //   return (
-  //     <div className="w-full p-4 text-center text-red-500">
-  //       Unable to load live price. <button onClick={() => window.location.reload()} className="underline">Retry</button>
-  //     </div>
-  //   );
-  // }
   return (
     <div className="container px-3 sm:px-4 md:px-6 lg:px-8 mt-5 md:mt-6 mb-8 lg:mt-[70px] flex flex-col gap-4 md:gap-6 lg:gap-[40px]">
       <div className="grid grid-cols-12 gap-4 lg:gap-6 xl:gap-[40px]">
