@@ -122,16 +122,6 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
     );
   }
 
-  if (!isOnline) {
-    return (
-      <>
-        <Head>
-          <title>No Internet Connection | FORTUVA</title>
-        </Head>
-        <NoInternetToast theme={theme} />
-      </>
-    );
-  }
   return (
     <>
       <Head>
@@ -140,7 +130,8 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
 
       <Hero />
       <PredictionCards />
-
+      <NoInternetToast theme={theme} hidden={isOnline}/>
+      
       {checkedReferral && !showReferralModal && (
         <div
           onClick={() => setShowReferralModal(false)}
