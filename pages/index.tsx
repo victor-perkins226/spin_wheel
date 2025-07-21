@@ -141,7 +141,7 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
       <Hero />
       <PredictionCards />
 
-      {checkedReferral && !showReferralModal && (
+      {checkedReferral && showReferralModal && (
         <div
           onClick={() => setShowReferralModal(false)}
           className="fixed inset-0 top-[-3rem] z-50 flex items-center justify-center bg-black/60"
