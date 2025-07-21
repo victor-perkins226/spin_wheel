@@ -607,7 +607,7 @@ export function NoInternetToast({ theme }: { theme: string | undefined }) {
     >
       <div className="animate-vibrate w-full h-[280px] relative mb-4">
         <Image
-          src={NoInternet}
+          src="/assets/no-internet.png"
           alt="No Internet"
           fill
           className="object-contain rounded-xl"
