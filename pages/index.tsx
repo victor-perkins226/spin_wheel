@@ -127,30 +127,33 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
       <Head>
         <title>Prediction | FORTUVA</title>
       </Head>
-      <NoInternetToast theme={theme} hidden={isOnline}/>
+      <div hidden={isOnline}>
+        <NoInternetToast theme={theme}/>
+      </div>
+      <div hidden={!isOnline}>
+        <Hero />
+        <PredictionCards />
 
-      <Hero />
-      <PredictionCards />
-
-      {checkedReferral && !showReferralModal && (
-        <div
-          onClick={() => setShowReferralModal(false)}
-          className="fixed inset-0 top-[-3rem] z-50 flex items-center justify-center bg-black/60"
-        >
+        {checkedReferral && !showReferralModal && (
           <div
-            onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-[1000px] mx-4"
+            onClick={() => setShowReferralModal(false)}
+            className="fixed inset-0 top-[-3rem] z-50 flex items-center justify-center bg-black/60"
           >
-            <button
-              onClick={() => setShowReferralModal(false)}
-              className="absolute top-[1rem] md:top-[3rem] right-5 md:right-10 cursor-pointer z-[100] text-4xl"
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-[1000px] mx-4"
             >
-              &times;
-            </button>
-            <Referral onCancel={() => setShowReferralModal(false)} />
+              <button
+                onClick={() => setShowReferralModal(false)}
+                className="absolute top-[1rem] md:top-[3rem] right-5 md:right-10 cursor-pointer z-[100] text-4xl"
+              >
+                &times;
+              </button>
+              <Referral onCancel={() => setShowReferralModal(false)} />
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </>
   );
 }

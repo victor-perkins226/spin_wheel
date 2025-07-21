@@ -592,7 +592,7 @@ export function MarketPausedToast({ theme }: { theme: string | undefined }) {
 }
 
 
-export function NoInternetToast({ theme, hidden }: { theme: string | undefined, hidden: boolean }) {
+export function NoInternetToast({ theme }: { theme: string | undefined }) {
   return (
     <div
       className={`
@@ -604,7 +604,6 @@ export function NoInternetToast({ theme, hidden }: { theme: string | undefined, 
       style={{
         animation: "fadeInDown 200ms ease-out forwards",
       }}
-      hidden={hidden}
     >
       <div className="animate-vibrate w-full h-[280px] relative mb-4">
         <Image
