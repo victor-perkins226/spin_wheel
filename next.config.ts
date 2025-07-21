@@ -1,7 +1,13 @@
 import type { NextConfig } from "next";
 const { i18n } = require('./next-i18next.config');
 
-const nextConfig: NextConfig = {
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  disable: process.env.NODE_ENV === 'development',
+});
+
+
+const nextConfig: NextConfig = withPWA({
   /* config options here */
   reactStrictMode: true,
   devIndicators: false,
@@ -12,6 +18,6 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-};
+});
 
 export default nextConfig;
