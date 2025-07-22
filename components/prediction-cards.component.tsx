@@ -24,6 +24,7 @@ import {
   Connection,
   Keypair,
   LAMPORTS_PER_SOL,
+  PublicKey,
   Transaction,
 } from "@solana/web3.js";
 import MobileLiveBets from "./MobileBets";
@@ -49,6 +50,7 @@ import {
 import { API_URL } from "@/lib/config";
 import { useTranslation } from "next-i18next";
 import PredictionCardWrapper from "./PredictionCardWrapper";
+import { BN } from "@project-serum/anchor";
 const BetsHistory = React.lazy(() => import("./BetsHistory"));
 
 const LineChart = React.lazy(() => import("./LineChart"));
@@ -127,6 +129,25 @@ export default function PredictionCards() {
     if (!effectivePublicKey || !connectionRef.current) return;
     const lamports = await connectionRef.current.getBalance(effectivePublicKey);
     setUserBalance(lamports / LAMPORTS_PER_SOL);
+
+    const roundPda = PublicKey.findProgramAddressSync(
+      [Buffer.from("round"), new BN(63).toArrayLike(Buffer, "le", 8)],
+      program!.programId
+    )[0];
+
+    const roundData = await program?.account.round.fetch(roundPda)
+
+    const userBet = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("user_bet"),
+        new PublicKey("J9xFyLuxqZKxTSc8jsLstciRJvAGfpt9JzDZ7zmZ4d3r").toBuffer(),
+        new BN(63).toArrayLike(Buffer, "le", 8),
+      ],
+      program!.programId
+  )[0]
+
+  // const bet = await program?.account.userBet.fetch(userBet)
+    console.log({roundPda: roundPda.toBase58(), roundData, userBetPda: userBet.toBase58()})
   }, [effectivePublicKey]);
 
   useEffect(() => {
