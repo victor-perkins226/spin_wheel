@@ -958,7 +958,7 @@ export default function PredictionCards() {
       round &&
       round.number !== undefined &&
       !isNaN(Number(round.number)) &&
-      isFinite(Number(round.number));
+      isFinite(Number(round.number)) && Number(round.number) > 0;
 
     if (computedDisplayRounds.length > 0) {
       return computedDisplayRounds.filter(isValidRoundNumber);
