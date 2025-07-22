@@ -120,21 +120,9 @@ export const WalletContextProvider = ({
     return [...baseWallets, ...walletConnectWallets, ...desktopWallets];
   }, [mounted, isMobile]);
 
-  // bubble up errors into our custom event
-  const onError = (error: any) => {
-    console.error("Wallet provider error:", error);
-    setTimeout(
-      () =>
-        window.dispatchEvent(
-          new CustomEvent("wallet-error", { detail: error })
-        ),
-      0
-    );
-  };
-
   return (
     <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect={true} onError={onError}>
+      <WalletProvider wallets={wallets} autoConnect={true}>
         <WalletModalProvider>
           {mounted ? (
             children

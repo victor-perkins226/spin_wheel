@@ -252,7 +252,7 @@ export const useSolPredictor = (): SolPredictorHook & { userBalance: number } =>
           });
         } catch (rpcError: any) {
           const msg = rpcError.message || "";
-
+          console.log({rpcError})
           // ── If Solana reports “already been processed,” we assume the first send succeeded, so we simply refresh and exit. ──
           if (msg.includes("already been processed")) {
             console.warn(
@@ -314,10 +314,15 @@ export const useSolPredictor = (): SolPredictorHook & { userBalance: number } =>
         }
 
         return true;
-      } finally {
+      }
+      catch (error)  {
+        console.log("error", error)
+      }
+      finally {
         // Always clear the “placing” flag & pendingTransactionRef, even if the user hit an error above
         setIsPlacingBet(false);
         pendingTransactionRef.current = null;
+        return false;
       }
     },
     [

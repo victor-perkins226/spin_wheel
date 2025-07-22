@@ -562,7 +562,11 @@ export default function PredictionCard({
             );
           }
         }
-      } finally {
+      }
+      catch (error)  {
+        console.log({error})
+      }
+      finally {
         setIsSubmitting(false);
         setIsFlipped(false);
         setMode("");
