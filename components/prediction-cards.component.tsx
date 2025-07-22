@@ -135,7 +135,6 @@ export default function PredictionCards() {
       program!.programId
     )[0];
 
-    const roundData = await program?.account.round.fetch(roundPda)
 
     const userBet = PublicKey.findProgramAddressSync(
       [
@@ -147,7 +146,7 @@ export default function PredictionCards() {
   )[0]
 
   // const bet = await program?.account.userBet.fetch(userBet)
-    console.log({roundPda: roundPda.toBase58(), roundData, userBetPda: userBet.toBase58()})
+    console.log({roundPda: roundPda.toBase58(),  userBetPda: userBet.toBase58()})
   }, [effectivePublicKey]);
 
   useEffect(() => {
