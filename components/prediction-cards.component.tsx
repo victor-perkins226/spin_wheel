@@ -130,23 +130,6 @@ export default function PredictionCards() {
     const lamports = await connectionRef.current.getBalance(effectivePublicKey);
     setUserBalance(lamports / LAMPORTS_PER_SOL);
 
-    const roundPda = PublicKey.findProgramAddressSync(
-      [Buffer.from("round"), new BN(63).toArrayLike(Buffer, "le", 8)],
-      program!.programId
-    )[0];
-
-
-    const userBet = PublicKey.findProgramAddressSync(
-      [
-        Buffer.from("user_bet"),
-        new PublicKey("J9xFyLuxqZKxTSc8jsLstciRJvAGfpt9JzDZ7zmZ4d3r").toBuffer(),
-        new BN(63).toArrayLike(Buffer, "le", 8),
-      ],
-      program!.programId
-  )[0]
-
-  // const bet = await program?.account.userBet.fetch(userBet)
-    console.log({roundPda: roundPda.toBase58(),  userBetPda: userBet.toBase58()})
   }, [effectivePublicKey]);
 
   useEffect(() => {
