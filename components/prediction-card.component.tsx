@@ -143,6 +143,10 @@ export default function PredictionCard({
   const [downBetsLocal, setDownBetsLocal] = useState<number>(
     roundData?.downBets ?? 0
   );
+  const minBet = Number(config?.minBetAmount) / LAMPORTS_PER_SOL || 0.01;
+  const step = 0.01; 
+  const defaultBet = 0.1;
+
 
   useEffect(() => {
     // only seed the first time we get a positive lockPrice
@@ -525,6 +529,7 @@ export default function PredictionCard({
       );
       return;
     }
+
     if (amount <= 0) {
       toast.custom((t) => <InvalidAmountToast theme={theme} />, {
         position: "top-right",
@@ -544,7 +549,7 @@ export default function PredictionCard({
       );
       return;
     }
-
+    if (buyDisabled) return;
     if (onPlaceBet && mode && roundId) {
       setIsSubmitting(true);
       try {
@@ -570,20 +575,21 @@ export default function PredictionCard({
         setIsSubmitting(false);
         setIsFlipped(false);
         setMode("");
-        setAmount(0.1);
-        setInputValue(formatNum(0.1));
+        setAmount(defaultBet);
+        setInputValue(formatNum(defaultBet));
       }
     }
   };
 
+  console.log({[roundId]: buyDisabled})
   const handleCustomAmount = useCallback(
     (percentage: number) => {
       const calculatedAmount = maxAmount * percentage;
       const clampedAmount = Math.max(
-        0.01,
+        minBet,
         Math.min(calculatedAmount, maxAmount)
       );
-      const rounded = Math.round(clampedAmount * 100) / 100;
+      const rounded = Math.floor(clampedAmount * 100) / 100;
       setAmount(rounded);
       setInputValue(String(rounded));
     },
@@ -1135,7 +1141,11 @@ const didWin = useMemo(() => {
             <SVG
               className="cursor-pointer"
               iconName="arrow-left"
-              onClick={() => setIsFlipped(false)}
+              onClick={() => {
+                setIsFlipped(false)
+                setAmount(defaultBet);
+                setInputValue(defaultBet.toString());
+              }}
             />
             <p>{t("placeOrder")}</p>
           </div>
@@ -1176,17 +1186,7 @@ const didWin = useMemo(() => {
             }}
             onBlur={() => {
               if (!connected) return;
-              const parsed = parseFloat(inputValue);
-              if (isNaN(parsed) || parsed <= 0) {
-                setAmount(0);
-                setInputValue("");
-              } else {
-                const clamped = Math.min(parsed, maxAmount);
-                setAmount(clamped);
-                // normalize the display so “0.200” → “0.2”
-                setInputValue(clamped.toString());
-              }
-            }}
+            }} 
             className={`glass h-[65px] text-right rounded-[20px] pr-4 font-semibold text-[16px] outline-0 ${
               !connected ? "opacity-50 cursor-not-allowed bg-gray-200" : ""
             }`}
@@ -1197,21 +1197,20 @@ const didWin = useMemo(() => {
           )}
           <input
             type="range"
-            min={(config?.minBetAmount || 0.01).toString()}
+            min={minBet}
             max={maxAmount}
-            step="0.000000001"
+            step={step}
             style={{
               cursor: connected ? "pointer" : "not-allowed",
             }}
             disabled={!connected}
-            value={Math.min(amount, maxAmount)}
+            value={amount}
             onChange={(e) => {
               if (!connected) return;
-              const value = parseFloat(e.target.value);
-              const clampedValue = Math.max(0.01, Math.min(value, maxAmount));
-              const rounded = Math.round(clampedValue * 100) / 100;
-              setAmount(clampedValue);
-              setInputValue(String(clampedValue));
+              let value = parseFloat(e.target.value);
+              value = Math.max(minBet, Math.min(value, maxAmount));
+              setAmount(value);
+              setInputValue(String(value));
             }}
             className={`w-full h-1 bg-gray-300 rounded-lg appearance-none cursor-pointer my-5 accent-gray-500 custom-slider ${
               !connected ? "opacity-50 cursor-not-allowed" : ""
