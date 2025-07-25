@@ -334,10 +334,6 @@
           "type": "u64"
         },
         {
-          "name": "treasuryAmount",
-          "type": "u64"
-        },
-        {
           "name": "isPaused",
           "type": "bool"
         },
@@ -617,6 +613,14 @@
           {
             "name": "claimedCount",
             "type": "u64"
+          },
+          {
+            "name": "oracleCalledForLock",
+            "type": "bool"
+          },
+          {
+            "name": "oracleCalledForEnd",
+            "type": "bool"
           }
         ]
       }
@@ -778,6 +782,11 @@
           "name": "timestamp",
           "type": "i64",
           "index": false
+        },
+        {
+          "name": "oracleCalledForEnd",
+          "type": "bool",
+          "index": false
         }
       ]
     },
@@ -892,7 +901,7 @@
       ]
     },
     {
-      "name": "RoundLockedEvent",
+      "name": "RoundLocked",
       "fields": [
         {
           "name": "roundNumber",
@@ -907,6 +916,11 @@
         {
           "name": "timestamp",
           "type": "i64",
+          "index": false
+        },
+        {
+          "name": "oracleCalledForLock",
+          "type": "bool",
           "index": false
         }
       ]
@@ -936,11 +950,6 @@
         },
         {
           "name": "lockDuration",
-          "type": "u64",
-          "index": false
-        },
-        {
-          "name": "treasuryAmount",
           "type": "u64",
           "index": false
         },
@@ -1284,9 +1293,19 @@
       "code": 6039,
       "name": "RoundNotStarted",
       "msg": "Round not started"
+    },
+    {
+      "code": 6040,
+      "name": "OracleNotCalled",
+      "msg": "Oracel not called"
+    },
+    {
+      "code": 6041,
+      "name": "UnabelToCancelBet",
+      "msg": "Unabel to cancel bet"
     }
   ],
   "metadata": {
-    "address": "829B1vVw8DAbVCAPvKN6PjJszCb3dPbQ6fnfZgpTJBE8"
+    "address": "Gzr7PvmjY68Cxdpad4tjSy61hFDRFDAQ8BuAxPRD68Xj"
   }
 }
