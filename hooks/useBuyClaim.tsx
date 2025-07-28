@@ -421,7 +421,25 @@ export const useSolPredictor = (): SolPredictorHook & { userBalance: number } =>
       setCancelableBets([]);
       setUserBets([]);
     }
-  }, [publicKey, connected, program, fetchUserBets]);
+  }, [publicKey, connected, program]);
+
+  useEffect(() => {
+    // Call safeFetchMoreRounds every 30 seconds (adjust as needed)
+    const intervalId = setInterval(() => {
+      fetchUserBets();
+    }, 30_000); // 30,000 ms = 30 seconds
+
+    return () => clearInterval(intervalId);
+  }, [fetchUserBets]);
+
+  useEffect(() => {
+    // Call safeFetchMoreRounds every 30 seconds (adjust as needed)
+    const intervalId = setInterval(() => {
+      fetchUserBalance();
+    }, 30_000); // 30,000 ms = 30 seconds
+
+    return () => clearInterval(intervalId);
+  }, [fetchUserBalance]);
 
   return {
     handlePlaceBet,
