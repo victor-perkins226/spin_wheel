@@ -115,32 +115,32 @@ export default function BetsHistory({
       case "PENDING":
         return `${base} ${
           theme === "dark"
-            ? "text-yellow-400 bg-yellow-400/10 border-yellow-400/20"
-            : "text-yellow-600 bg-yellow-50 border-yellow-200"
+            ? "text-yellow-300 bg-yellow-300/10 border-yellow-300/20"
+            : "text-yellow-400 bg-yellow-50 border-yellow-200"
         }`;
       case "WON":
         return `${base} ${
           theme === "dark"
-            ? "text-green-400 bg-green-400/10 border-green-400/20"
-            : "text-green-600 bg-green-50 border-green-200"
+            ? "text-green-300 bg-green-300/10 border-green-300/20"
+            : "text-green-400 bg-green-50 border-green-200"
         }`;
       case "LOST":
         return `${base} ${
           theme === "dark"
-            ? "text-red-400 bg-red-400/10 border-red-400/20"
-            : "text-red-600 bg-red-50 border-red-200"
-        }`;
+            ? "text-red-300 bg-red-300/10 border-red-300/20"
+            : "text-red-400 bg-red-50 border-red-200"
+        }`;             
       case "CLAIMED":
         return `${base} ${
           theme === "dark"
-            ? "text-blue-400 bg-blue-400/10 border-blue-400/20"
-            : "text-blue-600 bg-blue-50 border-blue-200"
+            ? "text-green-300 bg-green-300/10 border-green-300/20"
+            : "text-green-400 bg-green-50 border-green-200"
         }`;
       default:
         return `${base} ${
           theme === "dark"
-            ? "text-gray-400 bg-gray-400/10 border-gray-400/20"
-            : "text-gray-600 bg-gray-50 border-gray-200"
+            ? "text-gray-300 bg-gray-300/10 border-gray-300/20"
+            : "text-gray-400 bg-gray-50 border-gray-200"
         }`;
     }
   };
@@ -148,11 +148,11 @@ export default function BetsHistory({
   const getDirectionColor = (dir: string) =>
     dir === "up"
       ? theme === "dark"
-        ? "text-green-400"
-        : "text-green-600"
+        ? "text-green-300"
+        : "text-green-400"
       : theme === "dark"
-      ? "text-red-400"
-      : "text-red-600";
+      ? "text-red-300"
+      : "text-red-400";
 
   const getBorderColor = () =>
     theme === "dark" ? "border-gray-700" : "border-gray-200";
@@ -226,8 +226,8 @@ export default function BetsHistory({
                           <span
                             className={
                               theme === "dark"
-                                ? "text-green-400"
-                                : "text-green-600"
+                                ? "text-green-300"
+                                : "text-green-400"
                             }
                           >
                             +{formatNum(bet.payout)} SOL
@@ -236,8 +236,8 @@ export default function BetsHistory({
                           <span
                             className={
                               theme === "dark"
-                                ? "text-red-400"
-                                : "text-red-600"
+                                ? "text-red-300"
+                                : "text-red-400"
                             }
                           >
                             -{formatNum(bet.amount)} SOL
