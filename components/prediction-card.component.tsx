@@ -581,7 +581,6 @@ export default function PredictionCard({
     }
   };
 
-  console.log({[roundId]: buyDisabled})
   const handleCustomAmount = useCallback(
     (percentage: number) => {
       const calculatedAmount = maxAmount * percentage;
