@@ -208,7 +208,7 @@ export default function BetsHistory({
                           bet.direction
                         )}`}
                       >
-                        <div className="flex items-center text-xs md:text-[1rem] gap-1">
+                        <div className="flex font-mono items-center text-xs md:text-sm gap-1">
                           {bet.direction === "up" ? "↗" : "↘"}{" "}
                           {bet.direction.toUpperCase()}
                         </div>
