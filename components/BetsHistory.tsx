@@ -89,6 +89,15 @@ export default function BetsHistory({
     };
   }, [currentRound]);
 
+  useEffect(() => {
+    // Call safeFetchMoreRounds every 30 seconds (adjust as needed)
+    const intervalId = setInterval(() => {
+      fetchPage();
+    }, 30_000); // 30,000 ms = 30 seconds
+
+    return () => clearInterval(intervalId);
+  }, [fetchPage]);
+
   const handlePrevPage = () => {
     if (hasPrevious) setOffset((prev) => Math.max(prev - limit, 0));
   };
