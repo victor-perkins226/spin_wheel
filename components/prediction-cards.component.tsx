@@ -69,7 +69,6 @@ export default function PredictionCards() {
   const [isClaiming, setIsClaiming] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [claimingRoundId, setClaimingRoundId] = useState<number | null>(null);
-  const [justClaimed, setJustClaimed] = useState(false);
   const [justCanceled, setJustCanceled] = useState(false);
 
   const {
@@ -467,7 +466,6 @@ export default function PredictionCards() {
       // then refresh your bets
       await new Promise((resolve) => setTimeout(resolve, 2000));
       await Promise.all([fetchUserBets(), fetchMoreRounds(), fetchBalance()]);
-      setJustClaimed(true);
 
       // Force a complete re-render by updating swiper
       setSwiperReady(false);
@@ -1168,7 +1166,7 @@ export default function PredictionCards() {
             theme={theme === "dark" ? "dark" : "light"}
             connected={connected}
             userBalance={userBalance}
-            claimableRewards={justClaimed ? 0 : claimableRewards}
+            claimableRewards={claimableRewards}
             cancelableRewards={cancelableRewards}
             isClaiming={isClaiming}
             isCancelling={isCancelling}
