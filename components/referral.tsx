@@ -33,8 +33,8 @@ export default function Referral({ onCancel }: ReferralProps) {
   const [selected, setSelected] = useState<
     "telegram" | "twitter" | "instagram" | "discord" | "solscan" | "friend" | "others"
   >("telegram");
-  const [otherSource, setOtherSource] = useState("");
   const [friendSource, setFriendSource] = useState("");
+  const [otherSource, setOtherSource] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const options = [
@@ -51,39 +51,36 @@ export default function Referral({ onCancel }: ReferralProps) {
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
-    // Validation for friend & others
+    // Validate friend & others
     if (
-      (selected === "others" && !otherSource.trim()) ||
-      (selected === "friend" && !friendSource.trim())
+      (selected === "friend" && !friendSource.trim()) ||
+      (selected === "others" && !otherSource.trim())
     ) {
-      toast.custom(t => <ReferralToastInputFailed theme={theme} />, {
+      toast.custom((t) => <ReferralToastInputFailed theme={theme} />, {
         position: "top-right",
       });
       return;
     }
 
     const referralFrom =
-      selected === "others"
-        ? otherSource.trim()
-        : selected === "friend"
+      selected === "friend"
         ? friendSource.trim()
+        : selected === "others"
+        ? otherSource.trim()
         : selected;
 
     setIsSubmitting(true);
     try {
       await axios.post(
         "https://sol-prediction-backend-6e3r.onrender.com/user/referral",
-        {
-          walletAddress,
-          referralFrom,
-        }
+        { walletAddress, referralFrom }
       );
-      toast.custom(t => <ReferralToast theme={theme} />, {
+      toast.custom((t) => <ReferralToast theme={theme} />, {
         position: "top-right",
       });
       onCancel();
     } catch {
-      toast.custom(t => <ReferralToastFailed theme={theme} />, {
+      toast.custom((t) => <ReferralToastFailed theme={theme} />, {
         position: "top-right",
       });
     } finally {
@@ -135,19 +132,28 @@ export default function Referral({ onCancel }: ReferralProps) {
                 )}
                 <span className="text-sm md:text-lg">{label}</span>
 
-                {value === "friend" && (
+                {/* Inline input for Friend & Others */}
+                {(value === "friend" || value === "others") && (
                   <input
                     type="text"
-                    placeholder='Please specify'
-                    value={friendSource}
-                    onChange={e => setFriendSource(e.target.value)}
+                    placeholder={
+                      value === "friend"
+                        ? 'Please specify'
+                        : 'Please specify if other'
+                    }
+                    value={value === "friend" ? friendSource : otherSource}
+                    onChange={(e) =>
+                      value === "friend"
+                        ? setFriendSource(e.target.value)
+                        : setOtherSource(e.target.value)
+                    }
                     disabled={!isSelected}
                     className={`ml-4 flex-1 p-2 text-sm rounded-2xl placeholder-gray-400 border transition-all focus:outline-none ${
                       !isSelected
                         ? "cursor-not-allowed border-gray-200 dark:border-gray-700 bg-transparent"
                         : theme === "dark"
-                        ? "border-white bg-white/10"
-                        : "border-blue-500 bg-white/90"
+                        ? "border-white bg-white/10 text-white"
+                        : "border-blue-500 bg-white/90 text-black"
                     }`}
                   />
                 )}
@@ -156,36 +162,17 @@ export default function Referral({ onCancel }: ReferralProps) {
           })}
         </div>
 
-        {/* existing “others” input below */}
-        <div className="mt-2 md:mt-4">
-          <input
-            type="text"
-            placeholder={'Please specify if "Others"'}
-            value={otherSource}
-            onChange={e => setOtherSource(e.target.value)}
-            disabled={selected !== "others"}
-            className={`w-full p-3 text-sm md:text-lg rounded-2xl placeholder-gray-400 border focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
-              selected !== "others"
-                ? "cursor-not-allowed"
-                : theme === "dark"
-                ? "bg-gray-200/10"
-                : "bg-gray-500/10"
-            }`}
-          />
-        </div>
-
-        <div className="mt-2 md:mt-6 text-right space-x-3">
+        <div className="mt-6 text-right space-x-3">
           <button
-            type="button"
             onClick={handleSubmit}
             disabled={
-              ((selected === "others" && !otherSource.trim()) ||
-                (selected === "friend" && !friendSource.trim())) ||
-              isSubmitting
+              isSubmitting ||
+              (selected === "friend" && !friendSource.trim()) ||
+              (selected === "others" && !otherSource.trim())
             }
             className={`px-6 py-3 md:text-base text-xs glass rounded-2xl cursor-pointer font-semibold transition-colors ${
-              ((selected === "others" && !otherSource.trim()) ||
-                (selected === "friend" && !friendSource.trim()))
+              (selected === "friend" && !friendSource.trim()) ||
+              (selected === "others" && !otherSource.trim())
                 ? "opacity-50 cursor-not-allowed"
                 : "hover:!bg-gray-100/40"
             }`}
@@ -200,7 +187,7 @@ export default function Referral({ onCancel }: ReferralProps) {
             )}
           </button>
           <button
-            type="button"
+          type="button"
             onClick={onCancel}
             disabled={isSubmitting}
             className="px-6 py-3 glass cursor-pointer md:text-base text-xs !bg-red-600/70 hover:!bg-red-700/40 text-white rounded-2xl font-semibold transition-colors"
