@@ -7,6 +7,7 @@ import { useTranslation } from "next-i18next";
 import axios from "axios";
 import coinIcon from "@/public/assets/solana_logo.png";
 import { useWallet } from "@solana/wallet-adapter-react";
+import ShareReferral from "./ShareButton";
 
 export interface MarketHeaderProps {
   /** Latest SOL/USDT price (as a number, e.g. 172.5234) */
@@ -88,16 +89,17 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
 
     const fetchBonus = useCallback(async () => {
       if (!connected || !publicKey) return;
-      
+
       // Prevent multiple rapid fetches
       const now = Date.now();
-      if (now - lastFetchTime < 2000) { // 2 second debounce
+      if (now - lastFetchTime < 2000) {
+        // 2 second debounce
         return;
       }
-      
+
       setLoadingBonus(true);
       setLastFetchTime(now);
-      
+
       try {
         const { data } = await axios.get<number>(
           `https://sol-prediction-backend-6e3r.onrender.com/user/bonus/${publicKey.toBase58()}`
@@ -125,7 +127,7 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
     }, [connected, publicKey?.toBase58()]); // Use toBase58() to avoid unnecessary re-renders
 
     // Remove the claimableRewards dependency that was causing unnecessary refetches
-    
+
     const displayTime = useMemo(() => {
       if (isLocked) return <>{t("closing")}</>;
       return formatTimeLeft(timeLeft);
@@ -153,13 +155,12 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
               className="w-[24px] sm:w-[32px] lg:w-[64px] h-auto object-contain absolute left-0 top-0 z-10"
             />
             <div className="glass flex gap-2 sm:gap-[9px] lg:gap-[26px] relative left-[8px] sm:left-[10px] lg:left-[20px] items-center font-semibold px-3 sm:px-[20px] lg:px-[44px] py-1 sm:py-[6px] lg:py-[15px] rounded-full">
-              <p className="text-[10px] pl-4 sm:text-[12px] lg:text-[20px]">
+              <p className="text-[12px] pl-4 sm:text-[14px] lg:text-[20px]">
                 SOL/USDT
               </p>
-              {
-                liveRoundPrice > 0  ?   
+              {liveRoundPrice > 0 ? (
                 <p
-                  className={`text-[10px] sm:text-[12px] transition-colors duration-300 ${priceColor}`}
+                  className={`text-[12px] sm:text-[14px] transition-colors duration-300 ${priceColor}`}
                 >
                   $
                   <NumberFlow
@@ -173,83 +174,89 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
                       easing: "ease-out",
                     }}
                   />
-                </p> : <PuffLoader
+                </p>
+              ) : (
+                <PuffLoader
                   size={32}
                   color={theme === "dark" ? "#fff" : "#000"}
                 />
-              }
-             
+              )}
             </div>
           </div>
 
-          {/* Circular Timer */}
-          <div className="relative flex items-center justify-center w-[60px] sm:w-[80px] lg:w-[120px] h-[60px] sm:h-[80px] lg:h-[120px]">
-            {/* Background Circle */}
-            <svg className="absolute w-full h-full" viewBox="0 0 100 100">
-              <circle
-                cx="50"
-                cy="50"
-                r="45"
-                fill="none"
-                stroke={theme === "dark" ? "#374151" : "#E5E7EB"}
-                strokeWidth="5"
-              />
+          <div className="flex items-end gap-8">
+            <div>
+              <ShareReferral/>
+            </div>
+            {/* Circular Timer */}
+            <div className="relative flex items-center justify-center w-[60px] sm:w-[80px] lg:w-[120px] h-[60px] sm:h-[80px] lg:h-[120px]">
+              {/* Background Circle */}
+              <svg className="absolute w-full h-full" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  fill="none"
+                  stroke={theme === "dark" ? "#374151" : "#E5E7EB"}
+                  strokeWidth="5"
+                />
 
-              {/* Progress Circle */}
-              <circle
-                cx="50"
-                cy="50"
-                r="45"
-                fill="none"
-                stroke={theme === "dark" ? "#6B7280" : "#9CA3AF"}
-                strokeWidth="5"
-                strokeLinecap="round"
-                strokeDasharray="283" // 2πr ≈ 283
-                strokeDashoffset={
-                  isLocked
-                    ? 0
-                    : 283 - 283 * (1 - (timeLeft ?? 0) / lockDuration)
-                }
-                transform="rotate(-90 50 50)"
-              />
+                {/* Progress Circle */}
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  fill="none"
+                  stroke={theme === "dark" ? "#6B7280" : "#9CA3AF"}
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  strokeDasharray="283" // 2πr ≈ 283
+                  strokeDashoffset={
+                    isLocked
+                      ? 0
+                      : 283 - 283 * (1 - (timeLeft ?? 0) / lockDuration)
+                  }
+                  transform="rotate(-90 50 50)"
+                />
 
-              {/* Tick Marks */}
-              {Array.from({ length: 20 }).map((_, i) => {
-                const angle = 15 + i * 18; // 15° + 18° increments
-                if (angle < 165 || angle > 195) {
-                  return (
-                    <line
-                      key={i}
-                      x1="50"
-                      y1="8"
-                      x2="50"
-                      y2="12"
-                      stroke={theme === "dark" ? "#4B5563" : "#6B7280"}
-                      strokeWidth="1.5"
-                      transform={`rotate(${angle} 50 50)`}
-                    />
-                  );
-                }
-                return null;
-              })}
-            </svg>
+                {/* Tick Marks */}
+                {Array.from({ length: 20 }).map((_, i) => {
+                  const angle = 15 + i * 18; // 15° + 18° increments
+                  if (angle < 165 || angle > 195) {
+                    return (
+                      <line
+                        key={i}
+                        x1="50"
+                        y1="8"
+                        x2="50"
+                        y2="12"
+                        stroke={theme === "dark" ? "#4B5563" : "#6B7280"}
+                        strokeWidth="1.5"
+                        transform={`rotate(${angle} 50 50)`}
+                      />
+                    );
+                  }
+                  return null;
+                })}
+              </svg>
 
-            {/* Center Text */}
-            <div className="absolute flex flex-col items-center justify-center z-10">
-              <span
-                className={`font-semibold text-[12px] sm:text-[16px] lg:text-[20px] ${
-                  theme === "dark" ? "text-white" : "text-gray-900"
-                }`}
-              >
-                {displayTime}
-              </span>
-              <span
-                className={`text-[8px] sm:text-[10px] lg:text-[12px] ${
-                  theme === "dark" ? "text-[#D1D5DB]" : "text-gray-500"
-                }`}
-              >
-                {lockMinutes === 0 ? <>{t("locked")}</> : <>{lockMinutes}m</>}
-              </span>
+              {/* Center Text */}
+              <div className="absolute flex flex-col items-center justify-center z-10">
+                <span
+                  className={`font-semibold text-[12px] sm:text-[16px] lg:text-[20px] ${
+                    theme === "dark" ? "text-white" : "text-gray-900"
+                  }`}
+                >
+                  {displayTime}
+                </span>
+                <span
+                  className={`text-[8px] sm:text-[10px] lg:text-[14px] ${
+                    theme === "dark" ? "text-[#D1D5DB]" : "text-gray-500"
+                  }`}
+                >
+                  {lockMinutes === 0 ? <>{t("locked")}</> : <>{lockMinutes}m</>}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -269,11 +276,17 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
                     height={20}
                     className="w-[20px] h-auto object-contain"
                   />
-                  <span>{userBalance >= 0 ? formatNum(userBalance) : 
-                    <PuffLoader
-                      size={32}
-                      color={theme === "dark" ? "#fff" : "#000"}
-                    />} SOL</span>
+                  <span>
+                    {userBalance >= 0 ? (
+                      formatNum(userBalance)
+                    ) : (
+                      <PuffLoader
+                        size={32}
+                        color={theme === "dark" ? "#fff" : "#000"}
+                      />
+                    )}{" "}
+                    SOL
+                  </span>
                 </div>
               </div>
               <div className="relative border-l-2 pl-4 border-gray-300 group">
@@ -282,8 +295,8 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
                 {/* tooltip panel */}
                 <div className="pointer-events-none absolute left-0 bottom-full mt-2 w-full md:w-64 !bg-gray-500 glass rounded-md z-[100] p-3 text-xs opacity-0 transition-opacity group-hover:opacity-100">
                   <p className="whitespace-pre-line leading-snug">
-                    You can get 0.1FN/Bet for the bonus token.
-                    If you bet with over 1 sol, you can get 1FN/Bet.
+                    You can get 0.1FN/Bet for the bonus token. If you bet with
+                    over 1 sol, you can get 1FN/Bet.
                     {"\n"}You will be get airdropped after token launch.
                   </p>
                 </div>
@@ -334,7 +347,7 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
                   </button>
                 </div>
               )}
-              
+
               {/* Claimable Rewards & Button */}
               {claimableRewards > 0 && (
                 <div className="flex items-center gap-3">
@@ -367,7 +380,6 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
                   </button>
                 </div>
               )}
-
             </div>
           </div>
         ) : (

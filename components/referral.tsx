@@ -1,4 +1,5 @@
-// components/referral.tsx
+// components/Referral.tsx
+"use client";
 
 import React, { useState } from "react";
 import axios from "axios";
@@ -9,7 +10,6 @@ import {
   FaTwitter,
   FaInstagram,
   FaDiscord,
-  FaSpinner,
 } from "react-icons/fa";
 import { SiSolana } from "react-icons/si";
 import {
@@ -31,9 +31,10 @@ export default function Referral({ onCancel }: ReferralProps) {
   const walletAddress = publicKey?.toString() ?? "";
 
   const [selected, setSelected] = useState<
-    "telegram" | "twitter" | "instagram" | "discord" | "solscan" | "others"
+    "telegram" | "twitter" | "instagram" | "discord" | "solscan" | "friend" | "others"
   >("telegram");
   const [otherSource, setOtherSource] = useState("");
+  const [friendSource, setFriendSource] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const options = [
@@ -42,6 +43,7 @@ export default function Referral({ onCancel }: ReferralProps) {
     { label: "Instagram", value: "instagram", Icon: FaInstagram },
     { label: "Discord", value: "discord", Icon: FaDiscord },
     { label: "Solscan", value: "solscan", Icon: SiSolana },
+    { label: "Friend", value: "friend", Icon: null },
     { label: t("referral.others"), value: "others", Icon: null },
   ];
 
@@ -49,22 +51,24 @@ export default function Referral({ onCancel }: ReferralProps) {
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
-    // Validation: if "Others" but no text entered, bail out
-    if (selected === "others" && !otherSource.trim()) {
-      toast.custom(
-        (t) => (
-          <>
-            <ReferralToastInputFailed theme={theme} />
-          </>
-        ),
-        {
-          position: "top-right",
-        }
-      );
+    // Validation for friend & others
+    if (
+      (selected === "others" && !otherSource.trim()) ||
+      (selected === "friend" && !friendSource.trim())
+    ) {
+      toast.custom(t => <ReferralToastInputFailed theme={theme} />, {
+        position: "top-right",
+      });
       return;
     }
 
-    const referralFrom = selected === "others" ? otherSource.trim() : selected;
+    const referralFrom =
+      selected === "others"
+        ? otherSource.trim()
+        : selected === "friend"
+        ? friendSource.trim()
+        : selected;
+
     setIsSubmitting(true);
     try {
       await axios.post(
@@ -74,34 +78,22 @@ export default function Referral({ onCancel }: ReferralProps) {
           referralFrom,
         }
       );
-      toast.custom(
-        (t) => (
-          <>
-            <ReferralToast theme={theme} />
-          </>
-        ),
-        {
-          position: "top-right",
-        }
-      );
+      toast.custom(t => <ReferralToast theme={theme} />, {
+        position: "top-right",
+      });
       onCancel();
-    } catch (err) {
-      toast.custom(
-        (t) => (
-          <>
-            <ReferralToastFailed theme={theme} />
-          </>
-        ),
-        {
-          position: "top-right",
-        }
-      );
+    } catch {
+      toast.custom(t => <ReferralToastFailed theme={theme} />, {
+        position: "top-right",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div className="glass rounded-3xl max-w-[1300px] mx-auto md:mt-8">
-      <div className="max-w-2xl mx-auto p-4 md:p-10  rounded-xl">
+      <div className="max-w-2xl mx-auto p-4 md:p-10 rounded-xl">
         <h2 className="text-lg md:text-3xl pt-8 font-semibold">
           {t("referral.discover")}
         </h2>
@@ -120,6 +112,7 @@ export default function Referral({ onCancel }: ReferralProps) {
               theme === "dark"
                 ? "border-transparent hover:bg-gray-200/20 hover:border-gray-600"
                 : "border-transparent hover:bg-gray-500/20 hover:border-gray-400";
+
             return (
               <label
                 key={value}
@@ -131,37 +124,53 @@ export default function Referral({ onCancel }: ReferralProps) {
                   type="radio"
                   name="discover"
                   value={value}
-                  checked={selected === value}
+                  checked={isSelected}
                   onChange={() => setSelected(value as any)}
                   className="sr-only"
                 />
                 {Icon ? (
                   <Icon className="text-xl mr-3" />
                 ) : (
-                  <span className="text-sm rounded-full"></span>
+                  <span className="text-sm rounded-full mr-3" />
                 )}
                 <span className="text-sm md:text-lg">{label}</span>
+
+                {value === "friend" && (
+                  <input
+                    type="text"
+                    placeholder='Please specify'
+                    value={friendSource}
+                    onChange={e => setFriendSource(e.target.value)}
+                    disabled={!isSelected}
+                    className={`ml-4 flex-1 p-2 text-sm rounded-2xl placeholder-gray-400 border transition-all focus:outline-none ${
+                      !isSelected
+                        ? "cursor-not-allowed border-gray-200 dark:border-gray-700 bg-transparent"
+                        : theme === "dark"
+                        ? "border-white bg-white/10"
+                        : "border-blue-500 bg-white/90"
+                    }`}
+                  />
+                )}
               </label>
             );
           })}
         </div>
 
+        {/* existing “others” input below */}
         <div className="mt-2 md:mt-4">
           <input
             type="text"
             placeholder={'Please specify if "Others"'}
             value={otherSource}
-            onChange={(e) => setOtherSource(e.target.value)}
+            onChange={e => setOtherSource(e.target.value)}
             disabled={selected !== "others"}
-            className={`w-full p-3 text-sm md:text-lg rounded-2xl placeholder-gray-400 border
-              focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all
-              ${
-                selected !== "others"
-                  ? "cursor-not-allowed"
-                  : theme === "dark"
-                  ? "bg-gray-200/10"
-                  : "bg-gray-500/10"
-              }`}
+            className={`w-full p-3 text-sm md:text-lg rounded-2xl placeholder-gray-400 border focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+              selected !== "others"
+                ? "cursor-not-allowed"
+                : theme === "dark"
+                ? "bg-gray-200/10"
+                : "bg-gray-500/10"
+            }`}
           />
         </div>
 
@@ -170,14 +179,16 @@ export default function Referral({ onCancel }: ReferralProps) {
             type="button"
             onClick={handleSubmit}
             disabled={
-              (selected === "others" && !otherSource.trim()) || isSubmitting
+              ((selected === "others" && !otherSource.trim()) ||
+                (selected === "friend" && !friendSource.trim())) ||
+              isSubmitting
             }
-            className={`px-6 py-3 md:text-base text-xs glass rounded-2xl cursor-pointer font-semibold transition-colors
-              ${
-                selected === "others" && !otherSource.trim()
-                  ? "opacity-50 cursor-not-allowed"
-                  : "hover:!bg-gray-100/40 "
-              }`}
+            className={`px-6 py-3 md:text-base text-xs glass rounded-2xl cursor-pointer font-semibold transition-colors ${
+              ((selected === "others" && !otherSource.trim()) ||
+                (selected === "friend" && !friendSource.trim()))
+                ? "opacity-50 cursor-not-allowed"
+                : "hover:!bg-gray-100/40"
+            }`}
           >
             {isSubmitting ? (
               <div className="flex items-center gap-2">
