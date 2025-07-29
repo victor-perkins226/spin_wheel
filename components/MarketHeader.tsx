@@ -185,7 +185,8 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
           </div>
 
           <div className="flex items-end gap-8">
-            <div>
+            <div className="flex flex-col items-center">
+              <span className="text-lg">Share</span>
               <ShareReferral/>
             </div>
             {/* Circular Timer */}
