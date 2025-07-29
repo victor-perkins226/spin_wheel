@@ -774,7 +774,7 @@ export default function PredictionCard({
     };
 
     const getLabelTextStyle = () => {
-      return `text-[10px] ${
+      return `text-[12px] ${
         theme === "dark" ? "text-[#FEFEFE]" : "text-gray-600"
       }`;
     };
@@ -835,7 +835,7 @@ export default function PredictionCard({
                     } px-[10px] py-[10px] rounded-[5px]`}
                   >
                     {priceDirection === "up" ? <ArrowUp size={12} /> : priceDirection === "down" && <ArrowDown size={12} /> }
-                    <p className="text-[10px]">${formatNum(priceDifference)}</p>
+                    <p className="text-[12px]">${formatNum(priceDifference)}</p>
                   </div>
                 </div>
                 <div
