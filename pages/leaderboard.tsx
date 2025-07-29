@@ -14,6 +14,9 @@ import { API_URL } from "@/lib/config";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTheme } from "next-themes";
 import { serverSideTranslations } from "next-i18next/serverSideTranslations";
+import PositionCard from "@/components/PositionCard";
+import SelectBox from "@/components/SelectBox";
+import SelectInput from "@/components/SelectInput";
 
 // preload translations only
 export async function getStaticProps({ locale }: { locale: string }) {
@@ -44,6 +47,13 @@ const _Leaderboard: React.FC = () => {
   const [hasNext, setHasNext] = useState(false);
   const [hasPrevious, setHasPrevious] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [searchAddress, setSearchAddress] = useState("");
+
+  const timeFrames = ["Daily", "Weekly", "Monthly", "Yearly"];
+  const rankByOptions = ["Rounds Played", "Net Winnings", "Win Rate"];
+
+  const [timeFrame, setTimeFrame] = useState("Weekly");
+  const [rankBy, setRankBy] = useState("Rounds Played");
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -81,6 +91,42 @@ const _Leaderboard: React.FC = () => {
         <title>{t("leaderboard.title")} | FORTUVA</title>
       </Head>
       <div className="container md:mt-[67px] mb-8">
+        <div className="flex flex-col gap-6">
+          <div className="flex pl-8 w-full gap-6">
+            <SelectBox
+              label="Time Frame"
+              options={timeFrames}
+              value={timeFrame}
+              onChange={setTimeFrame}
+              className="w-1/4"
+            />
+            <SelectBox
+              label="Rank By"
+              options={rankByOptions}
+              value={rankBy}
+              onChange={setRankBy}
+              className="w-1/4"
+            />
+            <SelectInput
+              label="Search Address"
+              value={searchAddress}
+              onChange={setSearchAddress}
+              placeholder="Enter wallet address"
+              
+            />
+          </div>
+
+          {/* Top-3 featured cards */}
+          <div className="flex flex-wrap my-8 gap-16 justify-center">
+            {leaders.slice(0, 3).map((ld, i) => (
+              <PositionCard
+                key={ld.userWalletAddress}
+                position={(i + 1) as 1 | 2 | 3}
+                leader={ld}
+              />
+            ))}
+          </div>
+        </div>
         <div className="glass px-[30px] py-[16px] rounded-[20px] w-full relative overflow-auto">
           {loading && (
             <div
@@ -103,7 +149,9 @@ const _Leaderboard: React.FC = () => {
                 <th className="pb-[24px] pr-12">{t("leaderboard.winnings")}</th>
                 <th className="pb-[24px] pr-12">{t("leaderboard.winRate")}</th>
                 <th className="pb-[24px] pr-12">{t("leaderboard.trades")}</th>
-                <th className="pb-[24px] pr-12">{t("leaderboard.tradesWon")}</th>
+                <th className="pb-[24px] pr-12">
+                  {t("leaderboard.tradesWon")}
+                </th>
               </tr>
             </thead>
             <tbody>
