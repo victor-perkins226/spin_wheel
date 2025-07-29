@@ -44,7 +44,7 @@ export default function SelectInput({
           className={`
             pl-6 pr-4 py-2 w-full
             glass border border-gray-200 dark:border-gray-700
-            rounded-full shadow-sm
+            rounded-lg shadow-sm
             placeholder-gray-500 dark:placeholder-gray-400
             focus:outline-none focus:ring-2 focus:ring-blue-400
             transition

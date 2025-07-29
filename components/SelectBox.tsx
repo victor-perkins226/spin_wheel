@@ -39,7 +39,7 @@ export default function SelectBox({
       {label && <div className="mb-1 text-sm font-medium">{label}</div>}
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center justify-between w-full px-4 py-2 glass border border-gray-200 dark:border-gray-700 rounded-full shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition"
+        className="flex items-center justify-between w-full px-4 py-2 glass border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition"
       >
         <span className="font-medium">{value}</span>
         <ChevronDown
