@@ -41,6 +41,7 @@ const _Leaderboard: React.FC = () => {
   const { theme } = useTheme();
 
   const [leaders, setLeaders] = useState<Leader[]>([]);
+  const [topLeaders, setTopLeaders] = useState<Leader[]>([]);
   const [total, setTotal] = useState(0);
   const [limit, setLimit] = useState(10);
   const [offset, setOffset] = useState(0);
@@ -66,7 +67,28 @@ const _Leaderboard: React.FC = () => {
 
     setLoading(true);
     axios
-      .get(`${API_URL}/leaderboard`, { params: { limit: l, offset: o } })
+      .get(`${API_URL}/leaderboard`, { params: { limit: 3, offset: o } })
+      .then((res) => {
+        const { data, total, hasNext, hasPrevious } = res.data;
+        setLeaders(data);
+        setTopLeaders(data);
+        setTotal(total);
+        setHasNext(hasNext);
+        setHasPrevious(hasPrevious);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+
+
+  }, [router.isReady, router.query.limit, router.query.offset]);
+
+  const currentPage = Math.floor(offset / limit) + 1;
+  const totalPages = Math.ceil(total / limit);
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      axios
+      .get(`${API_URL}/leaderboard`, { params: { limit: limit, offset: offset } })
       .then((res) => {
         const { data, total, hasNext, hasPrevious } = res.data;
         setLeaders(data);
@@ -76,14 +98,10 @@ const _Leaderboard: React.FC = () => {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [router.isReady, router.query.limit, router.query.offset]);
+    }
 
-  const currentPage = Math.floor(offset / limit) + 1;
-  const totalPages = Math.ceil(total / limit);
-  const goTo = (newOffset: number) =>
-    router.push(`/leaderboard?limit=${limit}&offset=${newOffset}`, undefined, {
-      shallow: true,
-    });
+    fetchData();
+  }, [offset])
 
   return (
     <>
@@ -118,7 +136,7 @@ const _Leaderboard: React.FC = () => {
 
           {/* Top-3 featured cards */}
           <div className="flex flex-wrap my-8 gap-16 justify-center">
-            {leaders.slice(0, 3).map((ld, i) => (
+            {topLeaders.map((ld, i) => (
               <PositionCard
                 key={ld.userWalletAddress}
                 position={(i + 1) as 1 | 2 | 3}
@@ -221,7 +239,7 @@ const _Leaderboard: React.FC = () => {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => goTo(Math.max(offset - limit, 0))}
+                  onClick={() => setOffset(Math.max(offset - limit, 0))}
                   disabled={!hasPrevious}
                   className={`p-2 rounded-md cursor-pointer ${
                     !hasPrevious
@@ -241,7 +259,7 @@ const _Leaderboard: React.FC = () => {
                   {totalPages}
                 </div>
                 <button
-                  onClick={() => goTo(offset + limit)}
+                  onClick={() => setOffset(offset + limit)}
                   disabled={!hasNext}
                   className={`p-2 rounded-md cursor-pointer ${
                     !hasNext
