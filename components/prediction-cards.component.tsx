@@ -51,6 +51,7 @@ import { API_URL } from "@/lib/config";
 import { useTranslation } from "next-i18next";
 import PredictionCardWrapper from "./PredictionCardWrapper";
 import { BN } from "@project-serum/anchor";
+import axios from "axios";
 const BetsHistory = React.lazy(() => import("./BetsHistory"));
 
 const LineChart = React.lazy(() => import("./LineChart"));
@@ -110,6 +111,7 @@ export default function PredictionCards() {
       window.dispatchEvent(new CustomEvent("newRound"));
     }
   }, [connected, publicKey, fetchUserBets, config?.currentRound]);
+  
   const {
     price: livePrice,
     isLoading: priceLoading,

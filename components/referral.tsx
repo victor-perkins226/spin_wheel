@@ -31,7 +31,7 @@ export default function Referral({ onCancel }: ReferralProps) {
   const walletAddress = publicKey?.toString() ?? "";
 
   const [selected, setSelected] = useState<
-    "telegram" | "twitter" | "instagram" | "discord" | "solscan" | "friend" | "others"
+    "telegram" | "twitter" | "instagram" | "discord" | "solscan" | "others"
   >("telegram");
   const [friendSource, setFriendSource] = useState("");
   const [otherSource, setOtherSource] = useState("");
@@ -43,7 +43,6 @@ export default function Referral({ onCancel }: ReferralProps) {
     { label: "Instagram", value: "instagram", Icon: FaInstagram },
     { label: "Discord", value: "discord", Icon: FaDiscord },
     { label: "Solscan", value: "solscan", Icon: SiSolana },
-    { label: "Friend", value: "friend", Icon: null },
     { label: t("referral.others"), value: "others", Icon: null },
   ];
 
@@ -53,7 +52,6 @@ export default function Referral({ onCancel }: ReferralProps) {
     if (isSubmitting) return;
     // Validate friend & others
     if (
-      (selected === "friend" && !friendSource.trim()) ||
       (selected === "others" && !otherSource.trim())
     ) {
       toast.custom((t) => <ReferralToastInputFailed theme={theme} />, {
@@ -63,9 +61,7 @@ export default function Referral({ onCancel }: ReferralProps) {
     }
 
     const referralFrom =
-      selected === "friend"
-        ? friendSource.trim()
-        : selected === "others"
+         selected === "others"
         ? otherSource.trim()
         : selected;
 
@@ -116,13 +112,14 @@ export default function Referral({ onCancel }: ReferralProps) {
                 className={`${base} ${
                   isSelected ? selectedClasses : unselectedClasses
                 }`}
+                onClick={() => setSelected(value as any)}
               >
                 <input
                   type="radio"
                   name="discover"
                   value={value}
                   checked={isSelected}
-                  onChange={() => setSelected(value as any)}
+                  // onChange={() => setSelected(value as any)}
                   className="sr-only"
                 />
                 {Icon ? (
@@ -141,16 +138,13 @@ export default function Referral({ onCancel }: ReferralProps) {
                         ? 'Please specify'
                         : 'Please specify if other'
                     }
-                    value={value === "friend" ? friendSource : otherSource}
-                    onChange={(e) =>
-                      value === "friend"
-                        ? setFriendSource(e.target.value)
-                        : setOtherSource(e.target.value)
-                    }
-                    disabled={!isSelected}
+                    value={otherSource}
+                    onChange={(e) => {
+                        setOtherSource(e.target.value);
+                    }}
                     className={`ml-4 flex-1 p-2 text-sm rounded-2xl placeholder-gray-400 border transition-all focus:outline-none ${
                       !isSelected
-                        ? "cursor-not-allowed border-gray-200 dark:border-gray-700 bg-transparent"
+                        ? "border-gray-200 dark:border-gray-700 bg-transparent"
                         : theme === "dark"
                         ? "border-white bg-white/10 text-white"
                         : "border-blue-500 bg-white/90 text-black"
@@ -167,11 +161,9 @@ export default function Referral({ onCancel }: ReferralProps) {
             onClick={handleSubmit}
             disabled={
               isSubmitting ||
-              (selected === "friend" && !friendSource.trim()) ||
               (selected === "others" && !otherSource.trim())
             }
             className={`px-6 py-3 md:text-base text-xs glass rounded-2xl cursor-pointer font-semibold transition-colors ${
-              (selected === "friend" && !friendSource.trim()) ||
               (selected === "others" && !otherSource.trim())
                 ? "opacity-50 cursor-not-allowed"
                 : "hover:!bg-gray-100/40"

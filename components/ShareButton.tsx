@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 import { FaShareAlt, FaCopy, FaCheck } from "react-icons/fa";
 import { useTheme } from "next-themes";
 import toast from "react-hot-toast";
+import { useAnchorWallet } from "@solana/wallet-adapter-react";
 
 function CopiedToast({ theme }: { theme: string | undefined }) {
   return (
@@ -31,7 +32,7 @@ export default function ShareReferral() {
   const [open, setOpen] = useState(false);
   const [refLink, setRefLink] = useState("");
   const [copied, setCopied] = useState(false);
-
+  const wallet = useAnchorWallet();
   // Build referral link on client
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -39,7 +40,7 @@ export default function ShareReferral() {
     const path = router.asPath.endsWith("/")
       ? router.asPath.slice(0, -1)
       : router.asPath;
-    setRefLink(`${origin}${path}/referme`);
+    setRefLink(`${origin}${path}/referme/${wallet?.publicKey.toBase58()}`);
   }, [router.asPath]);
 
   const copyLink = async () => {

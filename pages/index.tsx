@@ -16,6 +16,7 @@ import PredictionCards from "@/components/prediction-cards.component";
 import Referral from "@/components/referral";
 import Lock from "@/public/assets/lock.png";
 import { NoInternetToast } from "@/components/toasts";
+import { API_URL } from "@/lib/config";
 
 export const getServerSideProps: GetServerSideProps = async ({
   req,
@@ -76,28 +77,39 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
   }, []);
 
   useEffect(() => {
-    if (!connected || !publicKey) return;
+    const checkReferral = async () => {
+      if (!connected || !publicKey) return;
+      const walletAddress = publicKey.toBase58();
+      const referralWallet = localStorage.getItem('referralWallet');
+      if (referralWallet) {
+        await axios.post(`${API_URL}/user/share-referral/${referralWallet}`, {
+          referee: publicKey.toBase58()
+        });
+        localStorage.removeItem('referralWallet')
+      }
+      axios
+        .get<{ referralFrom?: string }>(
+          `https://sol-prediction-backend-6e3r.onrender.com/user/referral/${walletAddress}`
+        )
+        .then((res) => {
+          // If no referralFrom in the response, show the modal
+          if (!res.data && !referralWallet) {
+            setShowReferralModal(true);
+          }
+        })
+        .catch((err) => {
+          console.error("Referral lookup failed:", err);
+          // In case of error you can choose to show the modal or not:
+          if (!referralWallet) {
+            setShowReferralModal(true);
+          }
+        })
+        .finally(() => {
+          setCheckedReferral(true);
+        });
+     }
 
-    const walletAddress = publicKey.toBase58();
-
-    axios
-      .get<{ referralFrom?: string }>(
-        `https://sol-prediction-backend-6e3r.onrender.com/user/referral/${walletAddress}`
-      )
-      .then((res) => {
-        // If no referralFrom in the response, show the modal
-        if (!res.data) {
-          setShowReferralModal(true);
-        }
-      })
-      .catch((err) => {
-        console.error("Referral lookup failed:", err);
-        // In case of error you can choose to show the modal or not:
-        setShowReferralModal(true);
-      })
-      .finally(() => {
-        setCheckedReferral(true);
-      });
+     checkReferral();
   }, [connected, publicKey]);
 
   // Restricted-country view
@@ -149,7 +161,9 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
               >
                 &times;
               </button>
-              <Referral onCancel={() => setShowReferralModal(false)} />
+              {
+                <Referral onCancel={() => setShowReferralModal(false)} />
+              }
             </div>
           </div>
         )}
