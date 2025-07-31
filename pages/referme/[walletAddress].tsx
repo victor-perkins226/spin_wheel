@@ -8,17 +8,15 @@ interface ReferralPageProps {
   walletAddress: string;
 }
 
-export const getServerSideProps: GetServerSideProps<ReferralPageProps> = async ({
-  params,
-  locale,
-}) => {
+export const getServerSideProps: GetServerSideProps<
+  ReferralPageProps
+> = async ({ params, locale }) => {
   const walletAddress = params?.walletAddress as string;
-  
-  // Validate wallet address format (basic validation)
-  if (!walletAddress || walletAddress.length !== 44) {
-    return {
-      notFound: true,
-    };
+
+  // Validate the  solana wallet address format (basic check)
+  const isSolanaKey = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(walletAddress);
+  if (!isSolanaKey) {
+    return { notFound: true };
   }
 
   return {
@@ -34,10 +32,10 @@ export default function ReferralPage({ walletAddress }: ReferralPageProps) {
 
   useEffect(() => {
     // Store the referral wallet address in localStorage or context
-    localStorage.setItem('referralWallet', walletAddress);
-    
+    localStorage.setItem("referralWallet", walletAddress);
+
     // Redirect to home page
-    router.replace('/');
+    router.replace("/");
   }, [walletAddress, router]);
 
   return (
