@@ -28,7 +28,7 @@ export default function SelectInput({
   }, []);
 
   return (
-    <div className={`w-full max-w-[300px] ${className || ""}`}>
+    <div className={`w-full max-w-[340px] ${className || ""}`}>
       {label && (
         <label className="block mb-1 text-sm font-medium">
           {label}

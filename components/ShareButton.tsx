@@ -75,7 +75,7 @@ export default function ShareReferral() {
           opacity-0 invisible group-hover:opacity-100 group-hover:visible
           transition-opacity duration-150 z-[100]
           ${theme === "dark"
-            ? "glass text-white"
+            ? "bg-[#29294d] shadow-md border border-[#d1d1d1bb]"
             : "bg-white text-gray-900"}
         `}
       >

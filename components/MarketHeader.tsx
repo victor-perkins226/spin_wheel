@@ -296,7 +296,7 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
                 <p className="text-sm opacity-70 cursor-help">{t("bonus")}</p>
 
                 {/* tooltip panel */}
-                <div className="pointer-events-none absolute left-0 bottom-full mt-2 w-full md:w-64 !bg-gray-500 glass rounded-md z-[100] p-3 text-xs opacity-0 transition-opacity group-hover:opacity-100">
+                <div className={`pointer-events-none absolute left-0 bottom-full mt-2 w-full md:w-64 ${theme === "dark" ? "bg-[#29294d] shadow-md border border-[#d1d1d1bb]" : "bg-white" }  rounded-md z-[100] p-3 text-xs opacity-0 transition-opacity group-hover:opacity-100`}>
                   <p className="whitespace-pre-line leading-snug">
                     You can get 0.1FN/Bet for the bonus token. If you bet with
                     over 1 sol, you can get 1FN/Bet.
