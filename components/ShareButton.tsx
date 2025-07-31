@@ -85,7 +85,7 @@ export default function ShareReferral() {
                 type="text"
                 readOnly
                 value={refLink}
-                className="flex-1 p-2 rounded-l-full border border-gray-200 dark:border-gray-700 text-sm bg-transparent"
+                className={` ${theme === "dark" ? "border-gray-200" : "border-black"} flex-1 p-2 rounded-l-full border text-sm bg-transparent`}
               />
               <button
                 onClick={copyLink}
