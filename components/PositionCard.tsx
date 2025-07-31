@@ -54,7 +54,7 @@ const PositionCard: React.FC<PositionCardProps> = ({ position, leader }) => {
       <div className="mt-4 space-y-6 text-sm">
         <div className="flex items-center justify-between ">
           <span>Win Rate: </span>
-          <span className="font-bold">{formatNum(leader.winRate)}%</span>
+          <span className="font-bold">{formatNum(leader.winRate * 100)}%</span>
         </div>
         <div className="flex items-center justify-between">
           <span>New Winnings (SOL) </span>

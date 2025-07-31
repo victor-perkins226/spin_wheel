@@ -281,7 +281,7 @@ const _Leaderboard: React.FC = () => {
                           {formatNum(L.netWinning)} SOL
                         </div>
                       </td>
-                      <td className="py-3 pr-4">{formatNum(L.winRate)}%</td>
+                      <td className="py-3 pr-4">{formatNum(L.winRate * 100)}%</td>
                       <td className="py-3 pr-4">{L.roundsPlayed}</td>
                       <td className="py-3 pr-4">{L.roundsWon}</td>
                     </tr>
