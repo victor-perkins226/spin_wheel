@@ -188,7 +188,6 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
             {
               connected &&
               <div className="flex flex-col items-center">
-                <span className="text-lg">Share</span>
                 <ShareReferral/>
               </div>
             }

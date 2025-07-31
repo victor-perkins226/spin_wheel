@@ -61,9 +61,9 @@ export default function ShareReferral() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="glass p-4 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+        className="glass py-2 px-6 flex gap-2 items-center rounded-2xl font-semibold justify-center w-[140px] cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition"
       >
-        <FaShareAlt className="w-6 h-6" />
+        <FaShareAlt className="" /> Share
       </button>
 
       {open && (
