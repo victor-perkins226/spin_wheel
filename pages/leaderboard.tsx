@@ -35,6 +35,20 @@ type Leader = {
   roundsPlayed: number;
 };
 
+const periodMap: Record<string, string> = {
+  All: "all",
+  Daily: "daily",
+  Weekly: "weekly",
+  Monthly: "monthly",
+};
+const sortByMap: Record<string, string> = {
+  "Rounds Played": "roundsPlayed",
+  "Net Winnings": "netWinnings",
+  "Win Rate": "winRate",
+};
+
+// always descending for a leaderboard
+const SORT_ORDER = "desc";
 const _Leaderboard: React.FC = () => {
   const router = useRouter();
   const { t } = useTranslation("common");
@@ -50,58 +64,102 @@ const _Leaderboard: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [searchAddress, setSearchAddress] = useState("");
 
-  const timeFrames = ["Daily", "Weekly", "Monthly", "Yearly"];
+  const timeFrames = ["All", "Daily", "Weekly", "Monthly"];
   const rankByOptions = ["Rounds Played", "Net Winnings", "Win Rate"];
 
-  const [timeFrame, setTimeFrame] = useState("Weekly");
+  const [timeFrame, setTimeFrame] = useState("All");
   const [rankBy, setRankBy] = useState("Rounds Played");
 
+  const [tableOffset, setTableOffset] = useState(0);
+  const TOP_N = 3;
   useEffect(() => {
     if (!router.isReady) return;
-    const qLimit = parseInt(String(router.query.limit), 10);
-    const qOffset = parseInt(String(router.query.offset), 10);
-    const l = isNaN(qLimit) ? 10 : qLimit;
-    const o = isNaN(qOffset) ? 0 : qOffset;
-    setLimit(l);
-    setOffset(o);
-
     setLoading(true);
-    axios
-      .get(`${API_URL}/leaderboard`, { params: { limit: 3, offset: o } })
-      .then((res) => {
-        const { data, total, hasNext, hasPrevious } = res.data;
-        setLeaders(data);
-        setTopLeaders(data);
-        setTotal(total);
-        setHasNext(hasNext);
-        setHasPrevious(hasPrevious);
+
+    const p = periodMap[timeFrame]; // now only "all","daily","weekly","monthly"
+    const sb = sortByMap[rankBy];
+    const so = SORT_ORDER;
+    const addrParam = searchAddress || undefined;
+    // const tableOffset = offset + TOP_N;
+
+    const top3Req = axios.get(`${API_URL}/leaderboard`, {
+      params: {
+        period: p,
+        sortBy: sb,
+        sortOrder: so,
+        limit: TOP_N,
+        offset: 0,
+        address: addrParam,
+      },
+    });
+    const to = offset + TOP_N;
+    const pageReq = axios.get(`${API_URL}/leaderboard`, {
+      params: {
+        period: p,
+        sortBy: sb,
+        sortOrder: so,
+        limit,
+        offset: to,
+        address: addrParam,
+      },
+    });
+
+    Promise.all([top3Req, pageReq])
+      .then(([t3, page]) => {
+        // helper to detect if the API gave back only null metrics
+        const hasRealData = (arr: any[]) =>
+          arr.some((item) => item.netWinning !== null);
+
+        const rawTop3 = t3.data.data as Leader[];
+        const rawPage = page.data.data as Leader[];
+        setTableOffset(to);
+        setTopLeaders(hasRealData(rawTop3) ? rawTop3 : []);
+        setLeaders(hasRealData(rawPage) ? rawPage : []);
+
+        // only show total/next/prev if there was real data
+        if (hasRealData(rawPage)) {
+          setTotal(page.data.total);
+          setHasNext(page.data.hasNext);
+          setHasPrevious(page.data.hasPrevious);
+        } else {
+          setTotal(0);
+          setHasNext(false);
+          setHasPrevious(false);
+        }
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error(err);
+        // if the server still chucks a 400 for period or anything else,
+        // just treat it like “no data”
+        setTopLeaders([]);
+        setLeaders([]);
+        setTotal(0);
+        setHasNext(false);
+        setHasPrevious(false);
+      })
       .finally(() => setLoading(false));
-
-
-  }, [router.isReady, router.query.limit, router.query.offset]);
+  }, [router.isReady, limit, offset, timeFrame, rankBy, searchAddress]);
 
   const currentPage = Math.floor(offset / limit) + 1;
   const totalPages = Math.ceil(total / limit);
-  
-  useEffect(() => {
-    const fetchData = async () => {
-      axios
-      .get(`${API_URL}/leaderboard`, { params: { limit: limit, offset: offset } })
-      .then((res) => {
-        const { data, total, hasNext, hasPrevious } = res.data;
-        setLeaders(data);
-        setTotal(total);
-        setHasNext(hasNext);
-        setHasPrevious(hasPrevious);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-    }
 
-    fetchData();
-  }, [offset])
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     axios
+  //     .get(`${API_URL}/leaderboard`, { params: { limit: limit, offset: offset } })
+  //     .then((res) => {
+  //       const { data, total, hasNext, hasPrevious } = res.data;
+  //       setLeaders(data);
+  //       setTotal(total);
+  //       setHasNext(hasNext);
+  //       setHasPrevious(hasPrevious);
+  //     })
+  //     .catch(console.error)
+  //     .finally(() => setLoading(false));
+  //   }
+
+  //   fetchData();
+  // }, [offset])
 
   return (
     <>
@@ -130,7 +188,6 @@ const _Leaderboard: React.FC = () => {
               value={searchAddress}
               onChange={setSearchAddress}
               placeholder="Enter wallet address"
-              
             />
           </div>
 
@@ -163,6 +220,7 @@ const _Leaderboard: React.FC = () => {
           <table className="w-full text-left">
             <thead className="text-[10px] lg:text-[12px]">
               <tr>
+                <th className="pb-[24px] pr-12">#</th>
                 <th className="pb-[24px] pr-12">{t("leaderboard.user")}</th>
                 <th className="pb-[24px] pr-12">{t("leaderboard.winnings")}</th>
                 <th className="pb-[24px] pr-12">{t("leaderboard.winRate")}</th>
@@ -176,14 +234,15 @@ const _Leaderboard: React.FC = () => {
               {leaders.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="py-6 text-center text-sm text-gray-500"
                   >
                     No Data.
                   </td>
                 </tr>
               ) : (
-                leaders.map((L) => {
+                leaders.map((L, i) => {
+                  const rank = tableOffset + i + 1;
                   const shortAddr = `${L.userWalletAddress.slice(
                     0,
                     6
@@ -193,6 +252,7 @@ const _Leaderboard: React.FC = () => {
                       key={L.userWalletAddress}
                       className="font-semibold text-[10px] lg:text-[15px]"
                     >
+                      <td className="py-3 pr-4">{rank}</td>
                       <td className="py-3 pr-4">
                         <div className="flex items-center gap-[6px]">
                           <SVG
@@ -234,8 +294,7 @@ const _Leaderboard: React.FC = () => {
           {!loading && (
             <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
               <div className="text-sm">
-                {t("leaderboard.showing")} {offset + 1}-
-                {offset + leaders.length} {t("leaderboard.of")} {total}
+                {t("leaderboard.showing")} {tableOffset+1}-{tableOffset + leaders.length}
               </div>
               <div className="flex items-center gap-2">
                 <button

@@ -59,13 +59,37 @@ export default function ShareReferral() {
 
   return (
     <>
+    <div className="relative inline-block group">
       <button
         onClick={() => setOpen(true)}
         className="glass py-2 px-6 flex gap-2 items-center rounded-2xl font-semibold justify-center w-[140px] cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition"
       >
-        <FaShareAlt className="" /> Share
+        <FaShareAlt /> Share
       </button>
 
+      {/* tooltip */}
+      <div
+        className={`
+          absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2
+          w-max max-w-xs px-3 py-2 text-sm rounded-lg shadow-lg
+          opacity-0 invisible group-hover:opacity-100 group-hover:visible
+          transition-opacity duration-150 z-[100]
+          ${theme === "dark"
+            ? "glass text-white"
+            : "bg-white text-gray-900"}
+        `}
+      >
+        Invite users and earn 0.5&nbsp;FN when they place their first bet.
+        <span
+          className={`absolute top-full left-1/2 transform -translate-x-1/2
+            border-4 border-transparent
+            ${theme === "dark"
+              ? "border-t-gray-800"
+              : "border-t-white"
+            }`}
+        />
+      </div>
+    </div>
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* backdrop */}
@@ -102,7 +126,7 @@ export default function ShareReferral() {
             <div className="text-right">
               <button
                 onClick={() => setOpen(false)}
-                className="px-4 py-2 glass rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                className="px-4 py-2 glass cursor-pointer rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition"
               >
                 Close
               </button>
