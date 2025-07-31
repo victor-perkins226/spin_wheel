@@ -144,7 +144,9 @@ export default function Referral({ onCancel }: ReferralProps) {
                     }}
                     className={`ml-4 flex-1 p-2 text-sm rounded-2xl placeholder-gray-400 border transition-all focus:outline-none ${
                       !isSelected
-                        ? "border-gray-200 dark:border-gray-700 bg-transparent"
+                        ?`${theme === "dark"
+                          ? "border-gray-200 bg-gray-800 text-white"
+                          : "border-gray-700 bg-white text-black"} `
                         : theme === "dark"
                         ? "border-white bg-white/10 text-white"
                         : "border-blue-500 bg-white/90 text-black"
