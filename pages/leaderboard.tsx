@@ -168,26 +168,27 @@ const _Leaderboard: React.FC = () => {
       </Head>
       <div className="container md:mt-[67px] mb-8">
         <div className="flex flex-col gap-6">
-          <div className="flex pl-8 w-full gap-6">
+          <div className="flex md:flex-row flex-col md:pl-8  pt-3 w-full gap-6">
             <SelectBox
               label="Time Frame"
               options={timeFrames}
               value={timeFrame}
               onChange={setTimeFrame}
-              className="w-1/4"
+              className="md:w-1/4"
             />
             <SelectBox
               label="Rank By"
               options={rankByOptions}
               value={rankBy}
               onChange={setRankBy}
-              className="w-1/4"
+              className="md:w-1/4"
             />
             <SelectInput
               label="Search Address"
               value={searchAddress}
               onChange={setSearchAddress}
               placeholder="Enter wallet address"
+              className="md:w-1/4 w-full"
             />
           </div>
 
