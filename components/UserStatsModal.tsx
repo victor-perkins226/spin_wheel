@@ -121,6 +121,7 @@ export default function UserStatsModal({ isOpen, address, stats, onClose }: Prop
             </div>
           ) : (
             <div className="overflow-x-auto">
+              <h3 className="font-bold mb-3">Last 5 Bets</h3>
               <table className="w-full text-left">
                 <thead className={`text-xs font-medium uppercase ${getTextColor()}`}>                  
                   <tr>
