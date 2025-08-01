@@ -89,7 +89,7 @@ export default function Home({ isBanned }: { isBanned: boolean }) {
       }
       axios
         .get<{ referralFrom?: string }>(
-          `https://sol-prediction-backend-6e3r.onrender.com/user/referral/${walletAddress}`
+          `${API_URL}/user/referral/${walletAddress}`
         )
         .then((res) => {
           // If no referralFrom in the response, show the modal

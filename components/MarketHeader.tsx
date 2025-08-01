@@ -8,6 +8,7 @@ import axios from "axios";
 import coinIcon from "@/public/assets/solana_logo.png";
 import { useWallet } from "@solana/wallet-adapter-react";
 import ShareReferral from "./ShareButton";
+import { API_URL } from "@/lib/config";
 
 export interface MarketHeaderProps {
   /** Latest SOL/USDT price (as a number, e.g. 172.5234) */
@@ -101,7 +102,7 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
 
       try {
         const { data } = await axios.get<number>(
-          `https://sol-prediction-backend-6e3r.onrender.com/user/bonus/${publicKey.toBase58()}`
+          `${API_URL}/user/bonus/${publicKey.toBase58()}`
         );
         setBonusAmount(data);
       } catch (err) {
