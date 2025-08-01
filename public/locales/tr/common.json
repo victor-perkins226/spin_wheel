@@ -9,12 +9,15 @@
   },
   "balance": "Bakiyeniz",
   "unclaimed": "Talep Edilmemiş Ödüller",
+  "cancelable": "İptal Edilebilir Bahisler",
   "claim": "Talep Et",
   "connect": "Bahis yapmak ve bakiyenizi görmek için cüzdanınızı bağlayın",
   "table": "Lider Tablosu",
   "locked": "Kilitlendi",
   "closing": "Kapanıyor",
   "expired": "Süresi Doldu",
+  "cancel": "İptal Et",
+  "cancelling": "İptal Ediliyor",
   "calculating": "Hesaplanıyor",
   "end": "Bitti",
   "live": "Canlı",
@@ -40,6 +43,10 @@
   "amount": "Miktarı Girin",
   "overview": "Piyasa Genel Bakışı",
   "bonus": "Bonusunuz",
+  "bonusExplanation": "Bahis miktarınıza göre FN token kazanın! Her 0.1 SOL bahis için 1 FN token temel ödül olarak alırsınız.\nBonus ödüller: ≥1 SOL bahis için +2 FN, ≥0.7 SOL bahis için +1 FN, ≥0.3 SOL bahis için +0.5 FN.\nTokenler token lansmanından sonra airdrop edilecektir.",
+  "referralTooltip": "Kullanıcıları davet edin ve ilk bahislerini yaptıklarında 0.5 FN kazanın.",
+  "shareReferral": "Referans bağlantısını paylaş",
+  "close": "Kapat",
   "betsHistory": {
     "title": "Bir ayda tahminleriniz",
     "round": "Tur",
@@ -92,7 +99,7 @@
     "notAvailable": "Bu tur için bahis yapılamıyor",
     "connectWallet": "Bahis yapmak için lütfen cüzdanınızı bağlayın"
   },
-    "referral": {
+  "referral": {
     "others": "Diğer",
     "curious": "Merak ediyoruz, sizi buraya getiren ne oldu?",
     "discover": "Bu web sitesini nasıl keşfettiniz?"

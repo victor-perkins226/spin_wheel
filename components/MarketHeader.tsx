@@ -8,6 +8,7 @@ import axios from "axios";
 import coinIcon from "@/public/assets/solana_logo.png";
 import { useWallet } from "@solana/wallet-adapter-react";
 import ShareReferral from "./ShareButton";
+import { API_URL } from "@/lib/config";
 
 export interface MarketHeaderProps {
   /** Latest SOL/USDT price (as a number, e.g. 172.5234) */
@@ -97,18 +98,16 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
         return;
       }
 
-      setLoadingBonus(true);
       setLastFetchTime(now);
 
       try {
         const { data } = await axios.get<number>(
-          `https://sol-prediction-backend-6e3r.onrender.com/user/bonus/${publicKey.toBase58()}`
+          `${API_URL}/user/bonus/${publicKey.toBase58()}`
         );
         setBonusAmount(data);
       } catch (err) {
         console.error("Failed to fetch bonus:", err);
       } finally {
-        setLoadingBonus(false);
       }
     }, [connected, publicKey, lastFetchTime]);
 
@@ -120,11 +119,24 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
     // Fetch bonus only on wallet connection change
     useEffect(() => {
       if (connected && publicKey) {
+        setLoadingBonus(true);
         fetchBonus();
+        setLoadingBonus(false);
       } else {
         setBonusAmount(0);
       }
     }, [connected, publicKey?.toBase58()]); // Use toBase58() to avoid unnecessary re-renders
+
+    // Set up interval to fetch bonus every 10 seconds when connected
+    useEffect(() => {
+      if (!connected || !publicKey) return;
+
+      const interval = setInterval(() => {
+        fetchBonus();
+      }, 10000); // 10 seconds
+
+      return () => clearInterval(interval);
+    }, [connected, publicKey, fetchBonus]);
 
     // Remove the claimableRewards dependency that was causing unnecessary refetches
 
@@ -296,11 +308,9 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
                 <p className="text-sm opacity-70 cursor-help">{t("bonus")}</p>
 
                 {/* tooltip panel */}
-                <div className={`pointer-events-none absolute left-0 bottom-full mt-2 w-full md:w-64 ${theme === "dark" ? "bg-[#29294d] shadow-md border border-[#d1d1d1bb]" : "bg-white" }  rounded-md z-[100] p-3 text-xs opacity-0 transition-opacity group-hover:opacity-100`}>
+                <div className={`pointer-events-none absolute left-0 bottom-full mt-2 w-full md:w-64 ${theme === "dark" ? "bg-[#29294d] shadow-md border border-[#d1d1d1bb]" : "bg-white" }  rounded-md z-[100] p-3 text-sm opacity-0 transition-opacity group-hover:opacity-100`}>
                   <p className="whitespace-pre-line leading-snug">
-                    You can get 0.1FN/Bet for the bonus token. If you bet with
-                    over 1 sol, you can get 1FN/Bet.
-                    {"\n"}You will be get airdropped after token launch.
+                    {t("bonusExplanation")}
                   </p>
                 </div>
 

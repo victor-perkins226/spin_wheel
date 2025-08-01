@@ -20,6 +20,7 @@ import {
 import toast from "react-hot-toast";
 import { useTheme } from "next-themes";
 import { PuffLoader } from "react-spinners";
+import { API_URL } from "@/lib/config";
 
 interface ReferralProps {
   onCancel: () => void;
@@ -68,7 +69,7 @@ export default function Referral({ onCancel }: ReferralProps) {
     setIsSubmitting(true);
     try {
       await axios.post(
-        "https://sol-prediction-backend-6e3r.onrender.com/user/referral",
+        `${API_URL}/user/referral`,
         { walletAddress, referralFrom }
       );
       toast.custom((t) => <ReferralToast theme={theme} />, {

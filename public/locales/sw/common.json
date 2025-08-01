@@ -9,12 +9,15 @@
   },
   "balance": "Salio Lako",
   "unclaimed": "Zawadi zisizodaiwa",
+  "cancelable": "Dau zinazoweza kughairiwa",
   "claim": "Dai",
   "connect": "Unganisha mkoba wako kuweka dau na kuona salio lako",
   "table": "Meza ya Wadhibiti",
   "locked": "Imefungwa",
   "closing": "Inafungwa",
   "expired": "Imekamilika",
+  "cancel": "Ghairi",
+  "cancelling": "Inaghairiwa",
   "calculating": "Inahesabiwa",
   "end": "Imeisha",
   "live": "Moja kwa moja",
@@ -40,6 +43,10 @@
   "amount": "Ingiza Kiasi",
   "overview": "Muhtasari wa Soko",
   "bonus": "Bonasi yako",
+  "bonusExplanation": "Pata FN tokens kulingana na kiasi cha dau lako! Kwa kila dau la 0.1 SOL, unapata 1 FN token kama zawadi ya msingi.\nZawadi za bonasi: +2 FN kwa dau ≥1 SOL, +1 FN kwa dau ≥0.7 SOL, +0.5 FN kwa dau ≥0.3 SOL.\nTokens zitagawanywa baada ya uzinduzi wa token.",
+  "referralTooltip": "Waalika watumiaji na upate 0.5 FN wanapoweka dau lao la kwanza.",
+  "shareReferral": "Shiriki Kiungo cha Ualikaji",
+  "close": "Funga",
   "betsHistory": {
     "title": "Utabiri wako kwa mwezi",
     "round": "Raundi",
@@ -92,7 +99,7 @@
     "notAvailable": "Dau haipitiki kwa raundi hii",
     "connectWallet": "Unganisha mkoba wako kuweka dau"
   },
-   "referral": {
+  "referral": {
     "others": "Nyingine",
     "curious": "Tuna hamu, nini kilikuleta kwetu?",
     "discover": "Umegundua tovuti hii vipi?"

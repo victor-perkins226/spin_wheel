@@ -1,41 +1,40 @@
 // components/ShareReferral.tsx
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/router";
+import React, { useState, useEffect } from "react";
 import { FaShareAlt, FaCopy, FaCheck } from "react-icons/fa";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { useRouter } from "next/router";
+import { toast } from "react-hot-toast";
+import { useTranslation } from "next-i18next";
 import { useTheme } from "next-themes";
-import toast from "react-hot-toast";
-import { useAnchorWallet } from "@solana/wallet-adapter-react";
 
 function CopiedToast({ theme }: { theme: string | undefined }) {
   return (
     <div
-      className={`
-        glass text-left rounded-2xl
-        shadow-xl ring-1 ring-black ring-opacity-5 overflow-hidden
-        flex flex-col items-start p-4 mt-8
-        ${theme === "dark" ? "bg-gray-800 text-white" : "bg-white text-black"}
-      `}
-      style={{
-        animation: "fadeInDown 200ms ease-out forwards",
-      }}
+      className={`${
+        theme === "dark"
+          ? "bg-[#29294d] text-white"
+          : "bg-white text-gray-900"
+      } px-4 py-2 rounded-lg shadow-lg flex items-center gap-2`}
     >
-      <p className="text-sm font-semibold">Copied Successfully</p>
+      <FaCheck className="text-green-500" />
+      <span>Link copied!</span>
     </div>
   );
 }
 
 export default function ShareReferral() {
-  const router = useRouter();
+  const { t } = useTranslation("common");
   const { theme } = useTheme();
+  const wallet = useWallet();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [refLink, setRefLink] = useState("");
   const [copied, setCopied] = useState(false);
-  const wallet = useAnchorWallet();
-  // Build referral link on client
+
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (!wallet?.publicKey) return;
     const origin = window.location.origin;
     const path = router.asPath.endsWith("/")
       ? router.asPath.slice(0, -1)
@@ -79,7 +78,7 @@ export default function ShareReferral() {
             : "bg-white text-gray-900"}
         `}
       >
-        Invite users and earn 0.5&nbsp;FN when they place their first bet.
+        {t("referralTooltip")}
         <span
           className={`absolute top-full left-1/2 transform -translate-x-1/2
             border-4 border-transparent
@@ -102,7 +101,7 @@ export default function ShareReferral() {
             className={`glass relative z-10 max-w-md w-full p-6 rounded-xl
               ${theme === "dark" ? "bg-gradient-to-r from-[#2a2a4c] to-[#2a2a4c]" : "bg-white"}`}
           >
-            <h3 className="text-lg font-semibold mb-4">Share Referral Link</h3>
+            <h3 className="text-lg font-semibold mb-4">{t("shareReferral")}</h3>
 
             <div className="flex mb-4">
               <input
@@ -128,7 +127,7 @@ export default function ShareReferral() {
                 onClick={() => setOpen(false)}
                 className="px-4 py-2 glass cursor-pointer rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition"
               >
-                Close
+                {t("close")}
               </button>
             </div>
           </div>

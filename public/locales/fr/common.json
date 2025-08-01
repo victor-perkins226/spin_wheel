@@ -9,12 +9,15 @@
   },
   "balance": "Votre solde",
   "unclaimed": "Récompenses non réclamées",
+  "cancelable": "Paris annulables",
   "claim": "Réclamer",
   "connect": "Connectez votre portefeuille pour parier et voir votre solde",
   "table": "Classement",
   "locked": "Verrouillé",
   "closing": "Fermeture",
   "expired": "Expiré",
+  "cancel": "Annuler",
+  "cancelling": "Annulation",
   "calculating": "Calcul en cours",
   "end": "Terminé",
   "live": "En direct",
@@ -40,6 +43,10 @@
   "amount": "Entrez le montant",
   "overview": "Aperçu du marché",
   "bonus": "Votre bonus",
+  "bonusExplanation": "Gagnez des tokens FN selon votre montant de pari ! Pour chaque pari de 0.1 SOL, vous recevez 1 token FN comme récompense de base.\nRécompenses bonus : +2 FN pour les paris ≥1 SOL, +1 FN pour les paris ≥0.7 SOL, +0.5 FN pour les paris ≥0.3 SOL.\nLes tokens seront distribués après le lancement du token.",
+  "referralTooltip": "Invitez des utilisateurs et gagnez 0.5 FN quand ils placent leur premier pari.",
+  "shareReferral": "Partager le lien de parrainage",
+  "close": "Fermer",
   "betsHistory": {
     "title": "Vos prédictions en un mois",
     "round": "Round",
@@ -57,7 +64,7 @@
     "wagered": "Total misé",
     "payout": "Paiement total",
     "profit": "Profit net",
-    "none": "Aucune prédiction pour l’instant. Placez votre première prédiction pour voir votre historique ici."
+    "none": "Aucune prédiction pour l'instant. Placez votre première prédiction pour voir votre historique ici."
   },
   "leaderboard": {
     "title": "Classement",
@@ -72,7 +79,7 @@
   },
   "homeRestrict": {
     "title": "Accès restreint",
-    "heading": "L’accès est restreint dans votre région.",
+    "heading": "L'accès est restreint dans votre région.",
     "message": "Nous ne pouvons pas fournir le service dans votre région en raison des règles locales. Veuillez essayer depuis un autre emplacement ou vérifier vos paramètres."
   },
   "toasts": {
@@ -81,7 +88,7 @@
     "claimSuccess": "Réclamation réussie",
     "withdraw": "Vous avez retiré ",
     "withdrawFailed": "Échec du retrait",
-    "withdrawFailedReeason": "Vous n’avez pas pu retirer, veuillez vérifier et réessayer",
+    "withdrawFailedReeason": "Vous n'avez pas pu retirer, veuillez vérifier et réessayer",
     "betPlaced": "Pari placé avec succès",
     "betPlacedMessage": "Vous avez placé un pari avec succès, bonne chance pour vos gains",
     "betFailed": "Échec du pari",

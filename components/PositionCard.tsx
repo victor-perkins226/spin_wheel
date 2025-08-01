@@ -114,6 +114,7 @@ const PositionCard: React.FC<PositionCardProps> = ({ position, leader }) => {
               </button>
             </div>
           )}
+
         </div>
 
         {/* ... rest of your stats layout ... */}
