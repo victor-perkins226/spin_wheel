@@ -97,7 +97,6 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
         return;
       }
 
-      setLoadingBonus(true);
       setLastFetchTime(now);
 
       try {
@@ -108,7 +107,6 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
       } catch (err) {
         console.error("Failed to fetch bonus:", err);
       } finally {
-        setLoadingBonus(false);
       }
     }, [connected, publicKey, lastFetchTime]);
 
@@ -120,11 +118,24 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
     // Fetch bonus only on wallet connection change
     useEffect(() => {
       if (connected && publicKey) {
+        setLoadingBonus(true);
         fetchBonus();
+        setLoadingBonus(false);
       } else {
         setBonusAmount(0);
       }
     }, [connected, publicKey?.toBase58()]); // Use toBase58() to avoid unnecessary re-renders
+
+    // Set up interval to fetch bonus every 10 seconds when connected
+    useEffect(() => {
+      if (!connected || !publicKey) return;
+
+      const interval = setInterval(() => {
+        fetchBonus();
+      }, 10000); // 10 seconds
+
+      return () => clearInterval(interval);
+    }, [connected, publicKey, fetchBonus]);
 
     // Remove the claimableRewards dependency that was causing unnecessary refetches
 
