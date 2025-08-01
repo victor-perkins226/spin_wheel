@@ -17,6 +17,7 @@ import { serverSideTranslations } from "next-i18next/serverSideTranslations";
 import PositionCard from "@/components/PositionCard";
 import SelectBox from "@/components/SelectBox";
 import SelectInput from "@/components/SelectInput";
+import UserStatsModal from "@/components/UserStatsModal";
 
 // preload translations only
 export async function getStaticProps({ locale }: { locale: string }) {
@@ -63,7 +64,15 @@ const _Leaderboard: React.FC = () => {
   const [hasPrevious, setHasPrevious] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchAddress, setSearchAddress] = useState("");
-
+  const [selectedDropdown, setSelectedDropdown] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalAddress, setModalAddress] = useState("");
+  const [modalStats, setModalStats] = useState({
+    netWinning: 0,
+    winRate: 0,
+    roundsWon: 0,
+    roundsPlayed: 0,
+  });
   const timeFrames = ["All", "Daily", "Weekly", "Monthly"];
   const rankByOptions = ["Rounds Played", "Net Winnings", "Win Rate"];
 
@@ -143,24 +152,6 @@ const _Leaderboard: React.FC = () => {
   const currentPage = Math.floor(offset / limit) + 1;
   const totalPages = Math.ceil(total / limit);
 
-  // useEffect(() => {
-  //   const fetchData = async () => {
-  //     axios
-  //     .get(`${API_URL}/leaderboard`, { params: { limit: limit, offset: offset } })
-  //     .then((res) => {
-  //       const { data, total, hasNext, hasPrevious } = res.data;
-  //       setLeaders(data);
-  //       setTotal(total);
-  //       setHasNext(hasNext);
-  //       setHasPrevious(hasPrevious);
-  //     })
-  //     .catch(console.error)
-  //     .finally(() => setLoading(false));
-  //   }
-
-  //   fetchData();
-  // }, [offset])
-
   return (
     <>
       <Head>
@@ -168,7 +159,7 @@ const _Leaderboard: React.FC = () => {
       </Head>
       <div className="container md:mt-[67px] mb-8">
         <div className="flex flex-col gap-6">
-          <div className="flex md:flex-row flex-col md:pl-8  pt-3 w-full gap-6">
+          <div className="flex md:flex-row flex-col md:pl-3  pt-3 w-full gap-6">
             <SelectBox
               label="Time Frame"
               options={timeFrames}
@@ -193,7 +184,7 @@ const _Leaderboard: React.FC = () => {
           </div>
 
           {/* Top-3 featured cards */}
-          <div className="flex flex-wrap my-8 gap-16 justify-center">
+          <div className="flex flex-wrap my-8 gap-16 justify-between">
             {topLeaders.map((ld, i) => (
               <PositionCard
                 key={ld.userWalletAddress}
@@ -254,21 +245,66 @@ const _Leaderboard: React.FC = () => {
                       className="font-semibold text-[10px] lg:text-[15px]"
                     >
                       <td className="py-3 pr-4">{rank}</td>
+
                       <td className="py-3 pr-4">
-                        <div className="flex items-center gap-[6px]">
-                          <SVG
-                            iconName="avatar"
-                            width={29}
-                            height={29}
-                            className="hidden lg:block"
-                          />
-                          <SVG
-                            iconName="avatar"
-                            width={16}
-                            height={16}
-                            className="block lg:hidden"
-                          />
-                          {shortAddr}
+                        <div className="relative inline-block">
+                          <button
+                            onClick={() =>
+                              setSelectedDropdown((prev) =>
+                                prev === L.userWalletAddress
+                                  ? null
+                                  : L.userWalletAddress
+                              )
+                            }
+                            className="flex items-center gap-[6px] font-semibold  cursor-pointer"
+                          >
+                            <SVG iconName="avatar" width={16} height={16} />
+                            {shortAddr}
+                          </button>
+
+                          {selectedDropdown === L.userWalletAddress && (
+                            <div
+                              className={`
+      absolute left-0 top-full mt-2 w-40 rounded-md shadow-lg z-20
+      ${theme === "dark" ? "bg-gradient-to-r from-[#2a2a4c] to-[#2a2a4c]" : "bg-white"}
+      border border-gray-200 dark:border-gray-700
+    `}
+                            >
+                              <button
+                                onClick={() => {
+                                  setModalAddress(L.userWalletAddress);
+                                  setModalStats({
+                                    netWinning: L.netWinning,
+                                    winRate: L.winRate,
+                                    roundsWon: L.roundsWon,
+                                    roundsPlayed: L.roundsPlayed,
+                                  });
+                                  setModalOpen(true);
+                                  setSelectedDropdown(null);
+                                }}
+                                className={`
+        block w-full text-left px-4 py-2 text-sm cursor-pointer
+        ${theme === "dark" ? "hover:bg-white/50" : "hover:bg-gray-300"}
+      `}
+                              >
+                                View Stats
+                              </button>
+                              <button
+                                onClick={() =>
+                                  window.open(
+                                    `https://solscan.io/account/${L.userWalletAddress}`,
+                                    "_blank"
+                                  )
+                                }
+                                className={`
+         w-full text-left px-4 py-2 text-sm cursor-pointer
+            ${theme === "dark" ? "hover:bg-white/50" : "hover:bg-gray-300"}
+      `}
+                              >
+                                View on Explorer
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="py-3 pr-4">
@@ -295,7 +331,8 @@ const _Leaderboard: React.FC = () => {
           {!loading && (
             <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
               <div className="text-sm">
-                {t("leaderboard.showing")} {tableOffset+1}-{tableOffset + leaders.length}
+                {t("leaderboard.showing")} {tableOffset + 1}-
+                {tableOffset + leaders.length}
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -339,6 +376,12 @@ const _Leaderboard: React.FC = () => {
           )}
         </div>
       </div>
+      <UserStatsModal
+        isOpen={modalOpen}
+        address={modalAddress}
+        stats={modalStats}
+        onClose={() => setModalOpen(false)}
+      />
     </>
   );
 };
