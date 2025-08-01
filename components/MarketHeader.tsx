@@ -307,11 +307,11 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
                 <p className="text-sm opacity-70 cursor-help">{t("bonus")}</p>
 
                 {/* tooltip panel */}
-                <div className={`pointer-events-none absolute left-0 bottom-full mt-2 w-full md:w-64 ${theme === "dark" ? "bg-[#29294d] shadow-md border border-[#d1d1d1bb]" : "bg-white" }  rounded-md z-[100] p-3 text-xs opacity-0 transition-opacity group-hover:opacity-100`}>
+                <div className={`pointer-events-none absolute left-0 bottom-full mt-2 w-full md:w-64 ${theme === "dark" ? "bg-[#29294d] shadow-md border border-[#d1d1d1bb]" : "bg-white" }  rounded-md z-[100] p-3 text-sm opacity-0 transition-opacity group-hover:opacity-100`}>
                   <p className="whitespace-pre-line leading-snug">
-                    You can get 0.1FN/Bet for the bonus token. If you bet with
-                    over 1 sol, you can get 1FN/Bet.
-                    {"\n"}You will be get airdropped after token launch.
+                    Earn FN tokens based on your bet amount! For every 0.1 SOL bet, you receive 1 FN token as base reward.
+                    {"\n"}Bonus rewards: +2 FN for bets ≥1 SOL, +1 FN for bets ≥0.7 SOL, +0.5 FN for bets ≥0.3 SOL.
+                    {"\n"}Tokens will be airdropped after token launch.
                   </p>
                 </div>
 
