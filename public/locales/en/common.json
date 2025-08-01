@@ -43,6 +43,10 @@
   "amount": "Enter Amount",
   "overview": "Market Overview",
   "bonus": "Your Bonus",
+  "bonusExplanation": "Earn FN tokens based on your bet amount! For every 0.1 SOL bet, you receive 1 FN token as base reward.\nBonus rewards: +2 FN for bets ≥1 SOL, +1 FN for bets ≥0.7 SOL, +0.5 FN for bets ≥0.3 SOL.\nTokens will be airdropped after token launch.",
+  "referralTooltip": "Invite users and earn 0.5 FN when they place their first bet.",
+  "shareReferral": "Share Referral Link",
+  "close": "Close",
   "betsHistory": {
     "title": "Your Predictions in a month",
     "round": "Round",
@@ -97,7 +101,7 @@
   },
   "referral": {
     "others": "Others",
-    "curious": "We’re curious, what brought you our way?",
+    "curious": "We're curious, what brought you our way?",
     "discover": "How did you discover this website?"
   }
 }
