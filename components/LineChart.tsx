@@ -159,7 +159,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     });
 
     return (
-      <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+      <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-black rounded-lg shadow-lg">
         <p className="text-gray-600 dark:text-gray-300 text-sm mb-2">
           {formattedTime}
         </p>
@@ -622,7 +622,7 @@ const TradingChart = () => {
             isDarkMode
               ? "border-gray-700 bg-gray-800"
               : "bg-gray-100 border-gray-200"
-          } flex gap-2  dark: rounded-full p-1`}
+          } flex gap-2  rounded-full p-1`}
         >
           {TIME_BUTTONS.map((btn, index) => (
             <button
@@ -654,7 +654,7 @@ const TradingChart = () => {
       </div>
 
       {/* Chart container */}
-      <div className="w-full border border-gray-200 dark:border-gray-700 h-[300px] md:h-[350px] lg:h-[450px] rounded-lg p-2 md:p-4 lg:p-5 relative overflow-hidden">
+      <div className={`w-full border  ${theme === "dark" ? "border-gray-200" : "border-gray-700"} h-[300px] md:h-[350px] lg:h-[450px] rounded-lg p-2 md:p-4 lg:p-5 relative overflow-hidden`}>
         {/* Optional decorative elements */}
         <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-green-500/5 to-blue-500/5 rounded-full blur-3xl z-0"></div>
         <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-green-500/5 to-blue-500/5 rounded-full blur-3xl z-0"></div>

@@ -152,7 +152,7 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
               alt="Solana"
               width={64}
               height={64}
-              className="w-[24px] sm:w-[32px] lg:w-[64px] h-auto object-contain absolute left-0 top-0 z-10"
+              className="w-[24px] sm:w-[32px] lg:w-[64px] h-auto object-contain absolute left-3 top-[2px] md:top-0 md:left-0 z-10"
             />
             <div className="glass flex gap-2 sm:gap-[9px] lg:gap-[26px] relative left-[8px] sm:left-[10px] lg:left-[20px] items-center font-semibold px-3 sm:px-[20px] lg:px-[44px] py-1 sm:py-[6px] lg:py-[15px] rounded-full">
               <p className="text-[12px] pl-4 sm:text-[14px] lg:text-[20px]">
@@ -184,7 +184,7 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
             </div>
           </div>
 
-          <div className="flex items-end gap-8">
+          <div className="flex items-end w-full md:w-[auto] justify-between gap-8">
             {
               connected &&
               <div className="flex flex-col items-center">
