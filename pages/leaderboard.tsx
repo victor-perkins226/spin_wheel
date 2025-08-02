@@ -159,7 +159,7 @@ const _Leaderboard: React.FC = () => {
       </Head>
       <div className="container md:mt-[67px] mb-8">
         <div className="flex flex-col gap-6">
-          <div className="flex md:flex-row flex-col md:pl-3  pt-3 w-full gap-6">
+          <div className="flex md:flex-row flex-col pt-3 w-full gap-6">
             <SelectBox
               label="Time Frame"
               options={timeFrames}

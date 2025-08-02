@@ -42,7 +42,7 @@ export default function SelectInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           className={`
-            pl-6 pr-4 py-2 w-full
+            pl-4 pr-4 py-2 w-full
             glass border border-gray-200 dark:border-gray-700
             rounded-lg shadow-sm
             placeholder-gray-500 dark:placeholder-gray-400
