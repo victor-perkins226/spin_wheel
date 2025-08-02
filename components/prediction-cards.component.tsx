@@ -102,6 +102,7 @@ export default function PredictionCards() {
   const [isFetchingRounds, setIsFetchingRounds] = useState(false);
   const previousComputedRoundsRef = useRef<Round[]>([]); // Ref to store last valid computed rounds
   const [liveTotal, setLiveTotal] = useState<number>(0);
+  const [isMobileView, setIsMobileView] = useState(false);
 
   const bonusRef = useRef<(() => void) | undefined>(undefined);
 
@@ -347,6 +348,27 @@ export default function PredictionCards() {
       window.removeEventListener("betPlaced", onBetPlaced);
     };
   }, [fetchUserBets, safeFetchMoreRounds]);
+
+
+  // Update the screen width effect to also track mobile/desktop view
+  useEffect(() => {
+    const updateScreenWidth = () => {
+      const width = window.innerWidth;
+      setScreenWidth(width);
+      setIsMobileView(width < 1280); // xl breakpoint
+    };
+
+    updateScreenWidth();
+    window.addEventListener("resize", updateScreenWidth);
+    setMounted(true);
+
+    return () => {
+      window.removeEventListener("resize", updateScreenWidth);
+      if (swiperRef.current?.destroy) {
+        swiperRef.current.destroy(true, true);
+      }
+    };
+  }, []);
 
   function SkeletonCard() {
     return (
@@ -1389,13 +1411,13 @@ export default function PredictionCards() {
         </>
           
           )} */}
-          <div className="xl:hidden">
+          {isMobileView && (
             <MobileLiveBets
               onLiveTotalChange={handleLiveTotalChange}
               needRefresh={justCanceled}
               currentRound={Number(currentRound?.number) ?? null}
             />
-          </div>
+          )}
 
           <div className="mt-10">
             <Suspense>
@@ -1411,12 +1433,15 @@ export default function PredictionCards() {
             />
           )}
         </div>
-        <LiveBets
-          onLiveTotalChange={handleLiveTotalChange}
-          currentRound={Number(currentRound?.number) ?? null}
-          needRefresh={justCanceled}
-          key={currentRound?.number}
-        />
+        {
+          !isMobileView && 
+            <LiveBets
+              onLiveTotalChange={handleLiveTotalChange}
+              currentRound={Number(currentRound?.number) ?? null}
+              needRefresh={justCanceled}
+              key={currentRound?.number}
+            />
+        }
       </div>
     </div>
   );
