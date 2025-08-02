@@ -156,7 +156,7 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
     return (
       <div className="flex flex-col gap-4 md:gap-4 lg:gap-[16px]">
         {/* ─────── SOL/USDT Price + Timer Row ─────── */}
-        <div className="flex justify-between items-end flex-wrap gap-4 md:gap-4">
+        <div className="flex justify-between items-end gap-4 md:gap-4">
           {/* Price Display */}
           <div className="relative">
             <Image
@@ -196,76 +196,74 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
             </div>
           </div>
 
-          <div className="flex items-end w-full md:w-[auto] justify-between gap-8">
-            {/* Circular Timer */}
-            <div className="relative flex items-center justify-center w-[60px] sm:w-[80px] lg:w-[120px] h-[60px] sm:h-[80px] lg:h-[120px]">
-              {/* Background Circle */}
-              <svg className="absolute w-full h-full" viewBox="0 0 100 100">
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="45"
-                  fill="none"
-                  stroke={theme === "dark" ? "#374151" : "#E5E7EB"}
-                  strokeWidth="5"
-                />
+          {/* Circular Timer */}
+          <div className="relative flex items-center justify-center w-[60px] sm:w-[80px] lg:w-[120px] h-[60px] sm:h-[80px] lg:h-[120px] flex-shrink-0">
+            {/* Background Circle */}
+            <svg className="absolute w-full h-full" viewBox="0 0 100 100">
+              <circle
+                cx="50"
+                cy="50"
+                r="45"
+                fill="none"
+                stroke={theme === "dark" ? "#374151" : "#E5E7EB"}
+                strokeWidth="5"
+              />
 
-                {/* Progress Circle */}
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="45"
-                  fill="none"
-                  stroke={theme === "dark" ? "#6B7280" : "#9CA3AF"}
-                  strokeWidth="5"
-                  strokeLinecap="round"
-                  strokeDasharray="283" // 2πr ≈ 283
-                  strokeDashoffset={
-                    isLocked
-                      ? 0
-                      : 283 - 283 * (1 - (timeLeft ?? 0) / lockDuration)
-                  }
-                  transform="rotate(-90 50 50)"
-                />
+              {/* Progress Circle */}
+              <circle
+                cx="50"
+                cy="50"
+                r="45"
+                fill="none"
+                stroke={theme === "dark" ? "#6B7280" : "#9CA3AF"}
+                strokeWidth="5"
+                strokeLinecap="round"
+                strokeDasharray="283" // 2πr ≈ 283
+                strokeDashoffset={
+                  isLocked
+                    ? 0
+                    : 283 - 283 * (1 - (timeLeft ?? 0) / lockDuration)
+                }
+                transform="rotate(-90 50 50)"
+              />
 
-                {/* Tick Marks */}
-                {Array.from({ length: 20 }).map((_, i) => {
-                  const angle = 15 + i * 18; // 15° + 18° increments
-                  if (angle < 165 || angle > 195) {
-                    return (
-                      <line
-                        key={i}
-                        x1="50"
-                        y1="8"
-                        x2="50"
-                        y2="12"
-                        stroke={theme === "dark" ? "#4B5563" : "#6B7280"}
-                        strokeWidth="1.5"
-                        transform={`rotate(${angle} 50 50)`}
-                      />
-                    );
-                  }
-                  return null;
-                })}
-              </svg>
+              {/* Tick Marks */}
+              {Array.from({ length: 20 }).map((_, i) => {
+                const angle = 15 + i * 18; // 15° + 18° increments
+                if (angle < 165 || angle > 195) {
+                  return (
+                    <line
+                      key={i}
+                      x1="50"
+                      y1="8"
+                      x2="50"
+                      y2="12"
+                      stroke={theme === "dark" ? "#4B5563" : "#6B7280"}
+                      strokeWidth="1.5"
+                      transform={`rotate(${angle} 50 50)`}
+                    />
+                  );
+                }
+                return null;
+              })}
+            </svg>
 
-              {/* Center Text */}
-              <div className="absolute flex flex-col items-center justify-center z-10">
-                <span
-                  className={`font-semibold text-[12px] sm:text-[16px] lg:text-[20px] ${
-                    theme === "dark" ? "text-white" : "text-gray-900"
-                  }`}
-                >
-                  {displayTime}
-                </span>
-                <span
-                  className={`text-[8px] sm:text-[10px] lg:text-[14px] ${
-                    theme === "dark" ? "text-[#D1D5DB]" : "text-gray-500"
-                  }`}
-                >
-                  {lockMinutes === 0 ? <>{t("locked")}</> : <>{lockMinutes}m</>}
-                </span>
-              </div>
+            {/* Center Text */}
+            <div className="absolute flex flex-col items-center justify-center z-10">
+              <span
+                className={`font-semibold text-[12px] sm:text-[16px] lg:text-[20px] ${
+                  theme === "dark" ? "text-white" : "text-gray-900"
+                }`}
+              >
+                {displayTime}
+              </span>
+              <span
+                className={`text-[8px] sm:text-[10px] lg:text-[14px] ${
+                  theme === "dark" ? "text-[#D1D5DB]" : "text-gray-500"
+                }`}
+              >
+                {lockMinutes === 0 ? <>{t("locked")}</> : <>{lockMinutes}m</>}
+              </span>
             </div>
           </div>
         </div>
