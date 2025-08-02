@@ -61,9 +61,9 @@ export default function ShareReferral() {
     <div className="relative inline-block group">
       <button
         onClick={() => setOpen(true)}
-        className="glass py-2 px-6 flex gap-2 items-center rounded-2xl font-semibold justify-center w-[140px] cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+        className="glass py-2 px-6 flex gap-2 items-center rounded-2xl font-semibold justify-center  cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition"
       >
-        <FaShareAlt /> Share
+        <FaShareAlt />
       </button>
 
       {/* tooltip */}

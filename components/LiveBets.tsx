@@ -16,6 +16,8 @@ import { network } from "./wallet.provider.component";
 import { GiBurningMeteor } from "react-icons/gi";
 import { useTranslation } from "next-i18next";
 import coinIcon from "@/public/assets/solana_logo.png";
+import ShareReferral from "./ShareButton";
+import { useAnchorWallet } from "@solana/wallet-adapter-react";
 
 // Define the Bet interface
 interface Bet {
@@ -52,6 +54,7 @@ function LiveBets({ currentRound, needRefresh, onLiveTotalChange }: LiveBetsProp
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const wallet = useAnchorWallet();
   const [newBetSignatures, setNewBetSignatures] = useState<Set<string>>(
     new Set()
   );
@@ -349,14 +352,27 @@ function LiveBets({ currentRound, needRefresh, onLiveTotalChange }: LiveBetsProp
         {/* Theme Toggle Button */}
         {/* <ThemeToggle /> */}
 
-        {/* Leaderboard Button */}
-        <div
-          className={getLeaderboardButtonStyle()}
-          onClick={() => (window.location.href = "/leaderboard")}
-        >
-          <div className="flex py-1 items-center gap-2">
-            <GiBurningMeteor size={20} />
-            {t("table")}
+        {/* Buttons Container */}
+        <div className="flex w-full flex-row justify-between">
+          {/* Share Button */}
+          <div className="flex items-end w-full md:w-[auto] justify-between gap-8">
+            {
+              wallet &&
+              <div className="flex flex-col items-center">
+                <ShareReferral/>
+              </div>
+            }
+          </div>
+          
+          {/* Leaderboard Button */}
+          <div
+            className={getLeaderboardButtonStyle()}
+            onClick={() => (window.location.href = "/leaderboard")}
+          >
+            <div className="flex py-1 items-center gap-2">
+              <GiBurningMeteor size={20} />
+              {t("table")}
+            </div>
           </div>
         </div>
 

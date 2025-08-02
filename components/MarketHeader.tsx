@@ -197,12 +197,6 @@ const MarketHeader: React.FC<MarketHeaderProps> = React.memo(
           </div>
 
           <div className="flex items-end w-full md:w-[auto] justify-between gap-8">
-            {
-              connected &&
-              <div className="flex flex-col items-center">
-                <ShareReferral/>
-              </div>
-            }
             {/* Circular Timer */}
             <div className="relative flex items-center justify-center w-[60px] sm:w-[80px] lg:w-[120px] h-[60px] sm:h-[80px] lg:h-[120px]">
               {/* Background Circle */}

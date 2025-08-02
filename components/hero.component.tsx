@@ -34,7 +34,7 @@ export default function Hero() {
                 src={src}
                 alt={`Slide ${idx + 1}`}
                 fill
-                className={`object-cover object-left border ${theme === "dark" ? "border-white/50" : " border-4 border-black" }  md:object-cover rounded-2xl`}
+                className={`object-cover object-left border ${theme === "dark" ? "border-1 border-white/50" : "border-1 border-black" }  md:object-cover rounded-2xl`}
               />
             </SwiperSlide>
           ))}
