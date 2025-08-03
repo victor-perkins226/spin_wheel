@@ -81,7 +81,7 @@ export default function UserStatsModal({
       onClick={onClose}
     >
       <div
-        className={`relative w-[90%] max-w-lg p-6 rounded-2xl ${
+        className={`relative w-[90%] md:w-full max-w-sm md:max-w-2xl p-6 rounded-2xl ${
           theme === "dark" ? "glass" : "bg-white"
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -96,7 +96,7 @@ export default function UserStatsModal({
         </button>
 
         {/* Header */}
-        <div className="text-center flex gap-6 items-center mb-6">
+        <div className="text-center flex flex-col md:flex-row gap-6 items-center mb-6">
           <SVG iconName="avatar" width={64} height={64} />
           <h2
             onClick={() =>
@@ -105,13 +105,13 @@ export default function UserStatsModal({
                 "_blank"
               )
             }
-            className="font-semibold text-lg cursor-pointer hover:underline"
+            className="font-semibold break-all text-lg cursor-pointer hover:underline"
           >
-            {`${address.slice(0, 6)}…${address.slice(-4)}`}
+            {address}
           </h2>
         </div>
 
-        <div className="grid grid-cols-4 gap-4 text-left mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-left mb-6">
           <div>
             <div className="text-xs text-gray-500">Net Winnings</div>
             <div className="flex flex-col font-semibold">

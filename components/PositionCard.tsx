@@ -89,7 +89,7 @@ const PositionCard: React.FC<PositionCardProps> = ({ position, leader }) => {
             {dropdownOpen && (
               <div
                 className={`
-                absolute right-0 top-[70%] mt-2 w-40 rounded-md shadow-lg z-20
+                absolute right-0 top-[70%] mt-2 w-42 rounded-md shadow-lg z-20 p-2
                 border ${
                   theme === "dark" ? "border-gray-700" : "border-gray-200"
                 }
@@ -106,7 +106,7 @@ const PositionCard: React.FC<PositionCardProps> = ({ position, leader }) => {
                     setDropdownOpen(false);
                   }}
                   className={`
-                  block w-full text-left px-4 py-2 text-sm cursor-pointer
+                  block w-full text-left px-4 py-2 text-sm cursor-pointer rounded-md
                   ${
                     theme === "dark" ? "hover:bg-gray-500" : "hover:bg-gray-200"
                   }
@@ -122,7 +122,7 @@ const PositionCard: React.FC<PositionCardProps> = ({ position, leader }) => {
                     )
                   }
                   className={`
-                  block w-full text-left px-4 py-2 text-sm cursor-pointer
+                  block w-full text-left px-4 py-2 text-sm cursor-pointer rounded-md
                   ${
                     theme === "dark" ? "hover:bg-gray-500" : "hover:bg-gray-200"
                   }

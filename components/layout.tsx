@@ -2,6 +2,7 @@ import React, { ReactNode, useEffect, useState } from "react";
 import MobileNav from "./mobile-nav.component";
 import Header from "./header.component";
 import { useTheme } from "next-themes";
+import Footer from "./Footer";
 
 interface IProps {
   children: ReactNode;
@@ -36,6 +37,7 @@ export default function Layout({ children }: IProps) {
       <Header />
       <div className="pb-[80px]">{children}</div>
       <MobileNav />
+      <Footer/>
     </div>
     </>
   );

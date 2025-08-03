@@ -151,6 +151,12 @@ const Leaderboard: React.FC = () => {
     ? leaders.filter((l) => l.userWalletAddress.includes(inputAddress))
     : leaders;
 
+  const suggestions = inputAddress
+    ? leaders.filter((l) =>
+        l.userWalletAddress.toLowerCase().includes(inputAddress.toLowerCase())
+      )
+    : [];
+
   // footer indices
   const startIndex = inputAddress ? 1 : tableOffset + 1;
   const endIndex = inputAddress
@@ -166,8 +172,8 @@ const Leaderboard: React.FC = () => {
         <title>{t("leaderboard.title")} | FORTUVA</title>
       </Head>
       <div className="container md:mt-[67px] mb-8">
-        <div className="flex flex-col gap-6">
-          <div className="flex md:flex-row flex-col pt-3 w-full gap-6">
+        <div className="flex flex-col  gap-6">
+          <div className="flex md:flex-row justify-center flex-col pt-3 w-full gap-6">
             <SelectBox
               label="Time Frame"
               options={timeFrames}
@@ -182,18 +188,56 @@ const Leaderboard: React.FC = () => {
               onChange={setRankBy}
               className="md:w-1/4"
             />
-            <SelectInput
-              label="Search Address"
-              value={inputAddress}
-              onChange={setInputAddress}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  setOffset(0);
-                }
-              }}
-              placeholder="Enter wallet address"
-              className="md:w-1/4 w-full"
-            />
+            <div className="relative w-full max-w-[340px] md:w-1/4">
+              <SelectInput
+                label="Search Address"
+                value={inputAddress}
+                onChange={(val) => {
+                  setInputAddress(val);
+                  setSelectedDropdown(null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && suggestions.length > 0) {
+                    const first = suggestions[0];
+                    setModalAddress(first.userWalletAddress);
+                    setModalStats(first);
+                    setModalOpen(true);
+                    setInputAddress("");
+                  }
+                }}
+                placeholder="Enter wallet address"
+              />
+              {inputAddress && suggestions.length > 0 /* ← added */ && (
+                <ul
+                  className={`absolute left-0 mt-2 p-2 glass border border-gray-200 rounded-xl shadow-lg overflow-hidden z-[100] ${
+                    theme === "dark"
+                      ? "bg-gradient-to-r from-[#2a2a4c] to-[#2a2a4c]"
+                      : "bg-white"
+                  }`}
+                >
+                  {suggestions.map((s, idx) => (
+                    <li key={idx}>
+                      <button
+                        onClick={() => {
+                          setModalAddress(s.userWalletAddress);
+                          setModalStats(s);
+                          setModalOpen(true);
+                          setInputAddress("");
+                        }}
+                        className="w-full text-left text-sm px-4 py-2 hover:bg-gray-400 rounded-md "
+                      >
+                        {/* {`${s.userWalletAddress.slice(
+                          0,
+                          9
+                        )}…${s.userWalletAddress.slice(-4)}`} */}
+                        {s.userWalletAddress}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}{" "}
+              {/* ← added */}
+            </div>
           </div>
           <div className="flex flex-wrap my-8 gap-16 justify-between">
             {topLeaders.map((ld, i) => (
@@ -280,7 +324,7 @@ const Leaderboard: React.FC = () => {
                           {selectedDropdown === L.userWalletAddress && (
                             <div
                               className={`
-           absolute left-0 top-full mt-2 w-40 rounded-md shadow-lg z-20
+           absolute left-0 top-full mt-2 w-42 rounded-md shadow-lg z-20 p-1
       ${
         theme === "dark"
           ? "bg-gradient-to-r from-[#2a2a4c] to-[#2a2a4c]"
@@ -298,7 +342,7 @@ const Leaderboard: React.FC = () => {
                                   setSelectedDropdown(null);
                                 }}
                                 className={`
-        block w-full text-left px-4 py-2 text-sm cursor-pointer
+        block w-full text-left px-4 py-2 text-sm cursor-pointer rounded-md
         ${theme === "dark" ? "hover:bg-white/50" : "hover:bg-gray-300"}`}
                               >
                                 View Stats
@@ -312,7 +356,7 @@ const Leaderboard: React.FC = () => {
                                   setSelectedDropdown(null);
                                 }}
                                 className={`
-        block w-full text-left px-4 py-2 text-sm cursor-pointer
+        block w-full text-left px-4 py-2 text-sm cursor-pointer rounded-md
         ${theme === "dark" ? "hover:bg-white/50" : "hover:bg-gray-300"}`}
                               >
                                 View on Explorer
