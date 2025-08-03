@@ -27,7 +27,6 @@ import {
   PublicKey,
   Transaction,
 } from "@solana/web3.js";
-import MobileLiveBets from "./MobileBets";
 import LiveBets from "./LiveBets";
 import { useRoundManager } from "@/hooks/roundManager";
 import { Round } from "@/types/round";
@@ -50,8 +49,6 @@ import {
 import { API_URL } from "@/lib/config";
 import { useTranslation } from "next-i18next";
 import PredictionCardWrapper from "./PredictionCardWrapper";
-import { BN } from "@project-serum/anchor";
-import axios from "axios";
 const BetsHistory = React.lazy(() => import("./BetsHistory"));
 
 const LineChart = React.lazy(() => import("./LineChart"));
