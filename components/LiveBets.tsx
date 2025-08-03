@@ -565,6 +565,15 @@ function LiveBets({ currentRound, needRefresh, onLiveTotalChange }: LiveBetsProp
       </div>
       <div className="md:hidden">
       <div className=" mt-[.5rem] flex gap-[23px] items-end">
+         {/* Share Button */}
+          <div className="flex items-end md:w-[auto] justify-between gap-8">
+            {
+              wallet &&
+              <div className="flex flex-col items-center">
+                <ShareReferral/>
+              </div>
+            }
+          </div>
 
         {/* Leaderboard Button */}
         <div

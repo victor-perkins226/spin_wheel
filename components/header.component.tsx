@@ -37,7 +37,7 @@ export default function Header() {
           )}
         </Link>
 <div className="hidden md:block">
-  <SocialDropdown/>
+ 
 </div>
 
         {/* <nav className="flex gap-[16px] xl:gap-[70px]">
@@ -52,6 +52,7 @@ export default function Header() {
           ))}
         </nav> */}
         <div className="flex gap-6 items-center">
+           <SocialDropdown/>
           <LanguageDropdown />
           <ThemeToggle />
           {/* {renderWalletButton()} */}
