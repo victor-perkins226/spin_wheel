@@ -45,11 +45,14 @@ export default function SocialDropdown() {
 
       {open && (
         <ul
-           className={`absolute right-0 mt-2 w-40 p-1 glass border border-gray-200 rounded-xl backdrop-blur-2xl shadow-lg overflow-hidden z-[1000] ${
-            theme === "dark"
-              ? "bg-gradient-to-r from-[#2a2a4c] to-[#2a2a4c]"
-              : "bg-white"
-          }`}
+           className={`
+            absolute right-0 mt-2 w-40 p-2
+            ${theme === "dark"
+              ? "!bg-gradient-to-r from-[#2a2a4c] to-[#2a2a4c]"
+              : "!bg-white"} 
+            glass border border-gray-200 dark:border-gray-700 
+            rounded-xl shadow-lg z-[100]
+          `}
         >
           {SOCIALS.map(s => {
             const ItemIcon = s.icon;
