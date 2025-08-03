@@ -126,7 +126,7 @@ export default function UserStatsModal({
               ) : (
                 <span className="text-xs text-gray-500">
                   {" "}
-                  {formatNum(stats.netWinning * (livePrice || 0))}
+                  ${formatNum(stats.netWinning * (livePrice || 0))}
                 </span>
               )}
             </div>
@@ -196,7 +196,7 @@ export default function UserStatsModal({
                             idx > 0 ? "border-t " : ""
                           } border-gray-200 dark:border-gray-700 hover:bg-gray-200/50 dark:hover:bg-gray-600/50 transition-colors`}
                         >
-                          <td className="py-2 font-mono">#{bet.roundId}</td>
+                          <td className="py-2 ">#{bet.roundId}</td>
                           <td className={`py-2`}>
                             <span
                               className={`font-semibold px-4 w-[80px] text-center
@@ -210,7 +210,7 @@ export default function UserStatsModal({
                               {bet.direction.toUpperCase()}
                             </span>
                           </td>
-                          <td className="py-2 flex flex-col font-mono">
+                          <td className="py-2 flex flex-col ">
                             <span className="">
                               {formatNum(bet.amount)} SOL
                             </span>
