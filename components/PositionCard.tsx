@@ -10,6 +10,7 @@ import { useLivePrice } from "@/lib/price-utils";
 import { PuffLoader } from "react-spinners";
 import { useTheme } from "next-themes";
 import UserStatsModal from "./UserStatsModal";
+import { network } from "./wallet.provider.component";
 
 export interface Leader {
   userWalletAddress: string;
@@ -32,20 +33,28 @@ const medalMap = {
 
 const PositionCard: React.FC<PositionCardProps> = ({ position, leader }) => {
   const { theme } = useTheme();
-  const shortAddr =
-    `${leader.userWalletAddress.slice(0, 4)}…${leader.userWalletAddress.slice(-4)}`;
-  const { price: livePrice, isLoading: priceLoading, error: priceError } =
-    useLivePrice();
+  const shortAddr = `${leader.userWalletAddress.slice(
+    0,
+    4
+  )}…${leader.userWalletAddress.slice(-4)}`;
+  const {
+    price: livePrice,
+    isLoading: priceLoading,
+    error: priceError,
+  } = useLivePrice();
 
   // dropdown + modal state
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
 
   // close dropdown on outside click
-  const wrapperRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setDropdownOpen(false);
       }
     };
@@ -56,7 +65,6 @@ const PositionCard: React.FC<PositionCardProps> = ({ position, leader }) => {
   return (
     <>
       <div
-        ref={wrapperRef}
         className={` 
            flex flex-col max-w-[390px] w-full p-6 rounded-2xl
           ${theme === "dark" ? "glass" : "bg-white"}
@@ -70,54 +78,63 @@ const PositionCard: React.FC<PositionCardProps> = ({ position, leader }) => {
             height={78}
           />
 
-          {/* only this h3 toggles the dropdown */}
-          <h3
-            onClick={() => setDropdownOpen((o) => !o)}
-            className="mt-2 relative font-bold text-2xl cursor-pointer hover:underline"
-          >
-            {shortAddr}
-          </h3>
-
-          {dropdownOpen && (
-            <div
-              className={`
-                absolute right-0 top-[70%] mt-2 w-40 rounded-md shadow-lg z-20
-                border ${theme === "dark" ? "border-gray-700" : "border-gray-200"}
-                ${theme === "dark" ? "bg-gradient-to-r from-[#2a2a4c] to-[#2a2a4c]" : "bg-white"}
-              `}
+          <div ref={dropdownRef} className="relative inline-block">
+            <h3
+              onClick={() => setDropdownOpen((o) => !o)}
+              className="mt-2 relative font-bold text-2xl cursor-pointer hover:underline"
             >
-              <button
-                onClick={() => {
-                  setModalOpen(true);
-                  setDropdownOpen(false);
-                }}
-                className={`
-                  block w-full text-left px-4 py-2 text-sm cursor-pointer
-                  ${theme === "dark" ? "hover:bg-gray-500" : "hover:bg-gray-200"}
-                `}
-              >
-                View Stats
-              </button>
-              <button
-                onClick={() =>
-                  window.open(
-                    `https://solscan.io/account/${leader.userWalletAddress}`,
-                    "_blank"
-                  )
-                }
-                className={`
-                  block w-full text-left px-4 py-2 text-sm cursor-pointer
-                  ${theme === "dark" ? "hover:bg-gray-500" : "hover:bg-gray-200"}
-                `}
-              >
-                View on Explorer
-              </button>
-            </div>
-          )}
+              {shortAddr}
+            </h3>
 
+            {dropdownOpen && (
+              <div
+                className={`
+                absolute right-0 top-[70%] mt-2 w-40 rounded-md shadow-lg z-20
+                border ${
+                  theme === "dark" ? "border-gray-700" : "border-gray-200"
+                }
+                ${
+                  theme === "dark"
+                    ? "bg-gradient-to-r from-[#2a2a4c] to-[#2a2a4c]"
+                    : "bg-white"
+                }
+              `}
+              >
+                <button
+                  onClick={() => {
+                    setModalOpen(true);
+                    setDropdownOpen(false);
+                  }}
+                  className={`
+                  block w-full text-left px-4 py-2 text-sm cursor-pointer
+                  ${
+                    theme === "dark" ? "hover:bg-gray-500" : "hover:bg-gray-200"
+                  }
+                `}
+                >
+                  View Stats
+                </button>
+                <button
+                  onClick={() =>
+                    window.open(
+                      `https://solscan.io/account/${leader.userWalletAddress}?cluster=${network}`,
+                      "_blank"
+                    )
+                  }
+                  className={`
+                  block w-full text-left px-4 py-2 text-sm cursor-pointer
+                  ${
+                    theme === "dark" ? "hover:bg-gray-500" : "hover:bg-gray-200"
+                  }
+                `}
+                >
+                  View on Explorer
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* ... rest of your stats layout ... */}
         <div className="mt-4 space-y-6 text-sm">
           {/* Win Rate */}
           <div className="flex justify-between">
@@ -129,17 +146,15 @@ const PositionCard: React.FC<PositionCardProps> = ({ position, leader }) => {
             <span>Net Winnings (SOL)</span>
             <div className="flex flex-col items-end">
               <span className="font-bold flex items-center gap-1">
-                <Image
-                  src={SolanaLogo}
-                  alt="SOL"
-                  width={16}
-                  height={12}
-                />
+                <Image src={SolanaLogo} alt="SOL" width={16} height={12} />
                 {formatNum(leader.netWinning)} SOL
               </span>
               <span className="text-gray-400 text-xs">
                 {priceLoading ? (
-                  <PuffLoader size={12} color={theme === "dark" ? "#fff" : "#000"} />
+                  <PuffLoader
+                    size={12}
+                    color={theme === "dark" ? "#fff" : "#000"}
+                  />
                 ) : priceError ? (
                   "—"
                 ) : (

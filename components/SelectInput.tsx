@@ -1,5 +1,6 @@
 // components/SelectInput.tsx
 "use client";
+
 import { useRef, useEffect } from "react";
 import { Search } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -10,6 +11,7 @@ export interface SelectInputProps {
   onChange: (val: string) => void;
   placeholder?: string;
   className?: string;
+  onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
 }
 
 export default function SelectInput({
@@ -18,11 +20,12 @@ export default function SelectInput({
   onChange,
   placeholder = "Search address",
   className,
+  onKeyDown,
 }: SelectInputProps) {
   const { theme } = useTheme();
   const ref = useRef<HTMLDivElement>(null);
 
-  // (optional) autofocus when mounted
+  // autofocus when mounted
   useEffect(() => {
     ref.current?.querySelector("input")?.focus();
   }, []);
@@ -40,6 +43,7 @@ export default function SelectInput({
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
           placeholder={placeholder}
           className={`
             pl-4 pr-4 py-2 w-full

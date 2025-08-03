@@ -1411,13 +1411,13 @@ export default function PredictionCards() {
         </>
           
           )} */}
-          {isMobileView && (
+          {/* {isMobileView && (
             <MobileLiveBets
               onLiveTotalChange={handleLiveTotalChange}
               needRefresh={justCanceled}
               currentRound={Number(currentRound?.number) ?? null}
             />
-          )}
+          )} */}
 
           <div className="mt-10">
             <Suspense>
@@ -1434,7 +1434,7 @@ export default function PredictionCards() {
           )}
         </div>
         {
-          !isMobileView && 
+          // !isMobileView && 
             <LiveBets
               onLiveTotalChange={handleLiveTotalChange}
               currentRound={Number(currentRound?.number) ?? null}

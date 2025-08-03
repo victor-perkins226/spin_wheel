@@ -24,6 +24,7 @@ import {
 import { formatNum } from "@/lib/utils";
 import { useTranslation } from "next-i18next";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import ValueBadge from "./ValueBadge";
 
 interface IProps {
   variant?: "live" | "expired" | "next" | "later" | "locked";
@@ -57,7 +58,7 @@ interface IProps {
   liveTotalForThisRound: number;
   isClaimable?: boolean;
   isClaiming?: boolean;
-  claimableBets?: Array<{ roundNumber: number; payout: number; }>;
+  claimableBets?: Array<{ roundNumber: number; payout: number }>;
   config?: Config;
 }
 
@@ -116,7 +117,11 @@ export default function PredictionCard({
   );
   useEffect(() => {
     if (!isFlipped) return;
-    if (!connected || isLocked || (timeLeft !== null && timeLeft <= bufferTimeInSeconds)) {
+    if (
+      !connected ||
+      isLocked ||
+      (timeLeft !== null && timeLeft <= bufferTimeInSeconds)
+    ) {
       setIsFlipped(false);
     }
   }, [isFlipped, connected, isLocked, timeLeft, bufferTimeInSeconds]);
@@ -144,9 +149,8 @@ export default function PredictionCard({
     roundData?.downBets ?? 0
   );
   const minBet = Number(config?.minBetAmount) / LAMPORTS_PER_SOL || 0.01;
-  const step = 0.01; 
+  const step = 0.01;
   const defaultBet = 0.1;
-
 
   useEffect(() => {
     // only seed the first time we get a positive lockPrice
@@ -176,7 +180,6 @@ export default function PredictionCard({
 
   const { theme } = useTheme();
   const { t } = useTranslation("common");
-
 
   const roundIdRef = useRef(roundId);
   const connectedRef = useRef(connected);
@@ -221,10 +224,10 @@ export default function PredictionCard({
       const { round_number, amount, prediction } = evt.data;
       if (round_number !== roundIdRef.current) return;
       const solAmt = amount / LAMPORTS_PER_SOL;
-      if (prediction) setUpBetsLocal((prev) => (prev - solAmt) || 0);
-      else setDownBetsLocal((prev) => (prev - solAmt) || 0);
-      setPrizePoolLocal((prev) => (prev - solAmt) || 0);
-    }
+      if (prediction) setUpBetsLocal((prev) => prev - solAmt || 0);
+      else setDownBetsLocal((prev) => prev - solAmt || 0);
+      setPrizePoolLocal((prev) => prev - solAmt || 0);
+    };
     socket.on("newBetPlaced", handleNewBet);
     socket.on("betCanceled", handleCancelBet);
     return () => {
@@ -407,7 +410,10 @@ export default function PredictionCard({
         ? roundData.closePrice || lp
         : liveRoundPrice!;
     const diff = Math.abs(cp - lp);
-    return { difference: diff, direction: cp === lp ? "equal" : cp > lp ? "up" : "down" };
+    return {
+      difference: diff,
+      direction: cp === lp ? "equal" : cp > lp ? "up" : "down",
+    };
   }
 
   const { difference: priceDifference, direction: priceDirection } =
@@ -567,11 +573,9 @@ export default function PredictionCard({
             );
           }
         }
-      }
-      catch (error)  {
-        console.log({error})
-      }
-      finally {
+      } catch (error) {
+        console.log({ error });
+      } finally {
         setIsSubmitting(false);
         setIsFlipped(false);
         setMode("");
@@ -599,11 +603,10 @@ export default function PredictionCard({
     if (variant === "expired" || variant === "live") {
       if (priceDirection === direction) {
         if (direction === "up") {
-          return "linear-gradient(90deg, #06C729 0%, #04801B 100%)"
-        }
-        else if (direction === "down") {
+          return "linear-gradient(90deg, #06C729 0%, #04801B 100%)";
+        } else if (direction === "down") {
           return "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)";
-        } 
+        }
       } else {
         return "linear-gradient(228.15deg, rgba(255, 255, 255, 0.2) -64.71%, rgba(255, 255, 255, 0.05) 102.6%)";
       }
@@ -611,9 +614,8 @@ export default function PredictionCard({
     if (variant === "next" && hasUserBet && userBetStatus) {
       if (userBetStatus.direction === direction) {
         if (direction === "up") {
-          return "linear-gradient(90deg, #06C729 0%, #04801B 100%)"
-        }
-        else if (direction === "down") {
+          return "linear-gradient(90deg, #06C729 0%, #04801B 100%)";
+        } else if (direction === "down") {
           return "linear-gradient(90deg, #FD6152 0%, #AE1C0F 100%)";
         }
       } else {
@@ -662,7 +664,13 @@ export default function PredictionCard({
           />
           <div className="flex justify-between gap-1 font-semibold text-[16px] w-full">
             <p>{t("prizePool")}</p>
-            <p>{formatNum(nextPrizePool)} SOL</p>
+            <p>
+              <NumberFlow
+                value={nextPrizePool}
+                className="inline-block mr-1"
+              />
+              
+               SOL</p>
           </div>
         </div>
 
@@ -677,7 +685,7 @@ export default function PredictionCard({
                 borderRadius: "20px",
                 fontWeight: "600",
                 fontSize: "12px",
-                padding: "0px 10px"
+                padding: "0px 10px",
               }}
               className="!w-full !h-10  !rounded-full !font-semibold"
             >
@@ -822,21 +830,28 @@ export default function PredictionCard({
                       maximumFractionDigits: 3,
                     }}
                     className={`${getPriceTextStyle()} ${
-                      priceDirection === "up" ? "text-green-500" : priceDirection === "down" ? "text-red-500" : "text-gray-500"
+                      priceDirection === "up"
+                        ? "text-green-500"
+                        : priceDirection === "down"
+                        ? "text-red-500"
+                        : "text-gray-500"
                     }`}
                     transformTiming={{
                       duration: 800,
                       easing: "ease-out",
                     }}
                   />
-                  <div
-                    className={`${getPriceDirectionBg()} flex items-center gap-[4px] ${
-                      priceDirection === "up" ? "text-green-500" : priceDirection === "down" ? "text-red-500" : "text-gray-500"
-                    } px-[10px] py-[10px] rounded-[5px]`}
-                  >
-                    {priceDirection === "up" ? <ArrowUp size={12} /> : priceDirection === "down" && <ArrowDown size={12} /> }
-                    <p className="text-[12px]">${formatNum(priceDifference)}</p>
-                  </div>
+                  <ValueBadge
+                    value={
+                      priceDirection === "up"
+                        ? priceDifference
+                        : priceDirection === "down"
+                        ? -priceDifference
+                        : 0
+                    }
+                    hasArrow={priceDirection !== "equal"}
+                    bgClass={getPriceDirectionBg()}
+                  />{" "}
                 </div>
                 <div
                   className={`flex justify-between items-center ${getLabelTextStyle()}`}
@@ -909,7 +924,11 @@ export default function PredictionCard({
                   priceDirection === "up" ? "text-green-500" : "text-red-500"
                 } px-[10px] py-[5px] rounded-[5px]`}
               >
-                {priceDirection === "up" ? <ArrowUp size={12} /> : priceDirection === "down" && <ArrowDown size={12} /> }
+                {priceDirection === "up" ? (
+                  <ArrowUp size={12} />
+                ) : (
+                  priceDirection === "down" && <ArrowDown size={12} />
+                )}
                 <p className="text-[10px]">${formatNum(priceDifference)}</p>
               </div>
             </div>
@@ -932,27 +951,36 @@ export default function PredictionCard({
   if (!roundData && variant !== "later" && variant !== "next")
     return <div>No round data available</div>;
 
-const didWin = useMemo(() => {
-  if (variant !== "expired" || !isClaimable || !userBetStatus || hasLocallyClaimed) {
-    return false;
-  }
-  
-  // Check if user actually won by comparing bet direction with price direction
-  const userWon = userBetStatus.direction === priceDirection && userBetStatus.status === "WON";
-  
-  // Additional validation: ensure there's actually a payout to claim
-  const hasClaimablePayout = claimableBets?.some(bet => bet.roundNumber === roundId && bet.payout > 0);
-  
-  return userWon && hasClaimablePayout;
-}, [
-  variant,
-  isClaimable, 
-  userBetStatus,
-  hasLocallyClaimed,
-  priceDirection,
-  claimableBets,
-  roundId
-]);
+  const didWin = useMemo(() => {
+    if (
+      variant !== "expired" ||
+      !isClaimable ||
+      !userBetStatus ||
+      hasLocallyClaimed
+    ) {
+      return false;
+    }
+
+    // Check if user actually won by comparing bet direction with price direction
+    const userWon =
+      userBetStatus.direction === priceDirection &&
+      userBetStatus.status === "WON";
+
+    // Additional validation: ensure there's actually a payout to claim
+    const hasClaimablePayout = claimableBets?.some(
+      (bet) => bet.roundNumber === roundId && bet.payout > 0
+    );
+
+    return userWon && hasClaimablePayout;
+  }, [
+    variant,
+    isClaimable,
+    userBetStatus,
+    hasLocallyClaimed,
+    priceDirection,
+    claimableBets,
+    roundId,
+  ]);
   return (
     <div
       className={`
@@ -1098,7 +1126,17 @@ const didWin = useMemo(() => {
               )}
             </div>
             <p className="text-[10px] font-[600] leading-0">
-              {bullMultiplier}x {t("payout")}
+              <NumberFlow
+                value={parseFloat(bullMultiplier)}
+                format={{
+                  style: "decimal",
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                }}
+                className="text-[10px] font-[600] h-0 !leading-0"
+                transformTiming={{ duration: 800, easing: "ease-out" }}
+              />
+              x {t("payout")}
             </p>
           </Button>
           {variant === "later"
@@ -1131,7 +1169,17 @@ const didWin = useMemo(() => {
               )}
             </div>
             <p className="text-[10px] font-[600] leading-0">
-              {bearMultiplier}x {t("payout")}
+              <NumberFlow
+                value={parseFloat(bearMultiplier)}
+                format={{
+                  style: "decimal",
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                }}
+                className="text-[10px] font-[600] h-0 !leading-0"
+                transformTiming={{ duration: 800, easing: "ease-out" }}
+              />
+              x {t("payout")}
             </p>
           </Button>
         </div>
@@ -1141,7 +1189,7 @@ const didWin = useMemo(() => {
               className="cursor-pointer"
               iconName="arrow-left"
               onClick={() => {
-                setIsFlipped(false)
+                setIsFlipped(false);
                 setAmount(defaultBet);
                 setInputValue(defaultBet.toString());
               }}
@@ -1185,7 +1233,7 @@ const didWin = useMemo(() => {
             }}
             onBlur={() => {
               if (!connected) return;
-            }} 
+            }}
             className={`glass h-[65px] text-right rounded-[20px] pr-4 font-semibold text-[16px] outline-0 ${
               !connected ? "opacity-50 cursor-not-allowed bg-gray-200" : ""
             }`}

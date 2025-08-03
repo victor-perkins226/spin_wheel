@@ -12,6 +12,7 @@ import LanguageDropdown from "./LanguageDropdown";
 import ProfileWallet from "./ProfileWallet";
 import CustomWalletButton from "./CustomWalletButton";
 import EnhancedWalletButton from "./CustomWalletButton";
+import SocialDropdown from "./SocialDropdown";
 
 export default function Header() {
   const { theme } = useTheme();
@@ -35,6 +36,9 @@ export default function Header() {
             />
           )}
         </Link>
+<div className="hidden md:block">
+  <SocialDropdown/>
+</div>
 
         {/* <nav className="flex gap-[16px] xl:gap-[70px]">
           {NAVLINKS.map((navLink, key) => (
