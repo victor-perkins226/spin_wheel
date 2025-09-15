@@ -221,15 +221,24 @@ export default function LuckySpin() {
                       className="absolute inset-0"
                       style={{ transform: `rotate(${angle}deg)` }}
                     >
+                      {/* place at slice centerline */}
                       <div
-                        className="absolute left-1/2 top-[10%] -translate-x-1/2"
+                        className="absolute left-1/2 top-[5%] -translate-x-1/2"
                         style={{
-                          transform: `translateX(-80%) rotate(${
+                          transform: `translateX(-100%) rotate(${
                             sliceAngle / 2
                           }deg)`,
                         }}
                       >
-                        <div className="flex flex-col items-center gap-1">
+                        {/* counter-rotate so text is straight */}
+                        <div
+                          className="flex flex-col items-center gap-1 will-change-transform"
+                          style={{
+                            transform: `rotate(${
+                              -rotation - angle - sliceAngle / 2
+                            }deg)`,
+                          }}
+                        >
                           {isSOL ? (
                             <Image
                               src={solCoin}
@@ -240,13 +249,13 @@ export default function LuckySpin() {
                           ) : (
                             <Image
                               src={fnCoin}
-                              alt="SOL"
+                              alt="FN"
                               width={57}
                               height={63}
                             />
                           )}
                           <span className="text-lg font-semibold">
-                            {prize.value}
+                            {prize.label}
                           </span>
                         </div>
                       </div>
