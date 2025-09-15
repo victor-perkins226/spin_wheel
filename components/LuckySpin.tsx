@@ -301,7 +301,7 @@ export default function LuckySpin() {
         <button
           onClick={handleSpin}
           disabled={isSpinning || chances === 0}
-          className="w-full bg-gradient-to-tr  from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed mb-6 ring-2 ring-white/50 dark:ring-slate-800/70"
+          className="w-full bg-gradient-to-tr cursor-pointer  from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed mb-6 ring-2 ring-white/50 dark:ring-slate-800/70"
         >
           {isSpinning ? "SPINNING..." : "SPIN NOW"}
         </button>
