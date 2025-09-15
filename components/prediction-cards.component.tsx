@@ -49,6 +49,7 @@ import {
 import { API_URL } from "@/lib/config";
 import { useTranslation } from "next-i18next";
 import PredictionCardWrapper from "./PredictionCardWrapper";
+import LuckySpin from "./LuckySpin";
 const BetsHistory = React.lazy(() => import("./BetsHistory"));
 
 const LineChart = React.lazy(() => import("./LineChart"));
@@ -1174,7 +1175,7 @@ export default function PredictionCards() {
     <div className="container px-3 sm:px-4 md:px-6 lg:px-8 mt-5 md:mt-6 mb-8 lg:mt-[70px] flex flex-col gap-4 md:gap-6 lg:gap-[40px]">
       <div className="grid grid-cols-12 gap-4 lg:gap-6 xl:gap-[40px]">
         <div className=" gap-6 md:gap-8 lg:gap-[40px] col-span-12 xl:col-span-9">
-          <MarketHeader
+          {/* <MarketHeader
             // key={`header-${claimableRewards}-${isClaiming}-${claimableBets.length}`}
             liveRoundPrice={liveRoundPrice}
             priceColor={priceColor}
@@ -1199,9 +1200,9 @@ export default function PredictionCards() {
               handleCancelAll();
             }}
             formatTimeLeft={formatTimeLeft}
-          />
+          /> */}
 
-          <div className="relative my-4  md:px-0">
+          {/* <div className="relative my-4  md:px-0">
             <PredictionCardWrapper
               isPaused={config?.isPaused ?? false}
               theme={theme === "dark" ? "dark" : "light"}
@@ -1395,19 +1396,9 @@ export default function PredictionCards() {
                       })}
               </Swiper>
             </PredictionCardWrapper>
-          </div>
-          {/* {config?.isPaused && (
-             <>
-          <div className="absolute inset-0 bg-black/50 z-10" />
-
-          <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-            <div className="pointer-events-auto">
-              <MarketPausedToast theme={theme} />
-            </div>
-          </div>
-        </>
-          
-          )} */}
+          </div> */}
+       
+{/*          
           {isMobileView && (
              <LiveBets
               onLiveTotalChange={handleLiveTotalChange}
@@ -1439,8 +1430,11 @@ export default function PredictionCards() {
               needRefresh={justCanceled}
               key={currentRound?.number}
             />
-        }
+        } */}
+        </div>
+           
       </div>
+      <LuckySpin/>
     </div>
   );
 }
