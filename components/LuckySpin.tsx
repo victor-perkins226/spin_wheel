@@ -8,8 +8,10 @@ import filled from "@/public/assets/filled.png";
 import unfilled from "@/public/assets/unfilled.png";
 import solCoin from "@/public/assets/sol-blue.png";
 import fnCoin from "@/public/assets/fn-blue.png";
+import dividers from "@/public/assets/Dividers.png";
 import Image from "next/image";
 import SVG from "./svg.component";
+import { useTheme } from "next-themes";
 
 interface Prize {
   label: string;
@@ -31,6 +33,7 @@ const prizes: Prize[] = [
 export default function LuckySpin() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
+  const { theme } = useTheme();
   const wheelRef = useRef<HTMLDivElement>(null);
   const SPIN_MS = 5000;
   const wheelWrapRef = useRef<HTMLDivElement>(null);
@@ -46,7 +49,7 @@ export default function LuckySpin() {
       const hue = Math.round((i / prizes.length) * 360);
       const start = (i * 100) / prizes.length;
       const end = ((i + 1) * 100) / prizes.length;
-      return `hsl(${hue} 70% 50% / 0.25) ${start}% ${end}%`;
+      return `#04082D`;
     })
     .join(", ")})`;
 
@@ -79,7 +82,7 @@ export default function LuckySpin() {
         if (lastSliceRef.current !== slice) {
           const el = tickerRef.current;
           el.style.animation = "none";
-          void el.offsetHeight; // reflow
+          void el.offsetHeight;
           el.style.animation = "tick 700ms cubic-bezier(0.34, 1.56, 0.64, 1)";
           lastSliceRef.current = slice;
         }
@@ -194,88 +197,201 @@ export default function LuckySpin() {
 
       {/* Spinning Wheel */}
       <div ref={wheelWrapRef} className="relative mb-8">
-        <div className="relative w-[22rem] h-[22rem] sm:w-[26rem] sm:h-[26rem] md:w-[30rem] md:h-[30rem] mx-auto">
+        <div className="relative w-[22rem] h-[22rem] sm:w-[26rem] sm:h-[26rem] md:w-[36rem] md:h-[36rem] mx-auto">
           {/* Outer Ring */}
-          <div className="absolute inset-0 rounded-full p-[10px] bg-gradient-to-tr bg-[#201561]">
-            {/* Wheel Core */}
-            <div className="relative w-full h-full rounded-full bg-white dark:bg-slate-950 shadow-inner overflow-hidden">
-              {/* Rotating face with conic paint */}
-              <div
-                ref={wheelRef}
-                className="absolute inset-0 rounded-full transition-transform will-change-transform"
-                style={{
-                  transform: `rotate(${rotation}deg)`,
-                  transition: isSpinning
-                    ? `transform ${SPIN_MS}ms cubic-bezier(0.1,-0.01,0,1)`
-                    : "none",
-                  background: wheelGradient,
-                }}
+          {/* <div className="absolute inset-0 rounded-full p-[10px] bg-gradient-to-tr bg-[#201561]"> */}
+          {/* <div className=" z-10 h-[30rem] inset-0 rounded-full absolute -top-2 left-11 rotate-[36deg] w-[30rem]">
+              <Image
+                src={dividers}
+                alt="wheel-bg"
+                fill
+                className="absolute inset-0 rounded-full"
+              />
+            </div> */}
+          {/* Wheel Core */}
+          <div className="relative w-full h-full rounded-full bg-white dark:bg-slate-950 shadow-inner overflow-hidden">
+            {/* Rotating face with conic paint */}
+
+            <div
+              ref={wheelRef}
+              className="absolute inset-0 rounded-full transition-transform will-change-transform"
+              style={{
+                transform: `rotate(${rotation}deg)`,
+                transition: isSpinning
+                  ? `transform ${SPIN_MS}ms cubic-bezier(0.1,-0.01,0,1)`
+                  : "none",
+                background: wheelGradient,
+              }}
+            >
+              {/* Rotating dividers image (optional) */}
+              <div className="absolute inset-0 pointer-events-none select-none">
+                <Image
+                  src={dividers}
+                  alt="dividers"
+                  fill
+                  className="rounded-full"
+                />
+              </div>
+
+              {/* Outer ring + radial lines, perfectly aligned */}
+              <svg
+                className="absolute inset-0"
+                viewBox="0 0 100 100"
+                preserveAspectRatio="xMidYMid meet"
+                style={{ pointerEvents: "none" }}
               >
-                {/* Labels + icons rotate with the wheel */}
-                {prizes.map((prize, index) => {
-                  const angle = index * sliceAngle;
-                  const isSOL = /sol/i.test(prize.label);
-                  return (
+                <defs>
+                  <linearGradient
+                    id="segStroke"
+                    gradientUnits="objectBoundingBox"
+                    gradientTransform="rotate(257.57)"
+                  >
+                    <stop offset="6.16%" stopColor="#5E35D7" />
+                    <stop offset="49.87%" stopColor="#2485D1" />
+                    <stop offset="82.45%" stopColor="#143FCA" />
+                  </linearGradient>
+                </defs>
+
+                {/* ring sits inside the clip: r = 50 - stroke/2 */}
+                {/* <circle
+                  cx="50"
+                  cy="50"
+                  r="47"
+                  fill="none"
+                  stroke="url(#segStroke)"
+                  strokeWidth="6"
+                  vectorEffect="non-scaling-stroke"
+                /> */}
+
+                {/* dividers at each slice boundary */}
+                <g
+                  stroke="url(#segStroke)"
+                  strokeWidth="6"
+                  strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke"
+                >
+                  {Array.from({ length: prizes.length }).map((_, i) => (
+                    <line
+                      key={i}
+                      x1="50"
+                      y1="50"
+                      x2="50"
+                      y2="3" /* ends at ring centerline */
+                      transform={`rotate(${i * (360 / prizes.length)} 50 50)`}
+                    />
+                  ))}
+                </g>
+              </svg>
+              {/* Labels + icons rotate with the wheel */}
+              {prizes.map((prize, index) => {
+                const angle = index * sliceAngle;
+                const isSOL = /sol/i.test(prize.label);
+                return (
+                  <div
+                    key={index}
+                    className="absolute inset-0"
+                    style={{ transform: `rotate(${angle}deg)` }}
+                  >
+                    {/* place at slice centerline */}
                     <div
-                      key={index}
-                      className="absolute inset-0"
-                      style={{ transform: `rotate(${angle}deg)` }}
+                      className="absolute left-1/2 top-[5%] -translate-x-1/2"
+                      style={{
+                        transform: `translateX(-10%) rotate(${
+                          sliceAngle / 2
+                        }deg)`,
+                      }}
                     >
-                      {/* place at slice centerline */}
+                      {/* counter-rotate so text is straight */}
                       <div
-                        className="absolute left-1/2 top-[5%] -translate-x-1/2"
+                        className="flex flex-col items-center gap-1 will-change-transform"
                         style={{
-                          transform: `translateX(-100%) rotate(${
-                            sliceAngle / 2
+                          transform: `rotate(${
+                            -rotation - angle - sliceAngle / 2
                           }deg)`,
                         }}
                       >
-                        {/* counter-rotate so text is straight */}
-                        <div
-                          className="flex flex-col items-center gap-1 will-change-transform"
-                          style={{
-                            transform: `rotate(${
-                              -rotation - angle - sliceAngle / 2
-                            }deg)`,
-                          }}
-                        >
-                          {isSOL ? (
-                            <Image
-                              src={solCoin}
-                              alt="SOL"
-                              width={57}
-                              height={63}
-                            />
-                          ) : (
-                            <Image
-                              src={fnCoin}
-                              alt="FN"
-                              width={57}
-                              height={63}
-                            />
-                          )}
-                          <span className="text-lg font-semibold">
-                            {prize.label}
-                          </span>
-                        </div>
+                        {isSOL ? (
+                          <Image
+                            src={solCoin}
+                            alt="SOL"
+                            width={57}
+                            height={63}
+                          />
+                        ) : (
+                          <Image src={fnCoin} alt="FN" width={57} height={63} />
+                        )}
+                        <span className="text-lg font-semibold">
+                          {prize.label}
+                        </span>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })}
 
-              {/* Center Spin Button */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-                <button
-                  onClick={handleSpin}
-                  disabled={isSpinning || chances === 0}
-                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr bg-[#201561] text-white font-bold text-lg shadow-lg hover:shadow-xl transition-transform duration-200 hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed ring-4 ring-white/60 dark:ring-slate-900/70"
+              {/* Gradient separators + outer ring */}
+              <svg
+                className="absolute inset-0"
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                style={{ pointerEvents: "none" }}
+              >
+                <defs>
+                  <linearGradient
+                    id="segStroke"
+                    gradientUnits="objectBoundingBox"
+                    gradientTransform="rotate(257.57)"
+                  >
+                    <stop offset="6.16%" stopColor="#5E35D7" />
+                    <stop offset="49.87%" stopColor="#2485D1" />
+                    <stop offset="82.45%" stopColor="#143FCA" />
+                  </linearGradient>
+                </defs>
+
+                {/* outer circular ring */}
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="49"
+                  fill="none"
+                  stroke="url(#segStroke)"
+                  strokeWidth="6"
+                  vectorEffect="non-scaling-stroke"
+                />
+
+                {/* radial dividers for each slice */}
+                <g
+                  stroke="url(#segStroke)"
+                  strokeWidth="6"
+                  strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke"
                 >
-                  SPIN
-                </button>
-              </div>
+                  {Array.from({ length: prizes.length }).map((_, i) => (
+                    <line
+                      key={i}
+                      x1="50"
+                      y1="50"
+                      x2="50"
+                      y2="3" // reaches toward the ring; adjust if needed
+                      transform={`rotate(${i * (360 / prizes.length)} 50 50)`}
+                    />
+                  ))}
+                </g>
+              </svg>
+            </div>
+
+            {/* Center Spin Button */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+              <button
+                onClick={handleSpin}
+                disabled={isSpinning || chances === 0}
+                className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr bg-[#201561] text-white font-bold text-lg shadow-lg hover:shadow-xl transition-transform duration-200 hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed ring-4 ring-white/60 dark:ring-slate-900/70"
+              >
+                SPIN
+              </button>
             </div>
           </div>
+          {/* </div> */}
 
           {/* Pointer with tick animation */}
           <div
@@ -301,7 +417,7 @@ export default function LuckySpin() {
         <button
           onClick={handleSpin}
           disabled={isSpinning || chances === 0}
-          className="w-full bg-gradient-to-tr cursor-pointer  from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed mb-6 ring-2 ring-white/50 dark:ring-slate-800/70"
+          className="w-full border-cyan-300 bg-[#201561] text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed mb-6 ring-2 ring-white/50 dark:ring-slate-800/70"
         >
           {isSpinning ? "SPINNING..." : "SPIN NOW"}
         </button>
