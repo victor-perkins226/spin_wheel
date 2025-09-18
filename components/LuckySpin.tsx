@@ -11,6 +11,7 @@ import fnCoin from "@/public/assets/fn-blue.png";
 import dividers from "@/public/assets/Dividers.png";
 import Image from "next/image";
 import Polygon from "@/public/assets/polygon.png";
+import DarkPolygon from "@/public/assets/black_polygon.png";
 import SVG from "./svg.component";
 import { useTheme } from "next-themes";
 
@@ -202,7 +203,13 @@ export default function LuckySpin() {
 
       {/* Spinning Wheel */}
       <div ref={wheelWrapRef} className="relative mb-8">
-        <div className="relative w-[22rem] h-[22rem] sm:w-[26rem] sm:h-[26rem] md:w-[36rem] md:h-[36rem] mx-auto">
+        <div className={
+          theme === "light" ? "rounded-full  md:w-[40rem] mx-auto border border-[#ffffff] shadow-[0_4px_24px_-1px_#00000033] backdrop-blur-[40px] bg-white/30 md:h-[40rem] " :
+          "rounded-full  md:w-[40rem] mx-auto border border-[#0d166e] shadow-[0_4px_24px_-1px_#00000033] backdrop-blur-[40px] bg-[#04082D] md:h-[40rem] "
+        }>
+
+     
+        <div className="relative w-[22rem] h-[22rem] sm:w-[26rem] mt-8 sm:h-[26rem] md:w-[36rem] md:h-[36rem] mx-auto">
           {/* Outer Ring */}
           {/* <div className="absolute inset-0 rounded-full p-[10px] bg-gradient-to-tr bg-[#201561]"> */}
           {/* <div className=" z-10 h-[30rem] inset-0 rounded-full absolute -top-2 left-11 rotate-[36deg] w-[30rem]">
@@ -214,7 +221,7 @@ export default function LuckySpin() {
               />
             </div> */}
           {/* Wheel Core */}
-          <div className="relative w-full h-full rounded-full bg-white dark:bg-slate-950 shadow-inner overflow-hidden">
+          <div className="relative w-full h-full rounded-full bg-whiteshadow-inner overflow-hidden">
             {/* Rotating face with conic paint */}
 
             <div
@@ -229,7 +236,7 @@ export default function LuckySpin() {
               }}
             >
               {/* Rotating dividers image (optional) */}
-              <div className="absolute inset-0 pointer-events-none select-none">
+              <div className="absolute inset-2 pointer-events-none select-none">
                 <Image
                   src={dividers}
                   alt="dividers"
@@ -325,7 +332,9 @@ export default function LuckySpin() {
                         ) : (
                           <Image src={fnCoin} alt="FN" width={57} height={63} />
                         )}
-                        <span className={`text-white text-lg font-semibold`}>
+                        <span
+                          className={`text-[#00EEFE] text-2xl mt-3 font-semibold`}
+                        >
                           {prize.label}
                         </span>
                       </div>
@@ -386,14 +395,18 @@ export default function LuckySpin() {
             </div>
 
             {/* Center Spin Button */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-              <button
-                onClick={handleSpin}
-                disabled={isSpinning || chances === 0}
-                className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-tr bg-[#201561] text-white font-bold text-lg shadow-lg hover:shadow-xl transition-transform duration-200 hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed ring-4 ring-white/60 dark:ring-slate-900/70"
-              >
-                SPIN
-              </button>
+            <div className={`border-[6px] absolute top-1/2 left-1/2 -translate-x-1/2 rounded-full -translate-y-1/2  w-[190px] z-10 h-[190px] p-4 ${theme === "light" ? "border-white bg-white/30" : "border-[#0e1875] "} `}>
+              <div className="absolute  z-10">
+                <button
+                  onClick={handleSpin}
+                  disabled={isSpinning || chances === 0}
+                  className="w-36 h-36 left-[2px] top-[1px] absolute  rounded-full bg-gradient-to-tr bg-[#201561] font-semibold text-4xl shadow-lg hover:shadow-xl transition-transform duration-200 hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed ring-4 ring-[#0A9ADD] "
+                >
+                  <span className="text-[var(--Blue-2,#0A9ADD)] [text-shadow:0_0_0.5px_var(--Blue-2,#0A9ADD),0_0_0.99px_var(--Blue-2,#0A9ADD),0_0_3.47px_var(--Blue-2,#0A9ADD),0_0_6.95px_var(--Blue-2,#0A9ADD)]">
+                    SPIN
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
           {/* </div> */}
@@ -403,16 +416,16 @@ export default function LuckySpin() {
             ref={tickerRef}
             className="absolute top-[-2rem] left-1/2 -translate-x-1/2 -translate-y-2 z-20 origin-top"
           >
-      <Image
-            src={Polygon}
-            alt="pointer"
-            width={48}
-            height={48}
-            className="w-12 h-12 sm:w-16 sm:h-16"
-          />
+            <Image
+              src={theme === "dark" ? DarkPolygon : Polygon}
+              alt="pointer"
+              width={48}
+              height={48}
+              className="w-12 h-12 sm:w-16 sm:h-16"
+            />
+          </div>
         </div>
-        </div>
-
+  
         {/* wheel-only keyframes */}
         <style jsx>{`
           @keyframes tick {
@@ -422,10 +435,10 @@ export default function LuckySpin() {
           }
         `}</style>
       </div>
-
-      <div className="w-full max-w-sm mx-auto">
+ </div>
+      <div className="w-full max-w-sm mt-[-3rem] mx-auto">
         {/* Spin Now Button */}
-     
+
         {theme === "light" ? (
           <button
             onClick={handleSpin}
