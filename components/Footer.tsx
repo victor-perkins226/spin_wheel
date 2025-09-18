@@ -9,6 +9,7 @@ import {
   FaDiscord,
 } from "react-icons/fa";
 import { GiBurningMeteor } from "react-icons/gi";
+import { useTheme } from "next-themes";
 
 export default function Footer() {
   const sections = [
@@ -28,6 +29,8 @@ export default function Footer() {
     },
   ];
 
+  const { theme } = useTheme();
+const textCls = theme === "light" ? "text-[#1F1F43]" : "text-white";
   const socials = [
     { icon: <FaFacebookF />, href: "/" },
     { icon: <FaTwitter />, href: "/" },
@@ -41,10 +44,10 @@ export default function Footer() {
       <div className="container mx-auto px-4">
         {/* top links */}
         <div className="justify-between flex flex-col-reverse gap-8 md:flex-row items-start">
-          <div className="grid grid-cols-2 md:w-2/3 sm:grid-cols-3 gap-8 mb-10">
+          <div className={`${textCls} grid grid-cols-2 md:w-2/3 sm:grid-cols-3 gap-8 mb-10`}>
             {sections.map(({ title, links }) => (
               <div key={title}>
-                <h4 className="font-semibold text-sm text-gray-500 uppercase mb-6">
+                <h4 className="font-semibold text-sm  uppercase mb-6">
                   {title}
                 </h4>
                 <ul className="space-y-2">
@@ -59,7 +62,7 @@ export default function Footer() {
               </div>
             ))}
           </div>
-          <div className="flex items-center gap-4">
+          <div className={`flex items-center gap-4 ${textCls}`}>
             <GiBurningMeteor size={48} />
             <h3 className="text-3xl font-bold">FORTUVA</h3>
           </div>
@@ -72,7 +75,7 @@ export default function Footer() {
               <a
                 key={i}
                 href={href}
-                className="w-10 h-10 flex items-center justify-center  rounded-full border border-white/50 hover:bg-purple-700/50 transition"
+                className={`${textCls} w-10 h-10 flex items-center justify-center  rounded-full border border-white/50 hover:bg-purple-700/50 transition`}
               >
                 <span className="text-xl">{icon}</span>
               </a>

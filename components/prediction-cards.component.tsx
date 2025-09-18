@@ -50,6 +50,7 @@ import { API_URL } from "@/lib/config";
 import { useTranslation } from "next-i18next";
 import PredictionCardWrapper from "./PredictionCardWrapper";
 import LuckySpin from "./LuckySpin";
+import FortuneWheel from "./FortuneWheel";
 const BetsHistory = React.lazy(() => import("./BetsHistory"));
 
 const LineChart = React.lazy(() => import("./LineChart"));
@@ -1434,7 +1435,9 @@ export default function PredictionCards() {
         </div>
            
       </div>
-      <LuckySpin/>
+<div className="w-full flex justify-center ">
+        <FortuneWheel/>
+</div>
     </div>
   );
 }

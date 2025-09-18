@@ -34,6 +34,8 @@ export default function LuckySpin() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const { theme } = useTheme();
+  const textCls = theme === "light" ? "text-[#1F1F43]" : "text-white";
+
   const wheelRef = useRef<HTMLDivElement>(null);
   const SPIN_MS = 5000;
   const wheelWrapRef = useRef<HTMLDivElement>(null);
@@ -123,9 +125,9 @@ export default function LuckySpin() {
       <div className="flex items-center glass rounded-t-2xl p-3  justify-between mb-6">
         <div className="flex  items-center w-full gap-3">
           <button className="p-2 glass rounded-lg transition-colors">
-            <ChevronLeft className="size-6 text-white" />
+            <ChevronLeft className="size-6 " />
           </button>
-          <h1 className="text-white w-full text-center text-2xl font-semibold">
+          <h1 className=" w-full text-center text-2xl font-semibold">
             Lucky Spin
           </h1>
         </div>
@@ -188,9 +190,11 @@ export default function LuckySpin() {
               alt="Bronze Medal"
             />
           </div>
-          <div className="text-white flex gap-2 flex-col text-sm">
-            <div className="glass text-center p-1 rounded-xl">BRONZE</div>
-            <div className="text-xs">Level 2 or above</div>
+          <div className="font-semibold flex gap-2 flex-col text-sm">
+            <div className="glass text-center p-1 px-8 rounded-xl">BRONZE</div>
+            <div className="text-xs text-center font-medium">
+              Level 2 or above
+            </div>
           </div>
         </div>
       </div>
@@ -320,7 +324,7 @@ export default function LuckySpin() {
                         ) : (
                           <Image src={fnCoin} alt="FN" width={57} height={63} />
                         )}
-                        <span className="text-lg font-semibold">
+                        <span className={`text-white text-lg font-semibold`}>
                           {prize.label}
                         </span>
                       </div>
@@ -414,18 +418,35 @@ export default function LuckySpin() {
 
       <div className="w-full max-w-sm mx-auto">
         {/* Spin Now Button */}
-        <button
-          onClick={handleSpin}
-          disabled={isSpinning || chances === 0}
-          className="w-full border-cyan-300 bg-[#201561] text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed mb-6 ring-2 ring-white/50 dark:ring-slate-800/70"
-        >
-          {isSpinning ? "SPINNING..." : "SPIN NOW"}
-        </button>
+     
+        {theme === "light" ? (
+          <button
+            onClick={handleSpin}
+            disabled={isSpinning || chances === 0}
+            className="cursor-pointer shadow-[0_4px_24px_-1px_#00000033] backdrop-blur-[40px] bg-white font-bold py-4 px-6 rounded-xl transition-all w-full"
+          >
+            <span className="uppercase text-3xl  bg-[linear-gradient(257.57deg,_#5E35D7_6.16%,_#2485D1_49.87%,_#061C62_82.45%)] bg-clip-text text-transparent [-webkit-text-fill-color:transparent]">
+              {isSpinning ? "SPINNING..." : "SPIN NOW"}
+            </span>
+          </button>
+        ) : (
+          <button
+            onClick={handleSpin}
+            disabled={isSpinning || chances === 0}
+            className="cursor-pointer shadow-[0_4px_24px_-1px_#00000033] backdrop-blur-[40px] font-bold py-4 px-6 rounded-4xl transition-all w-full  border-[5px] border-transparent
+[background:linear-gradient(#04082D,#04082D)_padding-box,linear-gradient(257.57deg,_#3161E6_6.16%,_#37ABE8_28.43%,_#4169F7_49.87%,_#365EE5_82.45%)_border-box]
+[background-clip:padding-box,border-box]"
+          >
+            <span className="uppercase text-3xl bg-[linear-gradient(257.57deg,_#3161E6_6.16%,_#37ABE8_28.43%,_#4169F7_49.87%,_#365EE5_82.45%)] bg-clip-text text-transparent [-webkit-text-fill-color:transparent]">
+              {isSpinning ? "SPINNING..." : "SPIN NOW"}
+            </span>
+          </button>
+        )}
       </div>
 
       {/* User Info */}
-      <div className="flex items-center max-w-xl my-12 mx-auto justify-between">
-        <div className="flex items-center gap-4 glass px-6 py-1 rounded-2xl">
+      <div className="flex items-center max-w-xl mt-20 mb-12 mx-auto justify-between">
+        <div className="flex items-center gap-4 glass px-6 py-2 rounded-2xl">
           <Image
             src={coinIcon}
             alt="Solana"
@@ -435,14 +456,18 @@ export default function LuckySpin() {
           />
           <div className="flex flex-col">
             <span className="uppercase text-sm">Spin Bonus Total</span>
-            <span className="text-2xl font-semibold">2300 SOL</span>
+            <span className={`text-2xl font-semibold ${textCls}`}>
+              2300 SOL
+            </span>
           </div>
         </div>
-        <div className="flex items-center gap-4 glass px-4 py-1 rounded-2xl">
+        <div className="flex items-center gap-4 glass px-4 py-2 rounded-2xl">
           <SVG width={48} height={48} iconName="avatar" />
-          <div className="flex flex-col">
+          <div className="flex flex-col items-start">
             <span className="text-sm">New Win</span>
-            <span className="text-2xl font-semibold">John Doe</span>
+            <span className={`text-2xl font-semibold ${textCls}`}>
+              John Doe
+            </span>
           </div>
         </div>
       </div>
