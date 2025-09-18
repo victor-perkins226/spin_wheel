@@ -12,6 +12,7 @@ import dividers from "@/public/assets/Dividers.png";
 import Image from "next/image";
 import Polygon from "@/public/assets/polygon.png";
 import DarkPolygon from "@/public/assets/black_polygon.png";
+import GradientBackground from "@/public/assets/ellipse.png";
 import SVG from "./svg.component";
 import { useTheme } from "next-themes";
 
@@ -23,13 +24,13 @@ interface Prize {
 
 const prizes: Prize[] = [
   { label: "100 FN", value: "100", color: "from-cyan-400 to-blue-500" },
+  { label: "0.1 SOL", value: "0.1", color: "from-cyan-400 to-blue-500" },
   { label: "200 FN", value: "200", color: "from-cyan-400 to-blue-500" },
+  { label: "0.2 SOL", value: "0.2", color: "from-cyan-400 to-blue-500" },
   { label: "0.25 SOL", value: "0.25", color: "from-cyan-400 to-blue-500" },
-  { label: "0.5 SOL", value: "0.5", color: "from-cyan-400 to-blue-500" },
   { label: "50 FN", value: "50", color: "from-cyan-400 to-blue-500" },
   { label: "300 FN", value: "300", color: "from-cyan-400 to-blue-500" },
   { label: "0.3 SOL", value: "0.3", color: "from-cyan-400 to-blue-500" },
-  { label: "0.5 SOL", value: "0.5", color: "from-cyan-400 to-blue-500" },
 ];
 
 export default function LuckySpin() {
@@ -203,16 +204,17 @@ export default function LuckySpin() {
 
       {/* Spinning Wheel */}
       <div ref={wheelWrapRef} className="relative mb-8">
-        <div className={
-          theme === "light" ? "rounded-full  md:w-[40rem] mx-auto border border-[#ffffff] shadow-[0_4px_24px_-1px_#00000033] backdrop-blur-[40px] bg-white/30 md:h-[40rem] " :
-          "rounded-full  md:w-[40rem] mx-auto border border-[#0d166e] shadow-[0_4px_24px_-1px_#00000033] backdrop-blur-[40px] bg-[#04082D] md:h-[40rem] "
-        }>
-
-     
-        <div className="relative w-[22rem] h-[22rem] sm:w-[26rem] mt-8 sm:h-[26rem] md:w-[36rem] md:h-[36rem] mx-auto">
-          {/* Outer Ring */}
-          {/* <div className="absolute inset-0 rounded-full p-[10px] bg-gradient-to-tr bg-[#201561]"> */}
-          {/* <div className=" z-10 h-[30rem] inset-0 rounded-full absolute -top-2 left-11 rotate-[36deg] w-[30rem]">
+        <div
+          className={
+            theme === "light"
+              ? "rounded-full  md:w-[40rem] mx-auto border border-[#ffffff] shadow-[0_4px_24px_-1px_#00000033] backdrop-blur-[40px] bg-white/30 md:h-[40rem] "
+              : "rounded-full  md:w-[40rem] mx-auto border border-[#0d166e] shadow-[0_4px_24px_-1px_#00000033] backdrop-blur-[40px] bg-[#04082D] md:h-[40rem] "
+          }
+        >
+          <div className="relative w-[22rem] h-[22rem] sm:w-[26rem] mt-8 sm:h-[26rem] md:w-[36rem] md:h-[36rem] mx-auto">
+            {/* Outer Ring */}
+            {/* <div className="absolute inset-0 rounded-full p-[10px] bg-gradient-to-tr bg-[#201561]"> */}
+            {/* <div className=" z-10 h-[30rem] inset-0 rounded-full absolute -top-2 left-11 rotate-[36deg] w-[30rem]">
               <Image
                 src={dividers}
                 alt="wheel-bg"
@@ -220,52 +222,61 @@ export default function LuckySpin() {
                 className="absolute inset-0 rounded-full"
               />
             </div> */}
-          {/* Wheel Core */}
-          <div className="relative w-full h-full rounded-full bg-whiteshadow-inner overflow-hidden">
-            {/* Rotating face with conic paint */}
+            {/* Wheel Core */}
+            <div className="relative w-full h-full rounded-full bg-whiteshadow-inner overflow-hidden">
+              {/* Rotating face with conic paint */}
 
-            <div
-              ref={wheelRef}
-              className="absolute inset-0 rounded-full transition-transform will-change-transform"
-              style={{
-                transform: `rotate(${rotation}deg)`,
-                transition: isSpinning
-                  ? `transform ${SPIN_MS}ms cubic-bezier(0.1,-0.01,0,1)`
-                  : "none",
-                background: wheelGradient,
-              }}
-            >
-              {/* Rotating dividers image (optional) */}
-              <div className="absolute inset-2 pointer-events-none select-none">
+              <div>
                 <Image
-                  src={dividers}
-                  alt="dividers"
+                  src={GradientBackground}
+                  alt="gradient background"
                   fill
-                  className="rounded-full"
+                  className="absolute z-20 inset-0 rounded-full"
                 />
               </div>
 
-              {/* Outer ring + radial lines, perfectly aligned */}
-              <svg
-                className="absolute inset-0"
-                viewBox="0 0 100 100"
-                preserveAspectRatio="xMidYMid meet"
-                style={{ pointerEvents: "none" }}
+              <div
+                ref={wheelRef}
+                className="absolute inset-0 rounded-full transition-transform will-change-transform"
+                style={{
+                  transform: `rotate(${rotation}deg)`,
+                  transition: isSpinning
+                    ? `transform ${SPIN_MS}ms cubic-bezier(0.1,-0.01,0,1)`
+                    : "none",
+                  background: wheelGradient,
+                }}
               >
-                <defs>
-                  <linearGradient
-                    id="segStroke"
-                    gradientUnits="objectBoundingBox"
-                    gradientTransform="rotate(257.57)"
-                  >
-                    <stop offset="6.16%" stopColor="#5E35D7" />
-                    <stop offset="49.87%" stopColor="#2485D1" />
-                    <stop offset="82.45%" stopColor="#143FCA" />
-                  </linearGradient>
-                </defs>
+                {/* Rotating dividers image (optional) */}
+                <div className="absolute inset-2 pointer-events-none select-none">
+                  <Image
+                    src={dividers}
+                    alt="dividers"
+                    fill
+                    className="rounded-full"
+                  />
+                </div>
 
-                {/* ring sits inside the clip: r = 50 - stroke/2 */}
-                {/* <circle
+                {/* Outer ring + radial lines, perfectly aligned */}
+                <svg
+                  className="absolute inset-0"
+                  viewBox="0 0 100 100"
+                  preserveAspectRatio="xMidYMid meet"
+                  style={{ pointerEvents: "none" }}
+                >
+                  <defs>
+                    <linearGradient
+                      id="segStroke"
+                      gradientUnits="objectBoundingBox"
+                      gradientTransform="rotate(257.57)"
+                    >
+                      <stop offset="6.16%" stopColor="#5E35D7" />
+                      <stop offset="49.87%" stopColor="#2485D1" />
+                      <stop offset="82.45%" stopColor="#143FCA" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* ring sits inside the clip: r = 50 - stroke/2 */}
+                  {/* <circle
                   cx="50"
                   cy="50"
                   r="47"
@@ -275,167 +286,186 @@ export default function LuckySpin() {
                   vectorEffect="non-scaling-stroke"
                 /> */}
 
-                {/* dividers at each slice boundary */}
-                <g
-                  stroke="url(#segStroke)"
-                  strokeWidth="6"
-                  strokeLinecap="round"
-                  vectorEffect="non-scaling-stroke"
-                >
-                  {Array.from({ length: prizes.length }).map((_, i) => (
-                    <line
-                      key={i}
-                      x1="50"
-                      y1="50"
-                      x2="50"
-                      y2="3" /* ends at ring centerline */
-                      transform={`rotate(${i * (360 / prizes.length)} 50 50)`}
-                    />
-                  ))}
-                </g>
-              </svg>
-              {/* Labels + icons rotate with the wheel */}
-              {prizes.map((prize, index) => {
-                const angle = index * sliceAngle;
-                const isSOL = /sol/i.test(prize.label);
-                return (
-                  <div
-                    key={index}
-                    className="absolute inset-0"
-                    style={{ transform: `rotate(${angle}deg)` }}
+                  {/* dividers at each slice boundary */}
+                  <g
+                    stroke="url(#segStroke)"
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                    vectorEffect="non-scaling-stroke"
                   >
-                    {/* place at slice centerline */}
+                    {Array.from({ length: prizes.length }).map((_, i) => (
+                      <line
+                        key={i}
+                        x1="50"
+                        y1="50"
+                        x2="50"
+                        y2="3" /* ends at ring centerline */
+                        transform={`rotate(${i * (360 / prizes.length)} 50 50)`}
+                      />
+                    ))}
+                  </g>
+                </svg>
+                {/* Labels + icons rotate with the wheel */}
+                {prizes.map((prize, index) => {
+                  const angle = index * sliceAngle;
+                  const isSOL = /sol/i.test(prize.label);
+                  return (
                     <div
-                      className="absolute left-1/2 top-[5%] -translate-x-1/2"
-                      style={{
-                        transform: `translateX(-10%) rotate(${
-                          sliceAngle / 2
-                        }deg)`,
-                      }}
+                      key={index}
+                      className="absolute inset-0"
+                      style={{ transform: `rotate(${angle}deg)` }}
                     >
-                      {/* counter-rotate so text is straight */}
+                      {/* place at slice centerline */}
                       <div
-                        className="flex flex-col items-center gap-1 will-change-transform"
+                        className="absolute left-1/2 top-[5%] -translate-x-1/2"
                         style={{
-                          transform: `rotate(${
-                            -rotation - angle - sliceAngle / 2
+                          transform: `translateX(-10%) rotate(${
+                            sliceAngle / 2
                           }deg)`,
                         }}
                       >
-                        {isSOL ? (
-                          <Image
-                            src={solCoin}
-                            alt="SOL"
-                            width={57}
-                            height={63}
-                          />
-                        ) : (
-                          <Image src={fnCoin} alt="FN" width={57} height={63} />
-                        )}
-                        <span
-                          className={`text-[#00EEFE] text-2xl mt-3 font-semibold`}
+                        {/* counter-rotate so text is straight */}
+                        <div
+                          className="flex flex-col items-center gap-1 will-change-transform"
+                          style={{
+                            transform: `rotate(${
+                              -rotation - angle - sliceAngle / 2
+                            }deg)`,
+                          }}
                         >
-                          {prize.label}
-                        </span>
+                          {isSOL ? (
+                            <Image
+                              src={solCoin}
+                              alt="SOL"
+                              width={57}
+                              height={63}
+                            />
+                          ) : (
+                            <Image
+                              src={fnCoin}
+                              alt="FN"
+                              width={57}
+                              height={63}
+                            />
+                          )}
+                          <span
+                            className={`text-[#00EEFE] text-2xl mt-3 font-semibold`}
+                          >
+                            {prize.label}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
 
-              {/* Gradient separators + outer ring */}
-              <svg
-                className="absolute inset-0"
-                viewBox="0 0 100 100"
-                preserveAspectRatio="none"
-                style={{ pointerEvents: "none" }}
-              >
-                <defs>
-                  <linearGradient
-                    id="segStroke"
-                    gradientUnits="objectBoundingBox"
-                    gradientTransform="rotate(257.57)"
+                {/* Gradient separators + outer ring */}
+                <svg
+                  className="absolute inset-0"
+                  viewBox="0 0 100 100"
+                  preserveAspectRatio="none"
+                  style={{ pointerEvents: "none" }}
+                >
+                  <defs>
+                    <linearGradient
+                      id="segStroke"
+                      gradientUnits="objectBoundingBox"
+                      gradientTransform="rotate(257.57)"
+                    >
+                      <stop offset="6.16%" stopColor="#5E35D7" />
+                      <stop offset="49.87%" stopColor="#2485D1" />
+                      <stop offset="82.45%" stopColor="#143FCA" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* outer circular ring */}
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="49"
+                    fill="none"
+                    stroke="url(#segStroke)"
+                    strokeWidth="6"
+                    vectorEffect="non-scaling-stroke"
+                  />
+
+                  {/* radial dividers for each slice */}
+                  <g
+                    stroke="url(#segStroke)"
+                    strokeWidth="6"
+                    strokeLinecap="round"
+                    vectorEffect="non-scaling-stroke"
                   >
-                    <stop offset="6.16%" stopColor="#5E35D7" />
-                    <stop offset="49.87%" stopColor="#2485D1" />
-                    <stop offset="82.45%" stopColor="#143FCA" />
-                  </linearGradient>
-                </defs>
+                    {Array.from({ length: prizes.length }).map((_, i) => (
+                      <line
+                        key={i}
+                        x1="50"
+                        y1="50"
+                        x2="50"
+                        y2="3" // reaches toward the ring; adjust if needed
+                        transform={`rotate(${i * (360 / prizes.length)} 50 50)`}
+                      />
+                    ))}
+                  </g>
+                </svg>
+              </div>
 
-                {/* outer circular ring */}
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="49"
-                  fill="none"
-                  stroke="url(#segStroke)"
-                  strokeWidth="6"
-                  vectorEffect="non-scaling-stroke"
-                />
-
-                {/* radial dividers for each slice */}
-                <g
-                  stroke="url(#segStroke)"
-                  strokeWidth="6"
-                  strokeLinecap="round"
-                  vectorEffect="non-scaling-stroke"
-                >
-                  {Array.from({ length: prizes.length }).map((_, i) => (
-                    <line
-                      key={i}
-                      x1="50"
-                      y1="50"
-                      x2="50"
-                      y2="3" // reaches toward the ring; adjust if needed
-                      transform={`rotate(${i * (360 / prizes.length)} 50 50)`}
-                    />
-                  ))}
-                </g>
-              </svg>
-            </div>
-
-            {/* Center Spin Button */}
-            <div className={`border-[6px] absolute top-1/2 left-1/2 -translate-x-1/2 rounded-full -translate-y-1/2  w-[190px] z-10 h-[190px] p-4 ${theme === "light" ? "border-white bg-white/30" : "border-[#0e1875] "} `}>
-              <div className="absolute  z-10">
-                <button
-                  onClick={handleSpin}
-                  disabled={isSpinning || chances === 0}
-                  className="w-36 h-36 left-[2px] top-[1px] absolute  rounded-full bg-gradient-to-tr bg-[#201561] font-semibold text-4xl shadow-lg hover:shadow-xl transition-transform duration-200 hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed ring-4 ring-[#0A9ADD] "
-                >
-                  <span className="text-[var(--Blue-2,#0A9ADD)] [text-shadow:0_0_0.5px_var(--Blue-2,#0A9ADD),0_0_0.99px_var(--Blue-2,#0A9ADD),0_0_3.47px_var(--Blue-2,#0A9ADD),0_0_6.95px_var(--Blue-2,#0A9ADD)]">
-                    SPIN
-                  </span>
-                </button>
+              {/* Center Spin Button */}
+              <div
+                className={`border-[6px] absolute top-1/2 left-1/2 -translate-x-1/2 rounded-full -translate-y-1/2  w-[190px] z-10 h-[190px] p-4 ${
+                  theme === "light"
+                    ? "border-white bg-white/30"
+                    : "border-[#0e1875] "
+                } `}
+              >
+                <div className="absolute  z-10">
+                  <button
+                    onClick={handleSpin}
+                    disabled={isSpinning || chances === 0}
+                    className={`w-36 h-36 left-[2px] top-[1px] absolute  rounded-full bg-gradient-to-tr  font-semibold text-4xl shadow-lg hover:shadow-xl transition-transform duration-200 hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed ${
+                      theme === "dark"
+                        ? "ring-4 ring-[#0A9ADD] bg-[#201561]"
+                        : "ring-0 ring-white"
+                    }`}
+                  >
+                    {theme !== "light" ? (
+                      <span className="text-[var(--Blue-2,#0A9ADD)] [text-shadow:0_0_0.5px_var(--Blue-2,#0A9ADD),0_0_0.99px_var(--Blue-2,#0A9ADD),0_0_3.47px_var(--Blue-2,#0A9ADD),0_0_6.95px_var(--Blue-2,#0A9ADD)]">
+                        SPIN
+                      </span>
+                    ) : (
+                      <span className="text-white">SPIN</span>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-          {/* </div> */}
+            {/* </div> */}
 
-          {/* Pointer with tick animation */}
-          <div
-            ref={tickerRef}
-            className="absolute top-[-2rem] left-1/2 -translate-x-1/2 -translate-y-2 z-20 origin-top"
-          >
-            <Image
-              src={theme === "dark" ? DarkPolygon : Polygon}
-              alt="pointer"
-              width={48}
-              height={48}
-              className="w-12 h-12 sm:w-16 sm:h-16"
-            />
+            {/* Pointer with tick animation */}
+            <div
+              ref={tickerRef}
+              className="absolute top-[-2rem] left-1/2 -translate-x-1/2 -translate-y-2 z-20 origin-top"
+            >
+              <Image
+                src={theme === "dark" ? DarkPolygon : Polygon}
+                alt="pointer"
+                width={48}
+                height={48}
+                className="w-12 h-12 sm:w-16 sm:h-16"
+              />
+            </div>
           </div>
-        </div>
-  
-        {/* wheel-only keyframes */}
-        <style jsx>{`
-          @keyframes tick {
-            40% {
-              transform: rotate(-12deg);
+
+          {/* wheel-only keyframes */}
+          <style jsx>{`
+            @keyframes tick {
+              40% {
+                transform: rotate(-12deg);
+              }
             }
-          }
-        `}</style>
+          `}</style>
+        </div>
       </div>
- </div>
       <div className="w-full max-w-sm mt-[-3rem] mx-auto">
         {/* Spin Now Button */}
 
