@@ -10,6 +10,7 @@ import solCoin from "@/public/assets/sol-blue.png";
 import fnCoin from "@/public/assets/fn-blue.png";
 import dividers from "@/public/assets/Dividers.png";
 import Image from "next/image";
+import Polygon from "@/public/assets/polygon.png";
 import SVG from "./svg.component";
 import { useTheme } from "next-themes";
 
@@ -400,10 +401,16 @@ export default function LuckySpin() {
           {/* Pointer with tick animation */}
           <div
             ref={tickerRef}
-            className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 z-20 origin-top"
+            className="absolute top-[-2rem] left-1/2 -translate-x-1/2 -translate-y-2 z-20 origin-top"
           >
-            <div className="w-3 h-3 border-l-5 border-r-5 border-b-10 border-l-transparent border-r-transparent border-cyan-300 bg-[#201561]" />
-          </div>
+      <Image
+            src={Polygon}
+            alt="pointer"
+            width={48}
+            height={48}
+            className="w-12 h-12 sm:w-16 sm:h-16"
+          />
+        </div>
         </div>
 
         {/* wheel-only keyframes */}
