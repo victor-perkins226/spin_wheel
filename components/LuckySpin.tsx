@@ -125,7 +125,7 @@ export default function LuckySpin() {
   return (
     <div className="w-full  mx-auto glass backdrop-blur-sm rounded-2xl  shadow-2xl border ">
       {/* Header */}
-      <div className="flex items-center glass rounded-t-2xl p-3  justify-between mb-6">
+      <div className="flex items-center glass rounded-t-2xl p-3  justify-between mb-2">
         <div className="flex  items-center w-full gap-3">
           <button className="p-2 glass rounded-lg transition-colors">
             <ChevronLeft className="size-6 " />
@@ -136,7 +136,7 @@ export default function LuckySpin() {
         </div>
       </div>
       {/* User Level */}
-      <div className="flex items-center justify-between px-10 mx-auto mb-12">
+      <div className="flex items-center justify-between px-10 mx-auto mb-6">
         <div className="glass  rounded-xl">
           <div className="flex gap-4 justify-between w-full items-center py-2 px-6">
             <div
@@ -207,11 +207,11 @@ export default function LuckySpin() {
         <div
           className={
             theme === "light"
-              ? "rounded-full  md:w-[40rem] mx-auto border border-[#ffffff] shadow-[0_4px_24px_-1px_#00000033] backdrop-blur-[40px] bg-white/30 md:h-[40rem] "
-              : "rounded-full  md:w-[40rem] mx-auto border border-[#0d166e] shadow-[0_4px_24px_-1px_#00000033] backdrop-blur-[40px] bg-[#04082D] md:h-[40rem] "
+              ? "rounded-full  h-[28rem] w-[28rem] mx-auto border border-[#ffffff] shadow-[0_4px_24px_-1px_#00000033] backdrop-blur-[40px] bg-white/30 "
+              : "rounded-full  h-[28rem] w-[28rem] mx-auto border border-[#0d166e] shadow-[0_4px_24px_-1px_#00000033] backdrop-blur-[40px] bg-[#04082D] "
           }
         >
-          <div className="relative w-[22rem] h-[22rem] sm:w-[26rem] mt-8 sm:h-[26rem] md:w-[36rem] md:h-[36rem] mx-auto">
+          <div className="relative w-[22rem] h-[22rem] sm:w-[26rem] mt-4 sm:h-[26rem]  mx-auto">
             {/* Outer Ring */}
             {/* <div className="absolute inset-0 rounded-full p-[10px] bg-gradient-to-tr bg-[#201561]"> */}
             {/* <div className=" z-10 h-[30rem] inset-0 rounded-full absolute -top-2 left-11 rotate-[36deg] w-[30rem]">
@@ -337,19 +337,19 @@ export default function LuckySpin() {
                             <Image
                               src={solCoin}
                               alt="SOL"
-                              width={57}
-                              height={63}
+                              width={42}
+                              height={48}
                             />
                           ) : (
                             <Image
                               src={fnCoin}
                               alt="FN"
-                              width={57}
-                              height={63}
+                              width={42}
+                              height={48}
                             />
                           )}
                           <span
-                            className={`text-[#00EEFE] text-2xl mt-3 font-semibold`}
+                            className={`text-[#00EEFE] text-lg  font-semibold`}
                           >
                             {prize.label}
                           </span>
@@ -466,7 +466,7 @@ export default function LuckySpin() {
           `}</style>
         </div>
       </div>
-      <div className="w-full max-w-sm mt-[-3rem] mx-auto">
+      <div className="w-full max-w-sm mt-[-4rem] mx-auto">
         {/* Spin Now Button */}
 
         {theme === "light" ? (
@@ -495,7 +495,7 @@ export default function LuckySpin() {
       </div>
 
       {/* User Info */}
-      <div className="flex items-center max-w-xl mt-20 mb-12 mx-auto justify-between">
+      <div className="flex items-center max-w-xl mb-5 mt-10 mx-auto justify-between">
         <div className="flex items-center gap-4 glass px-6 py-2 rounded-2xl">
           <Image
             src={coinIcon}
