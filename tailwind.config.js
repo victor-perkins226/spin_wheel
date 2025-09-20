@@ -7,6 +7,15 @@ module.exports = {
   ],
   theme: {
     extend: {
+      keyframes: {
+        zoomInOut: {
+          '0%,100%': { transform: 'scale(0.95)' },
+          '50%':     { transform: 'scale(1.15)' },
+        },
+      },
+      animation: {
+        zoom: 'zoomInOut 1.2s ease-in-out infinite',
+      },
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',

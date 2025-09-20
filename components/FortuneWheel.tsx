@@ -46,7 +46,7 @@ function FortuneWheel() {
             onClick={() => setOpen(false)}
           />
           {/* Modal panel */}
-          <div className="relative max-h-[90vh] w-full max-w-[700px] overflow-y-auto rounded-2xl  shadow-2xl">
+          <div className="relative max-h-[90vh] w-full max-w-[600px] overflow-y-auto rounded-2xl  shadow-2xl">
             <button
               onClick={() => setOpen(false)}
               aria-label="Close"

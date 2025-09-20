@@ -136,7 +136,7 @@ export default function LuckySpin() {
         </div>
       </div>
       {/* User Level */}
-      <div className="flex items-center justify-between px-10 mx-auto mb-6">
+      <div className="flex items-center justify-between max-w-lg mx-auto mb-8">
         <div className="glass  rounded-xl">
           <div className="flex gap-4 justify-between w-full items-center py-2 px-6">
             <div
@@ -184,10 +184,10 @@ export default function LuckySpin() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-4 px-3 py-1 ">
+        <div className="flex items-center glass rounded-xl gap-4 px-3 py-1 ">
           <div className=" rounded-full">
             <Image
-              width={64}
+              width={48}
               height={78}
               src={medalBronze}
               alt="Bronze Medal"
@@ -429,13 +429,14 @@ export default function LuckySpin() {
                     }`}
                   >
                     {theme !== "light" ? (
-                      <span className="text-[var(--Blue-2,#0A9ADD)] [text-shadow:0_0_0.5px_var(--Blue-2,#0A9ADD),0_0_0.99px_var(--Blue-2,#0A9ADD),0_0_3.47px_var(--Blue-2,#0A9ADD),0_0_6.95px_var(--Blue-2,#0A9ADD)]">
+                      <span className="text-[var(--Blue-2,#0A9ADD)] inline-block will-change-transform [animation:zoomInOut_1.2s_ease-in-out_infinite] [text-shadow:0_0_0.5px_var(--Blue-2,#0A9ADD),0_0_0.99px_var(--Blue-2,#0A9ADD),0_0_3.47px_var(--Blue-2,#0A9ADD),0_0_6.95px_var(--Blue-2,#0A9ADD)]">
                         SPIN
                       </span>
                     ) : (
-                      <span className="text-white">SPIN</span>
+                      <span className="text-white animate-bounce">SPIN</span>
                     )}
                   </button>
+                
                 </div>
               </div>
             </div>
@@ -458,6 +459,12 @@ export default function LuckySpin() {
 
           {/* wheel-only keyframes */}
           <style jsx>{`
+          
+  @keyframes zoomInOut {
+    0%   { transform: scale(0.95); }
+    50%  { transform: scale(1.15); }
+    100% { transform: scale(0.95); }
+  }
             @keyframes tick {
               40% {
                 transform: rotate(-12deg);
@@ -495,14 +502,14 @@ export default function LuckySpin() {
       </div>
 
       {/* User Info */}
-      <div className="flex items-center max-w-xl mb-5 mt-10 mx-auto justify-between">
-        <div className="flex items-center gap-4 glass px-6 py-2 rounded-2xl">
+      <div className="flex glass p-2 rounded-3xl shadow-0 items-center max-w-lg mb-5 mt-10 mx-auto justify-between">
+        <div className="flex  items-center gap-4 glass px-6 py-2 rounded-2xl">
           <Image
             src={coinIcon}
             alt="Solana"
-            width={64}
-            height={64}
-            className="w-[32px] sm:w-[32px] lg:w-[64px] h-auto object-contain "
+            width={48}
+            height={48}
+            className="w-[48px] h-auto object-contain "
           />
           <div className="flex flex-col">
             <span className="uppercase text-sm">Spin Bonus Total</span>
